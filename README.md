@@ -2,11 +2,11 @@
 
 ## What This Is
 
-This is a parametric OpenSCAD model that generates customizable plant pot inserts and matching planter bodies. You provide measurements of your insert (pot, container, or vessel) and the generator creates a planter body fitted to hold it securely with optional decorative patterns. All dimensions are parametric—adjust them to fit any insert size, wall thickness, or decoration style.
+This is a parametric OpenSCAD model that generates a decorative outer planter body/shell fitted around a plastic insert (pot, container, or vessel) you already have. You provide measurements of your insert and the generator creates a body that holds it securely, with optional decorative patterns. All dimensions are parametric—adjust them to fit any insert size, wall thickness, or decoration style.
 
 ## Requirements
 
-- **OpenSCAD 2019.05 or later** — required for the Customizer feature and procedural language features used here.
+- **OpenSCAD 2021.01 or later** — required by the vendored BOSL2 library (which hard-asserts this minimum version), the Customizer feature, and procedural language features used here.
 - **BOSL2 library** — vendored in `lib/BOSL2/`, no separate installation needed.
 - **Customizer panel recommended** — the easiest way to adjust parameters. Enable it with **View → Show Customizer** in OpenSCAD.
 
@@ -71,6 +71,8 @@ All parameters below can be adjusted in the Customizer panel or via command-line
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | `floor_thickness` | Thickness of the planter's solid floor (mm) | 3 |
+
+In `"custom"` outer mode, the actual floor thickness is `floor_thickness + (outer_height - pot_height)`, not just `floor_thickness` — the cavity is shifted up to sit flush with the custom outer shape's top, so any extra height in `outer_height` beyond the required cavity height becomes additional solid floor.
 | `drainage_holes_enabled` | Enable drainage holes in the floor | `false` |
 | `drainage_hole_count` | Number of drainage holes | 6 |
 | `drainage_hole_diameter` | Diameter of each drainage hole (mm) | 4 |
@@ -118,6 +120,8 @@ The `pattern_type` and `relief_mode` parameters combine to create different visu
 
 Adjust `pattern_orientation` to switch between vertical and horizontal layouts, and `pattern_repeat` to change how many tiles wrap around the circumference.
 
+Note: enabling decoration changes the pot's outer silhouette slightly. BOSL2's textured `cyl()` only supports a straight r1/r2 cone, so the decorated body is approximated as a straight cone through the cavity's peak radius rather than following the cavity's exact ledge/shoulder profile — at defaults this means the rim wall goes from ~3mm (plain `wall_thickness`) to ~7mm. This is a deliberate, documented tradeoff, not a bug.
+
 ## License
 
-This project is licensed under the [LICENSE](LICENSE) file included in this repository.
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file included in this repository.

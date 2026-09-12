@@ -23,9 +23,9 @@ bottom_margin = 5;           // air gap below the insert's bottom (mm)
 /* [Outer Shape] */
 outer_mode = "follow"; // "follow" or "custom"
 wall_thickness = 3;     // used in follow mode (mm)
-outer_top_d = 160;      // used in custom mode (mm)
-outer_bottom_d = 120;   // used in custom mode (mm)
-outer_height = 140;     // used in custom mode (mm)
+outer_top_d = 172;      // used in custom mode (mm)
+outer_bottom_d = 130;   // used in custom mode (mm)
+outer_height = 145;     // used in custom mode (mm)
 
 /* [Decoration] */
 pattern_type = "ridges";          // "none", "ridges", "geometric"
@@ -50,6 +50,34 @@ assert(pattern_depth < wall_thickness * 0.7 || pattern_type == "none",
     "pattern_depth must be < 70% of wall_thickness");
 
 pot_height = insert_cavity_height(insert_height, floor_thickness, bottom_margin);
+
+assert(outer_mode != "custom" || outer_height >= pot_height,
+    str("outer_height (", outer_height, ") must be >= required cavity height (", pot_height, ") in custom mode"));
+
+// Radial containment check for custom mode: the outer profile's linear taper
+// must clear the cavity (plus wall_thickness) at the two critical breakpoints
+// -- the ledge's loose-side bulge and the tight-fit rim -- not just at the
+// endpoints. The cavity is translated up by z_offset in custom mode, so its
+// breakpoints land at ledge_bottom_z + z_offset and pot_height + z_offset in
+// the outer body's own z coordinates.
+_ledge_bottom_z = pot_height - ledge_engagement_height;
+_custom_z_offset = outer_height - pot_height;
+_outer_r_at = function (z) outer_bottom_d/2 + (outer_top_d/2 - outer_bottom_d/2) * (z / outer_height);
+_r_ledge_loose = cavity_radius_at(_ledge_bottom_z, insert_top_d, insert_bottom_d, insert_height,
+    ledge_engagement_height, fit_clearance, body_clearance, pot_height);
+_r_rim_tight = cavity_radius_at(pot_height, insert_top_d, insert_bottom_d, insert_height,
+    ledge_engagement_height, fit_clearance, body_clearance, pot_height);
+
+assert(outer_mode != "custom" ||
+    _outer_r_at(_ledge_bottom_z + _custom_z_offset) >= _r_ledge_loose + wall_thickness,
+    str("custom outer profile is too thin at the ledge bulge (z=", _ledge_bottom_z + _custom_z_offset,
+        "): has radius ", _outer_r_at(_ledge_bottom_z + _custom_z_offset),
+        ", needs >= ", _r_ledge_loose + wall_thickness));
+assert(outer_mode != "custom" ||
+    _outer_r_at(pot_height + _custom_z_offset) >= _r_rim_tight + wall_thickness,
+    str("custom outer profile is too thin at the rim (z=", pot_height + _custom_z_offset,
+        "): has radius ", _outer_r_at(pot_height + _custom_z_offset),
+        ", needs >= ", _r_rim_tight + wall_thickness));
 
 module planter() {
     difference() {
@@ -98,8 +126,12 @@ module planter() {
         if (drainage_holes_enabled) {
             r_bottom_cavity = cavity_radius_at(floor_thickness, insert_top_d, insert_bottom_d,
                 insert_height, ledge_engagement_height, fit_clearance, body_clearance, pot_height);
+            // Extend hole length by z_offset (rather than translating the whole
+            // call) so the hole still starts below the true exterior bottom
+            // face at z=0 -- translating up by z_offset would detach the hole
+            // from that face, creating a new blind pocket from the other end.
             drainage_holes(drainage_hole_count, drainage_hole_diameter,
-                r_bottom_cavity * 0.6, floor_thickness);
+                r_bottom_cavity * 0.6, floor_thickness + z_offset);
         }
     }
 }

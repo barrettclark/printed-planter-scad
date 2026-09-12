@@ -3,7 +3,6 @@ include <../modules/insert.scad>
 include <../modules/body.scad>
 
 // custom mode must reject an outer_height shorter than the required cavity height
-ok = true;
 // (assert() inside outer_body_custom is exercised via render, not directly testable
 //  as a boolean here, so we test the underlying math path instead:)
 pot_h = insert_cavity_height(130, 3, 5); // 138
