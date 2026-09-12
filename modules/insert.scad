@@ -12,7 +12,7 @@ function cavity_radius_at(z, insert_top_d, insert_bottom_d, insert_height,
         ledge_bottom_z  = pot_height - ledge_engagement_height
     )
     z <= insert_bottom_z ? insert_bottom_d/2 + body_clearance :
-    z <  ledge_bottom_z  ? _lerp(insert_bottom_d/2, insert_top_d/2,
+    z <= ledge_bottom_z  ? _lerp(insert_bottom_d/2, insert_top_d/2,
                                   (z - insert_bottom_z) / (ledge_bottom_z - insert_bottom_z))
                             + body_clearance :
     insert_top_d/2 + fit_clearance;
