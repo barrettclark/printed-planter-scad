@@ -1,27 +1,11 @@
 // tests/test_planter_integration.scad
-// Renders planter.scad with the real 150/110/130 insert and default decoration,
-// just to confirm the full assembly compiles without error.
-insert_top_d = 150;
-insert_bottom_d = 110;
-insert_height = 130;
-ledge_engagement_height = 8;
-fit_clearance = 0.3;
-body_clearance = 3;
-bottom_margin = 5;
-floor_thickness = 3;
-wall_thickness = 3;
-outer_mode = "follow"; // "follow" or "custom"
-outer_top_d = 160;     // only used when outer_mode == "custom"
-outer_bottom_d = 120;  // only used when outer_mode == "custom"
-outer_height = 140;    // only used when outer_mode == "custom"
-pattern_type = "ridges";       // "none" | "ridges" | "geometric"
-pattern_orientation = "vertical"; // "vertical" | "horizontal"
-relief_mode = "raised";           // "raised" | "etched"
-pattern_depth = 1.5;
-pattern_repeat = 16;
-drainage_holes_enabled = true;
-drainage_hole_count = 6;
-drainage_hole_diameter = 4;
-smoothness = 80;
-
+// Verifies the full assembly compiles cleanly with default Customizer values
+// (the real 150/110/130 insert). Note: pre-include variable assignment does
+// NOT override planter.scad's defaults here — OpenSCAD flattens repeated
+// top-level assignments to the textually last one, so a caller can't set
+// these variables before `include`-ing the file. To exercise non-default
+// values, use -D on the command line instead, e.g.:
+//
+//   openscad -D 'drainage_holes_enabled=true' -o out.csg tests/test_planter_integration.scad
+//
 include <../planter.scad>

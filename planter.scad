@@ -36,7 +36,7 @@ pattern_repeat = 16;    // tile count around circumference
 
 /* [Base] */
 floor_thickness = 3;              // mm
-drainage_holes_enabled = true;    // add drainage holes to the solid floor
+drainage_holes_enabled = false;    // add drainage holes to the solid floor
 drainage_hole_count = 6;
 drainage_hole_diameter = 4;
 
