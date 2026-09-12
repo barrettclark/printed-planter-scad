@@ -1,0 +1,56 @@
+name: Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  scad-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install OpenSCAD
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y openscad
+          openscad --version
+
+      - name: Run test suite
+        run: |
+          set -e
+          fail=0
+
+          # Tests expected to succeed cleanly (exit 0, no ERROR in output).
+          for f in tests/test_insert.scad \
+                   tests/test_body.scad \
+                   tests/test_base.scad \
+                   tests/test_bosl2_texture_smoke.scad \
+                   tests/test_decoration.scad \
+                   tests/test_decoration_ridges.scad \
+                   tests/test_wall_thickness_invariant.scad \
+                   tests/test_planter_integration.scad; do
+            echo "=== $f (expect clean) ==="
+            out=$(openscad -o /tmp/ci_$(basename "$f" .scad).csg "$f" 2>&1)
+            code=$?
+            echo "$out"
+            if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
+              echo "FAIL: $f (exit $code, or ERROR in output)"
+              fail=1
+            fi
+          done
+
+          # Tests expected to fail their internal assertion (ERROR is success here).
+          for f in tests/test_body_custom_assert.scad \
+                   tests/test_decoration_depth_assert.scad; do
+            echo "=== $f (expect ERROR: Assertion failed) ==="
+            out=$(openscad -o /tmp/ci_$(basename "$f" .scad).csg "$f" 2>&1)
+            echo "$out"
+            if ! echo "$out" | grep -q "ERROR: Assertion"; then
+              echo "FAIL: $f (expected an assertion failure, got none)"
+              fail=1
+            fi
+          done
+
+          exit $fail

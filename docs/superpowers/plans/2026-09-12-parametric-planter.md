@@ -10,6 +10,31 @@
 
 **Spec:** `docs/superpowers/specs/2026-09-12-parametric-planter-design.md`
 
+## Erratum (post-implementation)
+
+This plan was written before the vendored BOSL2 copy or its exact API were
+available to inspect, and before OpenSCAD's `include`-based variable
+override semantics were tested. Two assumptions below turned out to be
+wrong; the text is left as originally written for historical accuracy, but
+here is what actually happened during implementation:
+
+- **`lib/BOSL2/textures.scad` does not exist** in the vendored BOSL2
+  (Task 1, Step 3 and Step 4 reference it). Texture support lives in
+  `lib/BOSL2/skin.scad`, which `lib/BOSL2/std.scad` already includes.
+  `modules/decoration.scad` includes only `std.scad`.
+- **Pre-`include` variable assignment does not override an included file's
+  own defaults** in OpenSCAD — the textually-last assignment wins
+  regardless of `include` order. This broke Task 6's and Task 8's planned
+  test-harness pattern (assign variables in a wrapper, then `include
+  <../planter.scad>`, expecting the wrapper's values to take effect). The
+  actual test suite instead uses OpenSCAD's `-D 'var=value'` CLI flag,
+  which is the real override mechanism, and `tests/test_planter_integration.scad`
+  is a bare `include` with no pre-assignments. Task 8's `sed`-editing-a-
+  wrapper approach (Step 1 of that task) was never executed as written for
+  this reason — see the shipped `.github/workflows/test.yml` for the test
+  matrix actually run in CI, which also runs every test file, not the
+  subset Task 8's Step 3 loop lists.
+
 ## Global Constraints
 
 - Round outer cross-section only (no square/hex outer body) this iteration.
