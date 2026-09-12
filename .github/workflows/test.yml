@@ -45,6 +45,29 @@ jobs:
             fi
           done
 
+          # Full-assembly variants: the default-only invocation above never
+          # exercises the custom outer-mode path (translation/containment
+          # asserts) or the drainage-hole subtraction path in planter() --
+          # both have had real regressions before. -D overrides the
+          # Customizer defaults for these dedicated checks.
+          echo "=== tests/test_planter_integration.scad (custom_outer_mode, expect clean) ==="
+          out=$(openscad -D 'outer_mode="custom"' -o /tmp/ci_variant_custom_outer_mode.csg tests/test_planter_integration.scad 2>&1)
+          code=$?
+          echo "$out"
+          if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
+            echo "FAIL: full-assembly variant custom_outer_mode (exit $code, or ERROR in output)"
+            fail=1
+          fi
+
+          echo "=== tests/test_planter_integration.scad (drainage_enabled, expect clean) ==="
+          out=$(openscad -D 'drainage_holes_enabled=true' -o /tmp/ci_variant_drainage_enabled.csg tests/test_planter_integration.scad 2>&1)
+          code=$?
+          echo "$out"
+          if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
+            echo "FAIL: full-assembly variant drainage_enabled (exit $code, or ERROR in output)"
+            fail=1
+          fi
+
           # Wall-thickness invariant: must render EMPTY (cavity never pokes
           # through the outer wall) for all 3 documented parameter combos.
           # .csg export does not force full CGAL evaluation (a non-empty
