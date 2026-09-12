@@ -49,35 +49,44 @@ assert(wall_thickness > 0, "wall_thickness must be > 0");
 assert(pattern_depth < wall_thickness * 0.7 || pattern_type == "none",
     "pattern_depth must be < 70% of wall_thickness");
 
+assert(outer_mode == "follow" || outer_mode == "custom",
+    str("outer_mode must be \"follow\" or \"custom\", got \"", outer_mode, "\""));
+
 pot_height = insert_cavity_height(insert_height, floor_thickness, bottom_margin);
 
 assert(outer_mode != "custom" || outer_height >= pot_height,
     str("outer_height (", outer_height, ") must be >= required cavity height (", pot_height, ") in custom mode"));
 
 // Radial containment check for custom mode: the outer profile's linear taper
-// must clear the cavity (plus wall_thickness) at the two critical breakpoints
-// -- the ledge's loose-side bulge and the tight-fit rim -- not just at the
-// endpoints. The cavity is translated up by z_offset in custom mode, so its
-// breakpoints land at ledge_bottom_z + z_offset and pot_height + z_offset in
-// the outer body's own z coordinates.
+// must clear the cavity (plus wall_thickness) everywhere. cavity_radius_at is
+// constant below insert_bottom_z, linear between insert_bottom_z and
+// ledge_bottom_z, then constant (tight) above ledge_bottom_z, so the
+// difference (outer_r - cavity_r) is piecewise linear too -- its minimum on
+// each sub-interval falls at an endpoint, giving four breakpoints to check:
+// the cavity's own floor (z=floor_thickness), the insert's physical bottom
+// (insert_bottom_z), the ledge's loose-side bulge, and the tight-fit rim.
+// The cavity is translated up by z_offset in custom mode, so each breakpoint
+// lands at (breakpoint + z_offset) in the outer body's own z coordinates.
+_insert_bottom_z = pot_height - insert_height;
 _ledge_bottom_z = pot_height - ledge_engagement_height;
 _custom_z_offset = outer_height - pot_height;
 _outer_r_at = function (z) outer_bottom_d/2 + (outer_top_d/2 - outer_bottom_d/2) * (z / outer_height);
-_r_ledge_loose = cavity_radius_at(_ledge_bottom_z, insert_top_d, insert_bottom_d, insert_height,
-    ledge_engagement_height, fit_clearance, body_clearance, pot_height);
-_r_rim_tight = cavity_radius_at(pot_height, insert_top_d, insert_bottom_d, insert_height,
-    ledge_engagement_height, fit_clearance, body_clearance, pot_height);
-
-assert(outer_mode != "custom" ||
-    _outer_r_at(_ledge_bottom_z + _custom_z_offset) >= _r_ledge_loose + wall_thickness,
-    str("custom outer profile is too thin at the ledge bulge (z=", _ledge_bottom_z + _custom_z_offset,
-        "): has radius ", _outer_r_at(_ledge_bottom_z + _custom_z_offset),
-        ", needs >= ", _r_ledge_loose + wall_thickness));
-assert(outer_mode != "custom" ||
-    _outer_r_at(pot_height + _custom_z_offset) >= _r_rim_tight + wall_thickness,
-    str("custom outer profile is too thin at the rim (z=", pot_height + _custom_z_offset,
-        "): has radius ", _outer_r_at(pot_height + _custom_z_offset),
-        ", needs >= ", _r_rim_tight + wall_thickness));
+_custom_breakpoints = [
+    [floor_thickness, "the cavity floor"],
+    [_insert_bottom_z, "the insert's bottom"],
+    [_ledge_bottom_z, "the ledge bulge"],
+    [pot_height, "the rim"],
+];
+for (bp = _custom_breakpoints) {
+    _z = bp[0];
+    _label = bp[1];
+    _r_cavity = cavity_radius_at(_z, insert_top_d, insert_bottom_d, insert_height,
+        ledge_engagement_height, fit_clearance, body_clearance, pot_height);
+    _z_outer = _z + _custom_z_offset;
+    assert(outer_mode != "custom" || _outer_r_at(_z_outer) >= _r_cavity + wall_thickness,
+        str("custom outer profile is too thin at ", _label, " (z=", _z_outer,
+            "): has radius ", _outer_r_at(_z_outer), ", needs >= ", _r_cavity + wall_thickness));
+}
 
 module planter() {
     difference() {

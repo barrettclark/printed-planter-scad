@@ -12,7 +12,7 @@ This is a parametric OpenSCAD model that generates a decorative outer planter bo
 
 Command-line users can override any parameter without the Customizer by using the `-D` flag, for example:
 ```bash
-openscad -D 'insert_top_d=160' -D 'pattern_type=geometric' -o planter.stl planter.scad
+openscad -D 'insert_top_d=160' -D 'pattern_type="geometric"' -o planter.stl planter.scad
 ```
 
 ## Measuring Your Insert
@@ -52,9 +52,9 @@ All parameters below can be adjusted in the Customizer panel or via command-line
 |-----------|-------------|---------|
 | `outer_mode` | Shape mode: `"follow"` (auto-wrap around insert) or `"custom"` (fixed geometry) | `"follow"` |
 | `wall_thickness` | Wall thickness in `"follow"` mode (mm) | 3 |
-| `outer_top_d` | Outer top diameter in `"custom"` mode (mm) | 160 |
-| `outer_bottom_d` | Outer bottom diameter in `"custom"` mode (mm) | 120 |
-| `outer_height` | Planter height in `"custom"` mode (mm) | 140 |
+| `outer_top_d` | Outer top diameter in `"custom"` mode (mm) | 172 |
+| `outer_bottom_d` | Outer bottom diameter in `"custom"` mode (mm) | 130 |
+| `outer_height` | Planter height in `"custom"` mode (mm) | 145 |
 
 ### Decoration
 
