@@ -25,6 +25,7 @@ module outer_body_follow(insert_top_d, insert_bottom_d, insert_height,
 
     pts = [
         [0, 0],
+        [r_floor, 0],
         [r_floor, floor_thickness],
         [r_insert_bot, insert_bottom_z],
         [r_ledge_lower, ledge_bottom_z],

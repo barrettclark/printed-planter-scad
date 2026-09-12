@@ -71,11 +71,11 @@ All parameters below can be adjusted in the Customizer panel or via command-line
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | `floor_thickness` | Thickness of the planter's solid floor (mm) | 3 |
-
-In `"custom"` outer mode, the actual floor thickness is `floor_thickness + (outer_height - pot_height)`, not just `floor_thickness` — the cavity is shifted up to sit flush with the custom outer shape's top, so any extra height in `outer_height` beyond the required cavity height becomes additional solid floor.
 | `drainage_holes_enabled` | Enable drainage holes in the floor | `false` |
 | `drainage_hole_count` | Number of drainage holes | 6 |
 | `drainage_hole_diameter` | Diameter of each drainage hole (mm) | 4 |
+
+In `"custom"` outer mode, the actual floor thickness is `floor_thickness + (outer_height - pot_height)`, not just `floor_thickness` — the cavity is shifted up to sit flush with the custom outer shape's top, so any extra height in `outer_height` beyond the required cavity height becomes additional solid floor.
 
 ### Quality
 
