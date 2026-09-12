@@ -64,7 +64,7 @@ All parameters below can be adjusted in the Customizer panel or via command-line
 | `pattern_orientation` | Direction: `"vertical"` or `"horizontal"` | `"vertical"` |
 | `relief_mode` | Relief type: `"raised"` or `"etched"` | `"raised"` |
 | `pattern_depth` | Depth of pattern relief (mm) | 1.5 |
-| `pattern_repeat` | Number of pattern tiles around the circumference | 16 |
+| `pattern_repeat` | Number of pattern tiles around the circumference, and also vertically for tileable patterns | 16 |
 
 ### Base
 
@@ -118,7 +118,7 @@ The `pattern_type` and `relief_mode` parameters combine to create different visu
 | `"geometric"` | `"raised"` | Repeating geometric tiles that project outward. |
 | `"geometric"` | `"etched"` | Repeating geometric tiles carved into the surface. |
 
-Adjust `pattern_orientation` to switch between vertical and horizontal layouts, and `pattern_repeat` to change how many tiles wrap around the circumference.
+Adjust `pattern_orientation` to switch between vertical and horizontal layouts, and `pattern_repeat` to change how many tiles wrap around the circumference — the same value also sets the vertical repeat count for tileable patterns, so raising it makes tiles both more numerous around the pot and shorter top-to-bottom.
 
 Note: enabling decoration changes the pot's outer silhouette slightly. BOSL2's textured `cyl()` only supports a straight r1/r2 cone, so the decorated body is approximated as a straight cone through the cavity's peak radius rather than following the cavity's exact ledge/shoulder profile — at defaults this means the rim wall goes from ~3mm (plain `wall_thickness`) to ~7mm. This is a deliberate, documented tradeoff, not a bug.
 

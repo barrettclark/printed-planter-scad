@@ -19,7 +19,6 @@ jobs:
 
       - name: Run test suite
         run: |
-          set -e
           fail=0
 
           # Tests expected to succeed cleanly (exit 0, no ERROR in output).
@@ -29,7 +28,6 @@ jobs:
                    tests/test_bosl2_texture_smoke.scad \
                    tests/test_decoration.scad \
                    tests/test_decoration_ridges.scad \
-                   tests/test_wall_thickness_invariant.scad \
                    tests/test_planter_integration.scad; do
             echo "=== $f (expect clean) ==="
             out=$(openscad -o /tmp/ci_$(basename "$f" .scad).csg "$f" 2>&1)
@@ -37,6 +35,24 @@ jobs:
             echo "$out"
             if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
               echo "FAIL: $f (exit $code, or ERROR in output)"
+              fail=1
+            fi
+          done
+
+          # Wall-thickness invariant: must render EMPTY (cavity never pokes
+          # through the outer wall) for all 3 documented parameter combos.
+          # .csg export does not force full CGAL evaluation (a non-empty
+          # difference() would still "succeed" with no ERROR), so this uses
+          # .stl output, which does force evaluation. A truly empty result
+          # makes OpenSCAD refuse to write the STL and exit nonzero -- that
+          # nonzero exit is EXPECTED here; the actual pass signal is the
+          # "Current top level object is empty." sentinel string.
+          for combo in 0 1 2; do
+            echo "=== tests/test_wall_thickness_invariant.scad combo=$combo (expect empty) ==="
+            out=$(openscad -D "combo=$combo" -o /tmp/ci_wall_thickness_$combo.stl tests/test_wall_thickness_invariant.scad 2>&1)
+            echo "$out"
+            if ! echo "$out" | grep -q "Current top level object is empty."; then
+              echo "FAIL: wall thickness invariant combo=$combo (expected 'Current top level object is empty.')"
               fail=1
             fi
           done
