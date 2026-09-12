@@ -30,10 +30,14 @@ here is what actually happened during implementation:
   actual test suite instead uses OpenSCAD's `-D 'var=value'` CLI flag,
   which is the real override mechanism, and `tests/test_planter_integration.scad`
   is a bare `include` with no pre-assignments. Task 8's `sed`-editing-a-
-  wrapper approach (Step 1 of that task) was never executed as written for
-  this reason — see the shipped `.github/workflows/test.yml` for the test
-  matrix actually run in CI, which also runs every test file, not the
-  subset Task 8's Step 3 loop lists.
+  wrapper approach (Steps 1-2 of that task) was never executed as written
+  for this reason — and even setting that aside, generating the variant
+  file under `/tmp` (as those steps do) would break its
+  `include <../planter.scad>` line, since that path resolves relative to
+  the generated file's own location, not the repo. See the shipped
+  `.github/workflows/test.yml` for the test matrix actually run in CI,
+  which also runs every test file, not the subset Task 8's Step 3 loop
+  lists.
 
 ## Global Constraints
 
