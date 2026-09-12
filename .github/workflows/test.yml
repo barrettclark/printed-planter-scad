@@ -19,6 +19,12 @@ jobs:
 
       - name: Run test suite
         run: |
+          # GitHub Actions runs bash steps as `bash -e {0}` by default, which
+          # would abort this script the moment any openscad invocation exits
+          # nonzero (expected behavior for both the assertion-failure tests
+          # and the wall-thickness invariant's empty-STL check below) before
+          # its output can be inspected. Disable that here.
+          set +e
           fail=0
 
           # Tests expected to succeed cleanly (exit 0, no ERROR in output).
