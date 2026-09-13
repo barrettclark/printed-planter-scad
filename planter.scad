@@ -11,7 +11,7 @@ include <modules/base.scad>
 // is_undef() guards. These are just this file's fixed defaults.
 
 /* [Insert Dimensions] */
-insert_preset = "custom"; // ["custom", "small", "medium", "large"]
+insert_preset = "custom"; // ["custom:Custom (set fields below)", "small:Small (100x85 / 75mm bottom)", "medium:Medium (130x120 / 100mm bottom)", "large:Large (180x160 / 125mm bottom)"]
 insert_top_d = 150;     // top rim diameter (mm) -- used when insert_preset == "custom"
 insert_bottom_d = 110;  // bottom diameter (mm) -- used when insert_preset == "custom"
 insert_height = 130;    // insert height (mm) -- used when insert_preset == "custom"
