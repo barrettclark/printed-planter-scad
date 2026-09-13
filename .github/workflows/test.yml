@@ -69,6 +69,24 @@ jobs:
             fail=1
           fi
 
+          # test_decoration_pattern_types.scad only calls decorated_solid()
+          # directly -- it never exercises the full planter() assembly, so a
+          # texture that breaks only in that context (e.g. via the peak-aware
+          # cone extrapolation in planter.scad) would still pass CI. Render
+          # each new pattern_type through the real assembly too.
+          for pt in diamonds hex_grid pyramids bricks checkers dots cubes tri_grid; do
+            for relief in raised etched; do
+              echo "=== tests/test_planter_integration.scad (pattern_type=$pt, relief_mode=$relief, expect clean) ==="
+              out=$(openscad -D "pattern_type=\"$pt\"" -D "relief_mode=\"$relief\"" -o /tmp/ci_variant_${pt}_${relief}.csg tests/test_planter_integration.scad 2>&1)
+              code=$?
+              echo "$out"
+              if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
+                echo "FAIL: full-assembly variant pattern_type=$pt relief_mode=$relief (exit $code, or ERROR in output)"
+                fail=1
+              fi
+            done
+          done
+
           # Wall-thickness invariant: must render EMPTY (cavity never pokes
           # through the outer wall) for all 3 documented parameter combos.
           # .csg export does not force full CGAL evaluation (a non-empty
@@ -89,13 +107,30 @@ jobs:
 
           # Tests expected to fail their internal assertion (ERROR is success here).
           for f in tests/test_body_custom_assert.scad \
-                   tests/test_decoration_depth_assert.scad \
-                   tests/test_decoration_invalid_pattern_type.scad; do
+                   tests/test_decoration_depth_assert.scad; do
             echo "=== $f (expect ERROR: Assertion failed) ==="
             out=$(openscad -o /tmp/ci_$(basename "$f" .scad).csg "$f" 2>&1)
             echo "$out"
             if ! echo "$out" | grep -q "ERROR: Assertion"; then
               echo "FAIL: $f (expected an assertion failure, got none)"
+              fail=1
+            fi
+          done
+
+          # Invalid pattern_type: check not just that an assertion fires, but
+          # that its message actually names the valid options -- a regression
+          # that dropped the pattern list from the message would otherwise
+          # still pass a generic "ERROR: Assertion" check.
+          echo "=== tests/test_decoration_invalid_pattern_type.scad (expect specific message) ==="
+          out=$(openscad -o /tmp/ci_test_decoration_invalid_pattern_type.csg tests/test_decoration_invalid_pattern_type.scad 2>&1)
+          echo "$out"
+          if ! echo "$out" | grep -q "pattern_type must be one of"; then
+            echo "FAIL: invalid pattern_type assertion is missing the expected message prefix"
+            fail=1
+          fi
+          for pt in none ridges diamonds hex_grid pyramids bricks checkers dots cubes tri_grid; do
+            if ! echo "$out" | grep -q "\"$pt\""; then
+              echo "FAIL: invalid pattern_type assertion message is missing \"$pt\""
               fail=1
             fi
           done
