@@ -12,8 +12,10 @@ This is a parametric OpenSCAD model that generates a decorative outer planter bo
 
 Command-line users can override any parameter without the Customizer by using the `-D` flag, for example:
 ```bash
-openscad -D 'insert_top_d=160' -D 'pattern_type="geometric"' -o planter.stl planter.scad
+openscad -D 'insert_top_d=160' -D 'pattern_type="geometric"' -o exports/planter.stl planter.scad
 ```
+
+An `exports/` directory is included for rendered output (STL, 3MF, PNG, etc.) — `.gitignore` already excludes those file types repo-wide, so anything you save there stays local and won't get committed.
 
 ## Measuring Your Insert
 
