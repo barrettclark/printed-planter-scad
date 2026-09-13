@@ -28,7 +28,7 @@ outer_bottom_d = 130;   // used in custom mode (mm)
 outer_height = 145;     // used in custom mode (mm)
 
 /* [Decoration] */
-pattern_type = "ridges";           // ["none", "ridges", "geometric"]
+pattern_type = "ridges";           // ["none", "ridges", "diamonds", "hex_grid", "pyramids", "bricks", "checkers", "dots", "cubes", "tri_grid"]
 pattern_orientation = "vertical";  // ["vertical", "horizontal"]
 relief_mode = "raised";            // ["raised", "etched"]
 pattern_depth = 1.5;    // mm
@@ -51,6 +51,8 @@ assert(pattern_depth < wall_thickness * 0.7 || pattern_type == "none",
 
 assert(outer_mode == "follow" || outer_mode == "custom",
     str("outer_mode must be \"follow\" or \"custom\", got \"", outer_mode, "\""));
+assert(in_list(pattern_type, PATTERN_TYPES),
+    str("pattern_type must be one of ", PATTERN_TYPES, ", got \"", pattern_type, "\""));
 
 pot_height = insert_cavity_height(insert_height, floor_thickness, bottom_margin);
 
