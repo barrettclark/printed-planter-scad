@@ -31,6 +31,30 @@ for (pt = PATTERN_TYPES) {
     }
 }
 
+// Rendering without error also wouldn't catch a regression that dropped or
+// changed one of the three explicit style overrides -- BOSL2 would still
+// accept an undef/wrong style and produce *some* valid-looking geometry
+// (silently the wrong shape, e.g. "pyramids" reverting to mini-diamonds
+// under BOSL2's default style), not an error. Pin the three overrides and
+// confirm every other pattern_type has no override at all.
+EXPECTED_STYLES = [
+    ["diamonds", "concave"],
+    ["pyramids", "convex"],
+    ["bricks",   "convex"],
+];
+for (pair = EXPECTED_STYLES) {
+    assert(_decoration_style(pair[0]) == pair[1],
+        str("_decoration_style(\"", pair[0], "\") should be \"", pair[1],
+            "\", got ", _decoration_style(pair[0])));
+}
+_styled_types = [for (pair = EXPECTED_STYLES) pair[0]];
+for (pt = PATTERN_TYPES) {
+    if (!in_list(pt, _styled_types)) {
+        assert(_decoration_style(pt) == undef,
+            str("_decoration_style(\"", pt, "\") should be undef, got ", _decoration_style(pt)));
+    }
+}
+
 for (i = [0 : len(PATTERN_TYPES) - 1]) {
     translate([i * 200, 0, 0])
         decorated_solid(PATTERN_TYPES[i], "vertical", "raised", 1.5, 12, 75, 60, 100, 4);
