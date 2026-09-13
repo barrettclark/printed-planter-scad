@@ -41,8 +41,10 @@ PATTERN_TYPES = ["none", "ridges", "diamonds", "hex_grid", "pyramids",
 // The cost is that a textured cylinder ends up with scalloped rather than
 // circular end caps, which OpenSCAD 2021.01 can build and difference() fine
 // (the whole planter assembly renders), but which trips a CGAL assertion if
-// two such solids are union()ed with each other. Keep teardrop solids one per
-// render when forcing CGAL evaluation.
+// such a solid is union()ed with any other textured solid -- another teardrop,
+// a "dots" solid, anything carrying a texture. Unioning with plain untextured
+// geometry is fine. Keep a teardrop solid as the only textured solid per render
+// when forcing CGAL evaluation.
 _TD_TIP  = sqrt(2);              // tip height of a unit-radius, 45-degree teardrop
 _TD_H    = 1 + _TD_TIP;          // its total height, bottom of circle to tip
 _TD_GAP  = 0.08;                 // flat border between drops, in tile fractions

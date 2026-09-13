@@ -82,13 +82,13 @@ jobs:
           # down (a real difference()) is what validates the mesh.
           for pt in none ridges diamonds hex_grid pyramids bricks checkers dots cubes tri_grid teardrop; do
             for relief in raised etched; do
-              echo "=== decorated_solid pattern_type=$pt relief_mode=$relief (expect real evaluation to succeed) ==="
+              echo "=== decorated_solid pattern_type=$pt relief_mode=$relief (expect texture build to succeed) ==="
               printf 'include <%s/modules/decoration.scad>\ndecorated_solid("%s", "vertical", "%s", 1.5, 12, 75, 60, 100, 4);\n' "$(pwd)" "$pt" "$relief" > /tmp/ci_single_pattern.scad
               out=$(openscad -o /tmp/ci_single_${pt}_${relief}.stl /tmp/ci_single_pattern.scad 2>&1)
               code=$?
               echo "$out"
               if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
-                echo "FAIL: single-pattern STL evaluation for pattern_type=$pt relief_mode=$relief (exit $code, or ERROR in output)"
+                echo "FAIL: single-pattern texture build for pattern_type=$pt relief_mode=$relief (exit $code, or ERROR in output)"
                 fail=1
               fi
             done
