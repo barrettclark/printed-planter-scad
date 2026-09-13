@@ -21,16 +21,16 @@ body_clearance = 3;          // radial clearance around the tapered insert body 
 bottom_margin = 5;           // air gap below the insert's bottom (mm)
 
 /* [Outer Shape] */
-outer_mode = "follow"; // "follow" or "custom"
+outer_mode = "follow"; // ["follow", "custom"]
 wall_thickness = 3;     // used in follow mode (mm)
 outer_top_d = 172;      // used in custom mode (mm)
 outer_bottom_d = 130;   // used in custom mode (mm)
 outer_height = 145;     // used in custom mode (mm)
 
 /* [Decoration] */
-pattern_type = "ridges";          // "none", "ridges", "geometric"
-pattern_orientation = "vertical";  // "vertical", "horizontal"
-relief_mode = "raised";            // "raised", "etched"
+pattern_type = "ridges";           // ["none", "ridges", "geometric"]
+pattern_orientation = "vertical";  // ["vertical", "horizontal"]
+relief_mode = "raised";            // ["raised", "etched"]
 pattern_depth = 1.5;    // mm
 pattern_repeat = 16;    // tile count around circumference
 
