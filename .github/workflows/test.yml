@@ -130,7 +130,7 @@ jobs:
           # "bricks" alone measured 2-3+ minutes PER combination for a full
           # difference() against the cavity (its randomized per-facet
           # roughness multiplies out badly), which made real evaluation of
-          # all 16 combinations impractically slow. At these reduced
+          # all 18 combinations impractically slow. At these reduced
           # settings the same "bricks" check measured ~15s and everything
           # else under 5s -- fewer facets to evaluate, same code paths
           # exercised, so this still catches a self-intersecting or
