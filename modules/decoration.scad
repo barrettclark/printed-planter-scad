@@ -48,31 +48,38 @@ _TD_H    = 1 + _TD_TIP;          // its total height, bottom of circle to tip
 _TD_GAP  = 0.08;                 // flat border between drops, in tile fractions
 _TD_SY   = (1 - _TD_GAP) / _TD_H;             // teardrop scale along y
 _TD_CY   = _TD_SY + _TD_GAP / 2;              // column A's circle centre
-// At their closest approach (y = _TD_CY/2, midway between the two columns'
-// circle centres) the A and B outlines are each 0.8334 of full half-width, so
-// the columns consume 1.6668*_TD_SX of the 0.5 that separates them. Sizing
-// _TD_SX from that keeps the gap between columns equal to the gap _TD_SY
-// leaves between drops stacked in one column.
-_TD_SX   = (0.5 - _TD_GAP) / 1.6668;          // teardrop scale along x
-_TD_N    = 12;                   // segments on each 135-degree arc
+// The columns are 0.5 apart and closest at y = _TD_CY/2, the midpoint between
+// their circle centres, where symmetry makes both outlines the same width. That
+// y is still on the circular part of each drop (|Y| = 0.5525 < sin(45)), so the
+// half-width factor is just sqrt(1 - Y^2) = 0.8335 each, 1.667 together. Sizing
+// _TD_SX from that leaves the same gap between columns as _TD_SY leaves between
+// drops stacked in one column. Derived rather than hardcoded so it tracks
+// _TD_GAP.
+_TD_NEST = 2 * sqrt(1 - pow(_TD_CY / (2 * _TD_SY), 2));
+_TD_SX   = (0.5 - _TD_GAP) / _TD_NEST;        // teardrop scale along x
+// One angular step for every arc in the tile, so drop outlines are sampled
+// evenly whichever piece they were split into: 135/12 = 11.25 degrees.
+_TD_N    = 12;
+function _td_seg(ang) = max(1, round(_TD_N * ang / 135));
 
-function _td_arc(cx, cy, a0, a1, n) =
+function _td_arc(cx, cy, a0, a1) =
+    let (n = _td_seg(abs(a1 - a0)))
     [for (i = [0:n]) let (a = a0 + (a1 - a0) * i / n)
         [cx + _TD_SX * cos(a), cy + _TD_SY * sin(a)]];
 
 // Column A, right half (x >= 0): CCW from the bottom of the circle to the tip.
-function _td_a_right() = concat(_td_arc(0, _TD_CY, -90, 45, _TD_N),
+function _td_a_right() = concat(_td_arc(0, _TD_CY, -90, 45),
                                 [[0, _TD_CY + _TD_SY * _TD_TIP]]);
 // Column A, left half (x <= 1): CCW from the tip to the bottom of the circle.
 function _td_a_left() = concat([[1, _TD_CY + _TD_SY * _TD_TIP]],
-                               _td_arc(1, _TD_CY, 135, 270, _TD_N));
+                               _td_arc(1, _TD_CY, 135, 270));
 // Column B below y=1: CCW from the left end of the chord, round the point, to
 // the right end.
-function _td_b_upper() = concat(_td_arc(0.5, 1, 180, 225, ceil(_TD_N / 3)),
+function _td_b_upper() = concat(_td_arc(0.5, 1, 180, 225),
                                 [[0.5, 1 - _TD_SY * _TD_TIP]],
-                                _td_arc(0.5, 1, 315, 360, ceil(_TD_N / 3)));
+                                _td_arc(0.5, 1, 315, 360));
 // Column B above y=0: CCW half disc, right end of the chord to left end.
-function _td_b_lower() = _td_arc(0.5, 0, 0, 180, 2 * _TD_N);
+function _td_b_lower() = _td_arc(0.5, 0, 0, 180);
 
 // The z=0 border is a single simply-connected polygon: walk the unit square
 // counter-clockwise and detour clockwise around each drop where it meets an

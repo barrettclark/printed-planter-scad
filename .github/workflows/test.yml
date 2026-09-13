@@ -28,14 +28,16 @@ jobs:
           fail=0
 
           # Tests expected to succeed cleanly (exit 0, no ERROR in output).
-          # .csg here: forcing full CGAL evaluation (.stl) of
-          # test_decoration_pattern_types.scad specifically -- eleven
-          # side-by-side solids including "bricks" -- measured 5+ minutes
-          # locally even with no explicit boolean, because OpenSCAD's
-          # implicit top-level union still runs through CGAL for STL
-          # export. That per-texture geometry validity is already covered
-          # more cheaply by rendering each pattern individually (see below);
-          # this loop is just checking these files compile without error.
+          # These are compile checks only -- .csg does not evaluate geometry.
+          # For test_decoration_pattern_types.scad (eleven side-by-side solids)
+          # .csg is not a preference, it is required: exporting that file to
+          # .stl would union all eleven through CGAL, and unioning the
+          # "teardrop" solid with another textured solid aborts CGAL outright
+          # on OpenSCAD 2021.01 (see modules/decoration.scad). Even before
+          # "teardrop" existed the union measured 5+ minutes because of
+          # "bricks". Real manifold validation for every pattern lives in the
+          # full-assembly loop further down, which does a genuine difference()
+          # one pattern at a time.
           for f in tests/test_insert.scad \
                    tests/test_body.scad \
                    tests/test_base.scad \

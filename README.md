@@ -127,6 +127,8 @@ The `pattern_type` and `relief_mode` parameters combine to create different visu
 | `"tri_grid"` | `"raised"` / `"etched"` | Triangular grid pattern, projecting or recessed. |
 | `"teardrop"` | `"raised"` / `"etched"` | Interlocking teardrops: two columns of drops half a period out of phase, so each point nests between the bellies of its neighbours. |
 
+Note on `"teardrop"`: its tile is a hand-built VNF whose drops cross the tile's top and bottom edges (that overlap is what makes them interlock), so a decorated body ends up with scalloped rather than circular end caps. The planter itself renders fine, but OpenSCAD 2021.01 aborts with a CGAL assertion if you `union()` a teardrop-decorated solid with another *textured* solid. Render teardrop pots on their own, or combine them with plain (untextured) geometry.
+
 Adjust `pattern_orientation` to switch between vertical and horizontal layouts, and `pattern_repeat` to change how many tiles wrap around the circumference — the same value also sets the vertical repeat count for tileable patterns, so raising it makes tiles both more numerous around the pot and shorter top-to-bottom.
 
 Note: enabling decoration changes the pot's outer silhouette slightly. BOSL2's textured `cyl()` only supports a straight r1/r2 cone, so the decorated body is approximated as a straight cone through the cavity's peak radius rather than following the cavity's exact ledge/shoulder profile — at defaults this means the rim wall goes from ~3mm (plain `wall_thickness`) to ~7mm. This is a deliberate, documented tradeoff, not a bug.
