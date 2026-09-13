@@ -1,5 +1,6 @@
-*.stl
 *.3mf
 *.csg
 *.png
+*.stl
 .DS_Store
+.claude/
