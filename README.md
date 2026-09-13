@@ -62,7 +62,7 @@ All parameters below can be adjusted in the Customizer panel or via command-line
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `pattern_type` | Decoration style: `"none"`, `"ridges"`, or a geometric tile pattern — `"diamonds"`, `"hex_grid"`, `"pyramids"`, `"bricks"`, `"checkers"`, `"dots"`, `"cubes"`, `"tri_grid"` | `"ridges"` |
+| `pattern_type` | Decoration style: `"none"`, `"ridges"`, or a geometric tile pattern — `"diamonds"`, `"hex_grid"`, `"pyramids"`, `"bricks"`, `"checkers"`, `"dots"`, `"cubes"`, `"tri_grid"`, `"teardrop"` | `"ridges"` |
 | `pattern_orientation` | Direction: `"vertical"` or `"horizontal"` | `"vertical"` |
 | `relief_mode` | Relief type: `"raised"` or `"etched"` | `"raised"` |
 | `pattern_depth` | Depth of pattern relief (mm) | 1.5 |
@@ -125,6 +125,7 @@ The `pattern_type` and `relief_mode` parameters combine to create different visu
 | `"dots"` | `"raised"` / `"etched"` | Repeating round dots (bumps or dimples). |
 | `"cubes"` | `"raised"` / `"etched"` | Repeating cube facets, projecting or recessed. |
 | `"tri_grid"` | `"raised"` / `"etched"` | Triangular grid pattern, projecting or recessed. |
+| `"teardrop"` | `"raised"` / `"etched"` | Interlocking teardrops: two columns of drops half a period out of phase, so each point nests between the bellies of its neighbours. |
 
 Adjust `pattern_orientation` to switch between vertical and horizontal layouts, and `pattern_repeat` to change how many tiles wrap around the circumference — the same value also sets the vertical repeat count for tileable patterns, so raising it makes tiles both more numerous around the pot and shorter top-to-bottom.
 

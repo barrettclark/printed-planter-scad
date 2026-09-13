@@ -29,7 +29,7 @@ jobs:
 
           # Tests expected to succeed cleanly (exit 0, no ERROR in output).
           # .csg here: forcing full CGAL evaluation (.stl) of
-          # test_decoration_pattern_types.scad specifically -- ten
+          # test_decoration_pattern_types.scad specifically -- eleven
           # side-by-side solids including "bricks" -- measured 5+ minutes
           # locally even with no explicit boolean, because OpenSCAD's
           # implicit top-level union still runs through CGAL for STL
@@ -54,15 +54,31 @@ jobs:
             fi
           done
 
-          # Force real per-texture geometry evaluation individually (one
-          # solid at a time, no union/difference), which is cheap even for
-          # "bricks" -- this is what actually catches a self-intersecting
-          # or degenerate texture mesh, without test_decoration_pattern_types.scad's
-          # impractically slow all-in-one-file cost above. Both relief modes
-          # are covered since "dots" takes a different (negative-tex_depth)
-          # code path when etched -- that path had no real-evaluation
-          # coverage anywhere until this loop.
-          for pt in none ridges diamonds hex_grid pyramids bricks checkers dots cubes tri_grid; do
+          # "teardrop" is the only pattern_type built from a hand-rolled VNF
+          # tile rather than a BOSL2 texture name, so it gets its own .stl
+          # (CGAL-forcing) check on top of the loops below -- the file also
+          # asserts the tile's shape invariants (unit cube footprint, VNF not
+          # string, no style override).
+          echo "=== tests/test_decoration_teardrop.scad (expect clean) ==="
+          out=$(openscad -o /tmp/ci_test_decoration_teardrop.stl tests/test_decoration_teardrop.scad 2>&1)
+          code=$?
+          echo "$out"
+          if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
+            echo "FAIL: tests/test_decoration_teardrop.scad (exit $code, or ERROR in output)"
+            fail=1
+          fi
+
+          # Build every texture individually (one solid at a time, no
+          # union/difference), which is cheap even for "bricks", without
+          # test_decoration_pattern_types.scad's impractically slow
+          # all-in-one-file cost above. Both relief modes are covered since
+          # "dots" takes a different (negative-tex_depth) code path when
+          # etched -- that path had no coverage anywhere until this loop.
+          # Caveat: exporting a single top-level object to .stl does not push
+          # it through CGAL in OpenSCAD 2021.01, so this loop proves the VNF
+          # builds, not that it is manifold; the full-assembly loop further
+          # down (a real difference()) is what validates the mesh.
+          for pt in none ridges diamonds hex_grid pyramids bricks checkers dots cubes tri_grid teardrop; do
             for relief in raised etched; do
               echo "=== decorated_solid pattern_type=$pt relief_mode=$relief (expect real evaluation to succeed) ==="
               printf 'include <%s/modules/decoration.scad>\ndecorated_solid("%s", "vertical", "%s", 1.5, 12, 75, 60, 100, 4);\n' "$(pwd)" "$pt" "$relief" > /tmp/ci_single_pattern.scad
@@ -117,7 +133,7 @@ jobs:
           # else under 5s -- fewer facets to evaluate, same code paths
           # exercised, so this still catches a self-intersecting or
           # degenerate result from any texture/relief combination.
-          for pt in diamonds hex_grid pyramids bricks checkers dots cubes tri_grid; do
+          for pt in diamonds hex_grid pyramids bricks checkers dots cubes tri_grid teardrop; do
             for relief in raised etched; do
               echo "=== tests/test_planter_integration.scad (pattern_type=$pt, relief_mode=$relief, expect real evaluation to succeed) ==="
               out=$(openscad -D "pattern_type=\"$pt\"" -D "relief_mode=\"$relief\"" -D 'pattern_repeat=4' -D 'smoothness=24' -o /tmp/ci_variant_${pt}_${relief}.stl tests/test_planter_integration.scad 2>&1)
@@ -175,7 +191,7 @@ jobs:
             echo "FAIL: invalid pattern_type assertion is missing the expected message prefix"
             fail=1
           fi
-          for pt in none ridges diamonds hex_grid pyramids bricks checkers dots cubes tri_grid; do
+          for pt in none ridges diamonds hex_grid pyramids bricks checkers dots cubes tri_grid teardrop; do
             if ! echo "$out" | grep -q "\"$pt\""; then
               echo "FAIL: invalid pattern_type assertion message is missing \"$pt\""
               fail=1
