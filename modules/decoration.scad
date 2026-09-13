@@ -7,7 +7,8 @@ include <../lib/BOSL2/std.scad>
 // themselves; the exceptions are "none" (no texture at all), "ridges" (an
 // alias for BOSL2's "ribs"), and "teardrop", which is not a BOSL2 texture at
 // all but a custom VNF tile built below. So _decoration_texture() returns
-// either a string or a VNF, and callers must not assume a string.
+// either a string or a VNF, and callers must not assume a string. The mapping
+// is also relief-mode dependent -- see _decoration_etched_texture().
 PATTERN_TYPES = ["none", "ridges", "diamonds", "hex_grid", "pyramids",
                  "bricks", "checkers", "dots", "cubes", "tri_grid",
                  "teardrop"];
@@ -109,25 +110,42 @@ function _teardrop_tile() =
         [for (d = drops) vnf_from_region([d], transform = up(1), reverse = true)],
         [for (d = drops) _td_wall(d)])));
 
-function _decoration_texture(pattern_type) =
+// Patterns with a flat-top/V-groove counterpart texture in BOSL2, used when
+// relief_mode == "etched" so etched reads as engraved lines cut into a flat
+// surface rather than a smoothly inverted bump. Insetting one of these (see
+// decorated_solid) puts the flat tops at the nominal wall radius and sinks
+// only the grooves, which is the laser-engraved look.
+function _decoration_etched_texture(pattern_type) =
+    pattern_type == "ridges"   ? "trunc_ribs" :
+    pattern_type == "pyramids" ? "trunc_pyramids" :
+    pattern_type == "diamonds" ? "trunc_diamonds" :
+    undef; // no counterpart -- falls back to insetting the raised bump
+
+function _decoration_texture(pattern_type, relief_mode) =
+    let (etched_tex = (relief_mode == "etched")
+                          ? _decoration_etched_texture(pattern_type) : undef)
+    is_def(etched_tex)         ? etched_tex :
     pattern_type == "ridges"   ? "ribs" :
     pattern_type == "teardrop" ? _teardrop_tile() :
     pattern_type;
 
-// "diamonds", "pyramids", and "bricks" are Heightfield textures, whose grid
-// samples get triangulated according to a `style` parameter. BOSL2's own
-// default style ("min_edge") renders "pyramids" as flat-topped mini-diamonds
-// instead of actual pyramids, and its docs call for style="convex" on both
-// "pyramids" and "bricks", and style="concave" on "diamonds" for the
-// expected pointed-bump look. Every other geometric pattern_type ("hex_grid",
-// "checkers", "dots", "cubes", "tri_grid") is a VNF texture (pre-triangulated),
-// for which `style` doesn't apply; "ridges" maps to the heightfield "ribs"
-// texture but doesn't need a style override, "teardrop" is a custom VNF tile
-// (same story -- no style), and "none" has no texture.
-function _decoration_style(pattern_type) =
-    pattern_type == "diamonds" ? "concave" :
-    pattern_type == "pyramids" ? "convex" :
-    pattern_type == "bricks"   ? "convex" :
+// Heightfield textures have their grid samples triangulated according to a
+// `style`; VNF textures come pre-triangulated and ignore it. BOSL2's default
+// style ("min_edge") renders "pyramids" as flat-topped mini-diamonds instead
+// of actual pyramids, and its docs call for style="convex" on "pyramids",
+// "bricks" and "trunc_pyramids", and style="concave" on "diamonds".
+// "ribs"/"trunc_ribs" are heightfields whose docs say the style does not
+// matter, and everything else here is a VNF.
+//
+// Keyed on the resolved texture rather than on pattern_type so the etched
+// flat-top variants can't drift out of sync: "diamonds" etched becomes the
+// *VNF* "trunc_diamonds", which must not inherit "concave".
+function _decoration_style(pattern_type, relief_mode) =
+    let (tex = _decoration_texture(pattern_type, relief_mode))
+    tex == "diamonds"       ? "concave" :
+    tex == "pyramids"       ? "convex" :
+    tex == "bricks"         ? "convex" :
+    tex == "trunc_pyramids" ? "convex" :
     undef;
 
 module decorated_solid(pattern_type, pattern_orientation, relief_mode, pattern_depth,
@@ -141,7 +159,7 @@ module decorated_solid(pattern_type, pattern_orientation, relief_mode, pattern_d
             str("pattern_depth (", pattern_depth, ") must be < 70% of wall_thickness (", wall_thickness, ")"));
         assert(is_int(pattern_repeat) && pattern_repeat > 0,
             str("pattern_repeat must be a positive whole number, got ", pattern_repeat));
-        tex = _decoration_texture(pattern_type);
+        tex = _decoration_texture(pattern_type, relief_mode);
         rot = (pattern_orientation == "horizontal") ? 90 : 0;
         is_etched = (relief_mode == "etched");
         // "dots" is a raised-bump VNF texture; simply insetting it (tex_inset)
@@ -154,8 +172,11 @@ module decorated_solid(pattern_type, pattern_orientation, relief_mode, pattern_d
             texture = tex,
             tex_reps = [pattern_repeat, pattern_repeat],
             tex_depth = depth,
+            // BOSL2 normalises tex_inset=true to exactly 1 (skin.scad:5203),
+            // so this is full inset: the texture's high points land on the
+            // nominal wall and everything else is cut in.
             tex_inset = is_etched,
             tex_rot = rot,
-            style = _decoration_style(pattern_type));
+            style = _decoration_style(pattern_type, relief_mode));
     }
 }

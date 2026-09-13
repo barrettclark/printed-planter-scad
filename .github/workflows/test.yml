@@ -45,6 +45,7 @@ jobs:
                    tests/test_decoration.scad \
                    tests/test_decoration_ridges.scad \
                    tests/test_decoration_pattern_types.scad \
+                   tests/test_decoration_etched_groove.scad \
                    tests/test_planter_integration.scad; do
             echo "=== $f (expect clean) ==="
             out=$(openscad -o /tmp/ci_$(basename "$f" .scad).csg "$f" 2>&1)
