@@ -131,6 +131,23 @@ jobs:
             fi
           done
 
+          # "custom" case: passes explicit insert_top_d/insert_bottom_d/
+          # insert_height that differ from both planter.scad's defaults
+          # (150/110/130) and every named preset, so a regression that
+          # resolved "custom" to the defaults or to a preset's values
+          # (instead of passing these fields through unchanged) shows up as
+          # a mismatch rather than passing by coincidence. Flagged by
+          # Copilot review on PR #6: the original version of this loop only
+          # covered the 3 named presets, never the "custom" branch.
+          echo "=== tests/test_insert_preset_resolved.scad (insert_preset=custom, explicit dims, expect clean) ==="
+          out=$(openscad -D 'insert_preset="custom"' -D 'insert_top_d=140' -D 'insert_bottom_d=90' -D 'insert_height=111' -o /tmp/ci_resolved_custom.csg tests/test_insert_preset_resolved.scad 2>&1)
+          code=$?
+          echo "$out"
+          if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
+            echo "FAIL: insert_preset resolution check for insert_preset=custom (exit $code, or ERROR in output)"
+            fail=1
+          fi
+
           # test_decoration_pattern_types.scad only calls decorated_solid()
           # directly -- it never exercises the full planter() assembly, so a
           # texture that breaks only in that context (e.g. via the peak-aware
