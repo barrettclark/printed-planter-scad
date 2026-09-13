@@ -61,10 +61,7 @@ jobs:
           # impractically slow all-in-one-file cost above.
           for pt in none ridges diamonds hex_grid pyramids bricks checkers dots cubes tri_grid; do
             echo "=== decorated_solid pattern_type=$pt (expect real evaluation to succeed) ==="
-            cat > /tmp/ci_single_pattern.scad <<SCADEOF
-include <$(pwd)/modules/decoration.scad>
-decorated_solid("$pt", "vertical", "raised", 1.5, 12, 75, 60, 100, 4);
-SCADEOF
+            printf 'include <%s/modules/decoration.scad>\ndecorated_solid("%s", "vertical", "raised", 1.5, 12, 75, 60, 100, 4);\n' "$(pwd)" "$pt" > /tmp/ci_single_pattern.scad
             out=$(openscad -o /tmp/ci_single_${pt}.stl /tmp/ci_single_pattern.scad 2>&1)
             code=$?
             echo "$out"
