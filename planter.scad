@@ -28,7 +28,7 @@ outer_bottom_d = 130;   // used in custom mode (mm)
 outer_height = 145;     // used in custom mode (mm)
 
 /* [Decoration] */
-pattern_type = "ridges";           // ["none", "ridges", "geometric"]
+pattern_type = "ridges";           // ["none", "ridges", "diamonds", "hex_grid", "pyramids", "bricks", "checkers", "dots", "cubes", "tri_grid"]
 pattern_orientation = "vertical";  // ["vertical", "horizontal"]
 relief_mode = "raised";            // ["raised", "etched"]
 pattern_depth = 1.5;    // mm
@@ -46,11 +46,16 @@ smoothness = 80; // $fn used for all revolved geometry
 assert(insert_bottom_d < insert_top_d,
     "insert_bottom_d must be smaller than insert_top_d (insert tapers inward)");
 assert(wall_thickness > 0, "wall_thickness must be > 0");
-assert(pattern_depth < wall_thickness * 0.7 || pattern_type == "none",
-    "pattern_depth must be < 70% of wall_thickness");
-
 assert(outer_mode == "follow" || outer_mode == "custom",
     str("outer_mode must be \"follow\" or \"custom\", got \"", outer_mode, "\""));
+assert(in_list(pattern_type, PATTERN_TYPES),
+    str("pattern_type must be one of ", PATTERN_TYPES, ", got \"", pattern_type, "\""));
+// Depends on pattern_type already being valid, so it must come after the
+// pattern_type assert above -- otherwise an invalid pattern_type combined
+// with an out-of-range pattern_depth would report the depth error first
+// and never surface the accepted pattern_type list.
+assert(pattern_depth < wall_thickness * 0.7 || pattern_type == "none",
+    "pattern_depth must be < 70% of wall_thickness");
 
 pot_height = insert_cavity_height(insert_height, floor_thickness, bottom_margin);
 

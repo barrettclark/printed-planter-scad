@@ -28,12 +28,21 @@ jobs:
           fail=0
 
           # Tests expected to succeed cleanly (exit 0, no ERROR in output).
+          # .csg here: forcing full CGAL evaluation (.stl) of
+          # test_decoration_pattern_types.scad specifically -- ten
+          # side-by-side solids including "bricks" -- measured 5+ minutes
+          # locally even with no explicit boolean, because OpenSCAD's
+          # implicit top-level union still runs through CGAL for STL
+          # export. That per-texture geometry validity is already covered
+          # more cheaply by rendering each pattern individually (see below);
+          # this loop is just checking these files compile without error.
           for f in tests/test_insert.scad \
                    tests/test_body.scad \
                    tests/test_base.scad \
                    tests/test_bosl2_texture_smoke.scad \
                    tests/test_decoration.scad \
                    tests/test_decoration_ridges.scad \
+                   tests/test_decoration_pattern_types.scad \
                    tests/test_planter_integration.scad; do
             echo "=== $f (expect clean) ==="
             out=$(openscad -o /tmp/ci_$(basename "$f" .scad).csg "$f" 2>&1)
@@ -45,13 +54,35 @@ jobs:
             fi
           done
 
+          # Force real per-texture geometry evaluation individually (one
+          # solid at a time, no union/difference), which is cheap even for
+          # "bricks" -- this is what actually catches a self-intersecting
+          # or degenerate texture mesh, without test_decoration_pattern_types.scad's
+          # impractically slow all-in-one-file cost above. Both relief modes
+          # are covered since "dots" takes a different (negative-tex_depth)
+          # code path when etched -- that path had no real-evaluation
+          # coverage anywhere until this loop.
+          for pt in none ridges diamonds hex_grid pyramids bricks checkers dots cubes tri_grid; do
+            for relief in raised etched; do
+              echo "=== decorated_solid pattern_type=$pt relief_mode=$relief (expect real evaluation to succeed) ==="
+              printf 'include <%s/modules/decoration.scad>\ndecorated_solid("%s", "vertical", "%s", 1.5, 12, 75, 60, 100, 4);\n' "$(pwd)" "$pt" "$relief" > /tmp/ci_single_pattern.scad
+              out=$(openscad -o /tmp/ci_single_${pt}_${relief}.stl /tmp/ci_single_pattern.scad 2>&1)
+              code=$?
+              echo "$out"
+              if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
+                echo "FAIL: single-pattern STL evaluation for pattern_type=$pt relief_mode=$relief (exit $code, or ERROR in output)"
+                fail=1
+              fi
+            done
+          done
+
           # Full-assembly variants: the default-only invocation above never
           # exercises the custom outer-mode path (translation/containment
           # asserts) or the drainage-hole subtraction path in planter() --
           # both have had real regressions before. -D overrides the
           # Customizer defaults for these dedicated checks.
           echo "=== tests/test_planter_integration.scad (custom_outer_mode, expect clean) ==="
-          out=$(openscad -D 'outer_mode="custom"' -o /tmp/ci_variant_custom_outer_mode.csg tests/test_planter_integration.scad 2>&1)
+          out=$(openscad -D 'outer_mode="custom"' -o /tmp/ci_variant_custom_outer_mode.stl tests/test_planter_integration.scad 2>&1)
           code=$?
           echo "$out"
           if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
@@ -60,13 +91,44 @@ jobs:
           fi
 
           echo "=== tests/test_planter_integration.scad (drainage_enabled, expect clean) ==="
-          out=$(openscad -D 'drainage_holes_enabled=true' -o /tmp/ci_variant_drainage_enabled.csg tests/test_planter_integration.scad 2>&1)
+          out=$(openscad -D 'drainage_holes_enabled=true' -o /tmp/ci_variant_drainage_enabled.stl tests/test_planter_integration.scad 2>&1)
           code=$?
           echo "$out"
           if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
             echo "FAIL: full-assembly variant drainage_enabled (exit $code, or ERROR in output)"
             fail=1
           fi
+
+          # test_decoration_pattern_types.scad only calls decorated_solid()
+          # directly -- it never exercises the full planter() assembly, so a
+          # texture that breaks only in that context (e.g. via the peak-aware
+          # cone extrapolation in planter.scad, or the difference() against
+          # the cavity not staying a valid manifold) would still pass CI.
+          # Render each new pattern_type through the real assembly too, with
+          # real .stl evaluation.
+          #
+          # Reduced pattern_repeat (4, not the default 16) and smoothness
+          # (24, not 80) specifically for this check: at default settings,
+          # "bricks" alone measured 2-3+ minutes PER combination for a full
+          # difference() against the cavity (its randomized per-facet
+          # roughness multiplies out badly), which made real evaluation of
+          # all 16 combinations impractically slow. At these reduced
+          # settings the same "bricks" check measured ~15s and everything
+          # else under 5s -- fewer facets to evaluate, same code paths
+          # exercised, so this still catches a self-intersecting or
+          # degenerate result from any texture/relief combination.
+          for pt in diamonds hex_grid pyramids bricks checkers dots cubes tri_grid; do
+            for relief in raised etched; do
+              echo "=== tests/test_planter_integration.scad (pattern_type=$pt, relief_mode=$relief, expect real evaluation to succeed) ==="
+              out=$(openscad -D "pattern_type=\"$pt\"" -D "relief_mode=\"$relief\"" -D 'pattern_repeat=4' -D 'smoothness=24' -o /tmp/ci_variant_${pt}_${relief}.stl tests/test_planter_integration.scad 2>&1)
+              code=$?
+              echo "$out"
+              if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
+                echo "FAIL: full-assembly STL evaluation for pattern_type=$pt relief_mode=$relief (exit $code, or ERROR in output)"
+                fail=1
+              fi
+            done
+          done
 
           # Wall-thickness invariant: must render EMPTY (cavity never pokes
           # through the outer wall) for all 3 documented parameter combos.
@@ -94,6 +156,28 @@ jobs:
             echo "$out"
             if ! echo "$out" | grep -q "ERROR: Assertion"; then
               echo "FAIL: $f (expected an assertion failure, got none)"
+              fail=1
+            fi
+          done
+
+          # Invalid pattern_type: check not just that an assertion fires, but
+          # that its message actually names the valid options -- a regression
+          # that dropped the pattern list from the message would otherwise
+          # still pass a generic "ERROR: Assertion" check.
+          echo "=== tests/test_decoration_invalid_pattern_type.scad (expect specific message) ==="
+          out=$(openscad -o /tmp/ci_test_decoration_invalid_pattern_type.csg tests/test_decoration_invalid_pattern_type.scad 2>&1)
+          echo "$out"
+          if ! echo "$out" | grep -q "ERROR: Assertion"; then
+            echo "FAIL: invalid pattern_type did not actually fail an assertion"
+            fail=1
+          fi
+          if ! echo "$out" | grep -q "pattern_type must be one of"; then
+            echo "FAIL: invalid pattern_type assertion is missing the expected message prefix"
+            fail=1
+          fi
+          for pt in none ridges diamonds hex_grid pyramids bricks checkers dots cubes tri_grid; do
+            if ! echo "$out" | grep -q "\"$pt\""; then
+              echo "FAIL: invalid pattern_type assertion message is missing \"$pt\""
               fail=1
             fi
           done

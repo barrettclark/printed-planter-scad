@@ -12,7 +12,7 @@ This is a parametric OpenSCAD model that generates a decorative outer planter bo
 
 Command-line users can override any parameter without the Customizer by using the `-D` flag, for example:
 ```bash
-openscad -D 'insert_top_d=160' -D 'pattern_type="geometric"' -o exports/planter.stl planter.scad
+openscad -D 'insert_top_d=160' -D 'pattern_type="hex_grid"' -o exports/planter.stl planter.scad
 ```
 
 An `exports/` directory is included for rendered output (STL, 3MF, PNG, etc.) — `.gitignore` already excludes those file types repo-wide, so anything you save there stays local and won't get committed.
@@ -62,7 +62,7 @@ All parameters below can be adjusted in the Customizer panel or via command-line
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `pattern_type` | Decoration style: `"none"`, `"ridges"`, or `"geometric"` | `"ridges"` |
+| `pattern_type` | Decoration style: `"none"`, `"ridges"`, or a geometric tile pattern — `"diamonds"`, `"hex_grid"`, `"pyramids"`, `"bricks"`, `"checkers"`, `"dots"`, `"cubes"`, `"tri_grid"` | `"ridges"` |
 | `pattern_orientation` | Direction: `"vertical"` or `"horizontal"` | `"vertical"` |
 | `relief_mode` | Relief type: `"raised"` or `"etched"` | `"raised"` |
 | `pattern_depth` | Depth of pattern relief (mm) | 1.5 |
@@ -117,8 +117,14 @@ The `pattern_type` and `relief_mode` parameters combine to create different visu
 | `"none"` | — | Plain smooth walls with no decoration. |
 | `"ridges"` | `"raised"` | Vertical (or horizontal) ridge lines that protrude outward. |
 | `"ridges"` | `"etched"` | Vertical (or horizontal) groove lines sunk into the surface. |
-| `"geometric"` | `"raised"` | Repeating geometric tiles that project outward. |
-| `"geometric"` | `"etched"` | Repeating geometric tiles carved into the surface. |
+| `"diamonds"` | `"raised"` / `"etched"` | Repeating diamond lattice, projecting or recessed. |
+| `"hex_grid"` | `"raised"` / `"etched"` | Honeycomb hexagon grid, projecting or recessed. |
+| `"pyramids"` | `"raised"` / `"etched"` | Repeating four-sided pyramids, projecting or recessed. |
+| `"bricks"` | `"raised"` / `"etched"` | Offset brick/masonry courses, projecting or recessed. |
+| `"checkers"` | `"raised"` / `"etched"` | Checkerboard squares, projecting or recessed. |
+| `"dots"` | `"raised"` / `"etched"` | Repeating round dots (bumps or dimples). |
+| `"cubes"` | `"raised"` / `"etched"` | Repeating cube facets, projecting or recessed. |
+| `"tri_grid"` | `"raised"` / `"etched"` | Triangular grid pattern, projecting or recessed. |
 
 Adjust `pattern_orientation` to switch between vertical and horizontal layouts, and `pattern_repeat` to change how many tiles wrap around the circumference — the same value also sets the vertical repeat count for tileable patterns, so raising it makes tiles both more numerous around the pot and shorter top-to-bottom.
 

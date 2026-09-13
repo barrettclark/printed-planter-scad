@@ -12,6 +12,19 @@ diameter, 130mm tall, with a rim/flange at the top that the pot supports).
 
 Project will be published to GitHub.
 
+## Erratum (post-implementation)
+
+This spec's Decoration section (below) originally scoped `pattern_type` to
+three values: `none` / `ridges` / `geometric`, with `geometric` mapping to a
+single BOSL2 texture. Once implemented, exposing BOSL2's actual texture
+catalog directly (rather than bucketing it behind one generic name) turned
+out to be more useful — `pattern_type` now accepts `none`, `ridges`, and
+eight named geometric textures (`diamonds`, `hex_grid`, `pyramids`,
+`bricks`, `checkers`, `dots`, `cubes`, `tri_grid`) instead of a single
+`geometric` value. See `modules/decoration.scad`'s `PATTERN_TYPES` for the
+authoritative current list. The text below is left as originally written
+for historical accuracy.
+
 ## Insert & Fit Model
 
 The insert has a flange/rim at the very top (the widest point, 150mm) and a

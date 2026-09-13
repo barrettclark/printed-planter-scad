@@ -38,6 +38,18 @@ here is what actually happened during implementation:
   `.github/workflows/test.yml` for the test matrix actually run in CI,
   which also runs every test file, not the subset Task 8's Step 3 loop
   lists.
+- **`pattern_type` no longer has a `"geometric"` value.** Tasks 5, 6, and 8
+  below (including Task 5's `"<GEOMETRIC_TEXTURE>"` placeholder and Task 6
+  and Task 8's `pattern_type = "ridges" | "geometric"` snippets and
+  `for pt in ridges geometric` loop) reflect the original three-value
+  design (`none`/`ridges`/`geometric`). Following any of those snippets
+  literally now trips the new `pattern_type` assertion. This was later
+  expanded
+  to expose BOSL2's texture catalog directly as eight named options
+  (`diamonds`, `hex_grid`, `pyramids`, `bricks`, `checkers`, `dots`,
+  `cubes`, `tri_grid`) instead of bucketing them behind one generic name —
+  see `modules/decoration.scad`'s `PATTERN_TYPES` for the current list, and
+  the spec's own erratum for the same change.
 
 ## Global Constraints
 
