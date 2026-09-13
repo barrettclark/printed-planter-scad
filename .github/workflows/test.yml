@@ -58,17 +58,22 @@ jobs:
           # solid at a time, no union/difference), which is cheap even for
           # "bricks" -- this is what actually catches a self-intersecting
           # or degenerate texture mesh, without test_decoration_pattern_types.scad's
-          # impractically slow all-in-one-file cost above.
+          # impractically slow all-in-one-file cost above. Both relief modes
+          # are covered since "dots" takes a different (negative-tex_depth)
+          # code path when etched -- that path had no real-evaluation
+          # coverage anywhere until this loop.
           for pt in none ridges diamonds hex_grid pyramids bricks checkers dots cubes tri_grid; do
-            echo "=== decorated_solid pattern_type=$pt (expect real evaluation to succeed) ==="
-            printf 'include <%s/modules/decoration.scad>\ndecorated_solid("%s", "vertical", "raised", 1.5, 12, 75, 60, 100, 4);\n' "$(pwd)" "$pt" > /tmp/ci_single_pattern.scad
-            out=$(openscad -o /tmp/ci_single_${pt}.stl /tmp/ci_single_pattern.scad 2>&1)
-            code=$?
-            echo "$out"
-            if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
-              echo "FAIL: single-pattern STL evaluation for pattern_type=$pt (exit $code, or ERROR in output)"
-              fail=1
-            fi
+            for relief in raised etched; do
+              echo "=== decorated_solid pattern_type=$pt relief_mode=$relief (expect real evaluation to succeed) ==="
+              printf 'include <%s/modules/decoration.scad>\ndecorated_solid("%s", "vertical", "%s", 1.5, 12, 75, 60, 100, 4);\n' "$(pwd)" "$pt" "$relief" > /tmp/ci_single_pattern.scad
+              out=$(openscad -o /tmp/ci_single_${pt}_${relief}.stl /tmp/ci_single_pattern.scad 2>&1)
+              code=$?
+              echo "$out"
+              if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
+                echo "FAIL: single-pattern STL evaluation for pattern_type=$pt relief_mode=$relief (exit $code, or ERROR in output)"
+                fail=1
+              fi
+            done
           done
 
           # Full-assembly variants: the default-only invocation above never
@@ -105,12 +110,15 @@ jobs:
           # doesn't depend on which texture is selected, so a script-level
           # error (caught via .csg) is what this loop is actually checking
           # for -- genuine per-texture geometry defects are already covered
-          # by test_decoration_pattern_types.scad's .stl-forced evaluation
-          # above. Full CGAL evaluation of a difference() against a heavily
-          # tessellated texture (bricks in particular, with its randomized
-          # per-facet roughness) measured 2-3+ minutes PER combination
-          # locally; forcing that here across all 16 combinations would
-          # make this job impractically slow for the coverage it would add.
+          # by the single-pattern .stl loop above. Full CGAL evaluation of a
+          # difference() against a heavily tessellated texture (bricks in
+          # particular, with its randomized per-facet roughness) measured
+          # 2-3+ minutes PER combination locally; forcing that here across
+          # all 16 combinations would make this job impractically slow for
+          # the coverage it would add. One representative combination (the
+          # "dots"+etched fix from this PR, which changes sign on tex_depth)
+          # gets real .stl evaluation below instead of relying only on this
+          # .csg loop.
           for pt in diamonds hex_grid pyramids bricks checkers dots cubes tri_grid; do
             for relief in raised etched; do
               echo "=== tests/test_planter_integration.scad (pattern_type=$pt, relief_mode=$relief, expect clean) ==="
@@ -123,6 +131,22 @@ jobs:
               fi
             done
           done
+
+          # One representative full-assembly combination gets real .stl
+          # evaluation, since the standalone single-pattern loop above only
+          # proves the decorated cone itself is valid -- it doesn't prove
+          # the difference() against the cavity stays a valid manifold.
+          # "dots"+etched is the specific new code path from this PR
+          # (negative tex_depth), so it's the one most worth checking here
+          # rather than adding all 16 combinations at the earlier .csg cost.
+          echo "=== tests/test_planter_integration.scad (pattern_type=dots, relief_mode=etched, expect real evaluation to succeed) ==="
+          out=$(openscad -D 'pattern_type="dots"' -D 'relief_mode="etched"' -o /tmp/ci_variant_dots_etched.stl tests/test_planter_integration.scad 2>&1)
+          code=$?
+          echo "$out"
+          if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
+            echo "FAIL: full-assembly STL evaluation for pattern_type=dots relief_mode=etched (exit $code, or ERROR in output)"
+            fail=1
+          fi
 
           # Wall-thickness invariant: must render EMPTY (cavity never pokes
           # through the outer wall) for all 3 documented parameter combos.

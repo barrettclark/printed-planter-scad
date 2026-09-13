@@ -18,6 +18,19 @@ EXPECTED_PATTERN_TYPES = ["none", "ridges", "diamonds", "hex_grid", "pyramids",
 assert(PATTERN_TYPES == EXPECTED_PATTERN_TYPES,
     str("PATTERN_TYPES changed -- expected ", EXPECTED_PATTERN_TYPES, ", got ", PATTERN_TYPES));
 
+// Rendering without error only proves each name produces *some* geometry --
+// it wouldn't catch _decoration_texture() accidentally mapping one pattern
+// to a different (but still valid) BOSL2 texture. "ridges" is the sole
+// alias (-> "ribs"); every other pattern_type must map to itself.
+for (pt = PATTERN_TYPES) {
+    if (pt != "none") {
+        expected_tex = (pt == "ridges") ? "ribs" : pt;
+        assert(_decoration_texture(pt) == expected_tex,
+            str("_decoration_texture(\"", pt, "\") should be \"", expected_tex,
+                "\", got \"", _decoration_texture(pt), "\""));
+    }
+}
+
 for (i = [0 : len(PATTERN_TYPES) - 1]) {
     translate([i * 200, 0, 0])
         decorated_solid(PATTERN_TYPES[i], "vertical", "raised", 1.5, 12, 75, 60, 100, 4);
