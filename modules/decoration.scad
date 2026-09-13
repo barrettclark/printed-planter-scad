@@ -3,7 +3,7 @@ include <../lib/BOSL2/std.scad>
 
 // "ridges" is the one pattern_type that doesn't share its name with the
 // underlying BOSL2 texture; every other valid pattern_type IS a real BOSL2
-// texture name (see lib/BOSL2/shapes3d.scad's cyl() for the full catalog),
+// texture name (see the texture() catalog documented in lib/BOSL2/skin.scad),
 // so PATTERN_TYPES doubles as both the Customizer's valid-value list and
 // the lookup table.
 PATTERN_TYPES = ["none", "ridges", "diamonds", "hex_grid", "pyramids",
