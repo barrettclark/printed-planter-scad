@@ -99,6 +99,20 @@ jobs:
             fail=1
           fi
 
+          # Insert presets: one real full-assembly STL evaluation per named
+          # preset, exercising insert_preset's override of insert_top_d/
+          # insert_bottom_d/insert_height through the whole planter() build.
+          for preset in small medium large; do
+            echo "=== tests/test_planter_integration.scad (insert_preset=$preset, expect clean) ==="
+            out=$(openscad -D "insert_preset=\"$preset\"" -o /tmp/ci_variant_preset_${preset}.stl tests/test_planter_integration.scad 2>&1)
+            code=$?
+            echo "$out"
+            if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
+              echo "FAIL: full-assembly variant insert_preset=$preset (exit $code, or ERROR in output)"
+              fail=1
+            fi
+          done
+
           # test_decoration_pattern_types.scad only calls decorated_solid()
           # directly -- it never exercises the full planter() assembly, so a
           # texture that breaks only in that context (e.g. via the peak-aware
@@ -181,5 +195,22 @@ jobs:
               fail=1
             fi
           done
+
+          # tests/test_insert_presets.scad asserts the 3 named presets'
+          # dimensions match TODO.md, then deliberately triggers
+          # _insert_preset_dims("bogus") -- a wrong dimension above would
+          # fail with a different assertion message, so checking for this
+          # exact one still validates the earlier asserts passed.
+          echo "=== tests/test_insert_presets.scad (expect specific message) ==="
+          out=$(openscad -o /tmp/ci_test_insert_presets.csg tests/test_insert_presets.scad 2>&1)
+          echo "$out"
+          if ! echo "$out" | grep -q "ERROR: Assertion"; then
+            echo "FAIL: invalid insert_preset did not actually fail an assertion"
+            fail=1
+          fi
+          if ! echo "$out" | grep -q 'insert_preset must be one of \["small", "medium", "large"\], got "bogus"'; then
+            echo "FAIL: invalid insert_preset assertion is missing the expected message"
+            fail=1
+          fi
 
           exit $fail

@@ -10,9 +10,29 @@ include <modules/base.scad>
 // is_undef() guards. These are just this file's fixed defaults.
 
 /* [Insert Dimensions] */
-insert_top_d = 150;     // top rim diameter (mm)
-insert_bottom_d = 110;  // bottom diameter (mm)
-insert_height = 130;    // insert height (mm)
+insert_preset = "custom"; // ["custom", "small", "medium", "large"]
+insert_top_d = 150;     // top rim diameter (mm) -- used when insert_preset == "custom"
+insert_bottom_d = 110;  // bottom diameter (mm) -- used when insert_preset == "custom"
+insert_height = 130;    // insert height (mm) -- used when insert_preset == "custom"
+
+// Single source of truth for both the Customizer's insert_preset list and
+// the dimensions each preset resolves to (mirrors PATTERN_TYPES's pattern).
+INSERT_PRESET_NAMES = ["small", "medium", "large"];
+// [top_d, bottom_d, height], matches TODO.md's "100x85 (75mm bottom)" etc.
+_INSERT_PRESET_DIMS = [
+    [100, 75, 85],
+    [130, 100, 120],
+    [180, 125, 160],
+];
+
+function _insert_preset_dims(name) =
+    let(i = search([name], INSERT_PRESET_NAMES)[0])
+    assert(is_num(i), str("insert_preset must be one of ", INSERT_PRESET_NAMES, ", got \"", name, "\""))
+    _INSERT_PRESET_DIMS[i];
+
+_resolved_insert_top_d    = (insert_preset == "custom") ? insert_top_d    : _insert_preset_dims(insert_preset)[0];
+_resolved_insert_bottom_d = (insert_preset == "custom") ? insert_bottom_d : _insert_preset_dims(insert_preset)[1];
+_resolved_insert_height   = (insert_preset == "custom") ? insert_height   : _insert_preset_dims(insert_preset)[2];
 
 /* [Fit] */
 ledge_engagement_height = 8; // depth of the rim's tight-fit seat (mm)
@@ -43,7 +63,9 @@ drainage_hole_diameter = 4;
 /* [Quality] */
 smoothness = 80; // $fn used for all revolved geometry
 
-assert(insert_bottom_d < insert_top_d,
+assert(in_list(insert_preset, concat(["custom"], INSERT_PRESET_NAMES)),
+    str("insert_preset must be \"custom\" or one of ", INSERT_PRESET_NAMES, ", got \"", insert_preset, "\""));
+assert(_resolved_insert_bottom_d < _resolved_insert_top_d,
     "insert_bottom_d must be smaller than insert_top_d (insert tapers inward)");
 assert(wall_thickness > 0, "wall_thickness must be > 0");
 assert(outer_mode == "follow" || outer_mode == "custom",
@@ -57,7 +79,7 @@ assert(in_list(pattern_type, PATTERN_TYPES),
 assert(pattern_depth < wall_thickness * 0.7 || pattern_type == "none",
     "pattern_depth must be < 70% of wall_thickness");
 
-pot_height = insert_cavity_height(insert_height, floor_thickness, bottom_margin);
+pot_height = insert_cavity_height(_resolved_insert_height, floor_thickness, bottom_margin);
 
 assert(outer_mode != "custom" || outer_height >= pot_height,
     str("outer_height (", outer_height, ") must be >= required cavity height (", pot_height, ") in custom mode"));
@@ -72,7 +94,7 @@ assert(outer_mode != "custom" || outer_height >= pot_height,
 // (insert_bottom_z), the ledge's loose-side bulge, and the tight-fit rim.
 // The cavity is translated up by z_offset in custom mode, so each breakpoint
 // lands at (breakpoint + z_offset) in the outer body's own z coordinates.
-_insert_bottom_z = pot_height - insert_height;
+_insert_bottom_z = pot_height - _resolved_insert_height;
 _ledge_bottom_z = pot_height - ledge_engagement_height;
 _custom_z_offset = outer_height - pot_height;
 _outer_r_at = function (z) outer_bottom_d/2 + (outer_top_d/2 - outer_bottom_d/2) * (z / outer_height);
@@ -85,7 +107,7 @@ _custom_breakpoints = [
 for (bp = _custom_breakpoints) {
     _z = bp[0];
     _label = bp[1];
-    _r_cavity = cavity_radius_at(_z, insert_top_d, insert_bottom_d, insert_height,
+    _r_cavity = cavity_radius_at(_z, _resolved_insert_top_d, _resolved_insert_bottom_d, _resolved_insert_height,
         ledge_engagement_height, fit_clearance, body_clearance, pot_height);
     _z_outer = _z + _custom_z_offset;
     assert(outer_mode != "custom" || _outer_r_at(_z_outer) >= _r_cavity + wall_thickness,
@@ -100,7 +122,7 @@ module planter() {
             if (outer_mode == "custom") {
                 outer_body_custom(outer_top_d, outer_bottom_d, outer_height, pot_height, fn=smoothness);
             } else {
-                outer_body_follow(insert_top_d, insert_bottom_d, insert_height,
+                outer_body_follow(_resolved_insert_top_d, _resolved_insert_bottom_d, _resolved_insert_height,
                     ledge_engagement_height, fit_clearance, body_clearance,
                     bottom_margin, floor_thickness, wall_thickness, fn=smoothness);
             }
@@ -112,11 +134,11 @@ module planter() {
             // Extrapolate through the true peak instead so the cone envelopes it.
             ledge_bottom_z = pot_height - ledge_engagement_height;
             r_bottom = (outer_mode == "custom") ? outer_bottom_d/2
-                    : cavity_radius_at(floor_thickness, insert_top_d, insert_bottom_d, insert_height,
+                    : cavity_radius_at(floor_thickness, _resolved_insert_top_d, _resolved_insert_bottom_d, _resolved_insert_height,
                         ledge_engagement_height, fit_clearance, body_clearance, pot_height) + wall_thickness;
-            r_at_ledge = cavity_radius_at(ledge_bottom_z, insert_top_d, insert_bottom_d, insert_height,
+            r_at_ledge = cavity_radius_at(ledge_bottom_z, _resolved_insert_top_d, _resolved_insert_bottom_d, _resolved_insert_height,
                         ledge_engagement_height, fit_clearance, body_clearance, pot_height) + wall_thickness;
-            r_at_pot_top = cavity_radius_at(pot_height, insert_top_d, insert_bottom_d, insert_height,
+            r_at_pot_top = cavity_radius_at(pot_height, _resolved_insert_top_d, _resolved_insert_bottom_d, _resolved_insert_height,
                         ledge_engagement_height, fit_clearance, body_clearance, pot_height) + wall_thickness;
             // peak = whichever of the ledge bulge or the rim itself needs more room
             z_peak = (r_at_ledge >= r_at_pot_top) ? ledge_bottom_z : pot_height;
@@ -132,14 +154,14 @@ module planter() {
         // cavity -----------------------------------------------------------
         z_offset = (outer_mode == "custom") ? (outer_height - pot_height) : 0;
         translate([0, 0, z_offset])
-            insert_cavity(insert_top_d, insert_bottom_d, insert_height,
+            insert_cavity(_resolved_insert_top_d, _resolved_insert_bottom_d, _resolved_insert_height,
                 ledge_engagement_height, fit_clearance, body_clearance,
                 bottom_margin, floor_thickness, fn=smoothness);
 
         // drainage -----------------------------------------------------------
         if (drainage_holes_enabled) {
-            r_bottom_cavity = cavity_radius_at(floor_thickness, insert_top_d, insert_bottom_d,
-                insert_height, ledge_engagement_height, fit_clearance, body_clearance, pot_height);
+            r_bottom_cavity = cavity_radius_at(floor_thickness, _resolved_insert_top_d, _resolved_insert_bottom_d,
+                _resolved_insert_height, ledge_engagement_height, fit_clearance, body_clearance, pot_height);
             // Extend hole length by z_offset (rather than translating the whole
             // call) so the hole still starts below the true exterior bottom
             // face at z=0 -- translating up by z_offset would detach the hole

@@ -35,9 +35,18 @@ All parameters below can be adjusted in the Customizer panel or via command-line
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `insert_top_d` | Top rim diameter (mm) | 150 |
-| `insert_bottom_d` | Bottom diameter (mm) | 110 |
-| `insert_height` | Insert height (mm) | 130 |
+| `insert_preset` | Named insert size: `"custom"` (use the three fields below) or `"small"`, `"medium"`, `"large"` | `"custom"` |
+| `insert_top_d` | Top rim diameter (mm) — used when `insert_preset == "custom"` | 150 |
+| `insert_bottom_d` | Bottom diameter (mm) — used when `insert_preset == "custom"` | 110 |
+| `insert_height` | Insert height (mm) — used when `insert_preset == "custom"` | 130 |
+
+The 3 named presets:
+
+| `insert_preset` | `insert_top_d` | `insert_bottom_d` | `insert_height` |
+|---|---|---|---|
+| `"small"` | 100 | 75 | 85 |
+| `"medium"` | 130 | 100 | 120 |
+| `"large"` | 180 | 125 | 160 |
 
 ### Fit
 
@@ -90,6 +99,7 @@ In `"custom"` outer mode, the actual floor thickness is `floor_thickness + (oute
 The planter was designed around this insert. Use these settings to reproduce the exact geometry from this project:
 
 ```scad
+insert_preset = "custom";
 insert_top_d = 150;
 insert_bottom_d = 110;
 insert_height = 130;
