@@ -112,18 +112,24 @@ drainage_holes_enabled = false;
 
 The `pattern_type` and `relief_mode` parameters combine to create different visual effects.
 
-`"etched"` works one of two ways depending on the pattern. For `"ridges"`, `"pyramids"` and `"diamonds"` it is a true line engrave: the wall keeps its full nominal surface and only thin V-grooves are cut along the pattern's outlines, like laser-engraved wood. Every other pattern has no flat-topped counterpart, so `"etched"` instead sinks the same shape below the surface — a recess/dimple rather than an incised line.
+`"etched"` works one of two ways depending on the pattern. `"ridges"`, `"pyramids"` and `"diamonds"` have a flat-topped counterpart shape, so etching them leaves the wall's nominal surface intact as flat panels and cuts grooves only along the pattern's outlines. How fine those grooves are varies a lot by pattern:
+
+- `"diamonds"` is the true line engrave — the flat panels take up most of each tile and the grooves are thin 45° V-lines, the laser-engraved-wood look.
+- `"pyramids"` leaves a flat panel over roughly the middle third of each tile, so the grooves are real V-cuts but wide, closer to a heavy chamfer than a line.
+- `"ridges"` leaves a narrow flat land between wide, flat-bottomed channels — more like square-wave fluting than an engraved line.
+
+Every other pattern has no flat-topped counterpart, so `"etched"` instead sinks the same shape below the surface — a recess or dimple rather than an incised outline.
 
 | `pattern_type` | `relief_mode` | Result |
 |---|---|---|
 | `"none"` | — | Plain smooth walls with no decoration. |
 | `"ridges"` | `"raised"` | Vertical (or horizontal) ridge lines that protrude outward. |
-| `"ridges"` | `"etched"` | Flat wall with vertical (or horizontal) V-grooves engraved into it. |
+| `"ridges"` | `"etched"` | Narrow flat lands between wide, flat-bottomed vertical (or horizontal) channels — fluting rather than a fine engraved line. |
 | `"diamonds"` | `"raised"` | Repeating lattice of pointed diamond bumps. |
-| `"diamonds"` | `"etched"` | Flat diamond panels separated by 45° V-groove lines engraved into the wall. |
+| `"diamonds"` | `"etched"` | Flat diamond panels separated by thin 45° V-groove lines engraved into the wall. The closest to a true line engrave. |
 | `"hex_grid"` | `"raised"` / `"etched"` | Honeycomb hexagon grid, projecting or recessed. |
 | `"pyramids"` | `"raised"` | Repeating four-sided pyramids projecting outward. |
-| `"pyramids"` | `"etched"` | Flat square panels separated by a grid of V-grooves engraved into the wall. |
+| `"pyramids"` | `"etched"` | Flat square panels separated by a grid of wide bevelled V-grooves cut into the wall. |
 | `"bricks"` | `"raised"` / `"etched"` | Offset brick/masonry courses, projecting or recessed. |
 | `"checkers"` | `"raised"` / `"etched"` | Checkerboard squares, projecting or recessed. |
 | `"dots"` | `"raised"` / `"etched"` | Repeating round dots (bumps or dimples). |

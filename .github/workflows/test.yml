@@ -136,7 +136,7 @@ jobs:
           # else under 5s -- fewer facets to evaluate, same code paths
           # exercised, so this still catches a self-intersecting or
           # degenerate result from any texture/relief combination.
-          for pt in diamonds hex_grid pyramids bricks checkers dots cubes tri_grid teardrop; do
+          for pt in ridges diamonds hex_grid pyramids bricks checkers dots cubes tri_grid teardrop; do
             for relief in raised etched; do
               echo "=== tests/test_planter_integration.scad (pattern_type=$pt, relief_mode=$relief, expect real evaluation to succeed) ==="
               out=$(openscad -D "pattern_type=\"$pt\"" -D "relief_mode=\"$relief\"" -D 'pattern_repeat=4' -D 'smoothness=24' -o /tmp/ci_variant_${pt}_${relief}.stl tests/test_planter_integration.scad 2>&1)
