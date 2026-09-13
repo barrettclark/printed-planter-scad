@@ -34,6 +34,8 @@ module decorated_solid(pattern_type, pattern_orientation, relief_mode, pattern_d
     } else {
         assert(pattern_depth < wall_thickness * 0.7,
             str("pattern_depth (", pattern_depth, ") must be < 70% of wall_thickness (", wall_thickness, ")"));
+        assert(pattern_repeat == round(pattern_repeat) && pattern_repeat > 0,
+            str("pattern_repeat must be a positive whole number, got ", pattern_repeat));
         tex = _decoration_texture(pattern_type);
         rot = (pattern_orientation == "horizontal") ? 90 : 0;
         is_etched = (relief_mode == "etched");

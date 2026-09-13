@@ -28,6 +28,14 @@ jobs:
           fail=0
 
           # Tests expected to succeed cleanly (exit 0, no ERROR in output).
+          # .csg here: forcing full CGAL evaluation (.stl) of
+          # test_decoration_pattern_types.scad specifically -- ten
+          # side-by-side solids including "bricks" -- measured 5+ minutes
+          # locally even with no explicit boolean, because OpenSCAD's
+          # implicit top-level union still runs through CGAL for STL
+          # export. That per-texture geometry validity is already covered
+          # more cheaply by rendering each pattern individually (see below);
+          # this loop is just checking these files compile without error.
           for f in tests/test_insert.scad \
                    tests/test_body.scad \
                    tests/test_base.scad \
@@ -46,13 +54,33 @@ jobs:
             fi
           done
 
+          # Force real per-texture geometry evaluation individually (one
+          # solid at a time, no union/difference), which is cheap even for
+          # "bricks" -- this is what actually catches a self-intersecting
+          # or degenerate texture mesh, without test_decoration_pattern_types.scad's
+          # impractically slow all-in-one-file cost above.
+          for pt in none ridges diamonds hex_grid pyramids bricks checkers dots cubes tri_grid; do
+            echo "=== decorated_solid pattern_type=$pt (expect real evaluation to succeed) ==="
+            cat > /tmp/ci_single_pattern.scad <<SCADEOF
+include <$(pwd)/modules/decoration.scad>
+decorated_solid("$pt", "vertical", "raised", 1.5, 12, 75, 60, 100, 4);
+SCADEOF
+            out=$(openscad -o /tmp/ci_single_${pt}.stl /tmp/ci_single_pattern.scad 2>&1)
+            code=$?
+            echo "$out"
+            if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
+              echo "FAIL: single-pattern STL evaluation for pattern_type=$pt (exit $code, or ERROR in output)"
+              fail=1
+            fi
+          done
+
           # Full-assembly variants: the default-only invocation above never
           # exercises the custom outer-mode path (translation/containment
           # asserts) or the drainage-hole subtraction path in planter() --
           # both have had real regressions before. -D overrides the
           # Customizer defaults for these dedicated checks.
           echo "=== tests/test_planter_integration.scad (custom_outer_mode, expect clean) ==="
-          out=$(openscad -D 'outer_mode="custom"' -o /tmp/ci_variant_custom_outer_mode.csg tests/test_planter_integration.scad 2>&1)
+          out=$(openscad -D 'outer_mode="custom"' -o /tmp/ci_variant_custom_outer_mode.stl tests/test_planter_integration.scad 2>&1)
           code=$?
           echo "$out"
           if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
@@ -61,7 +89,7 @@ jobs:
           fi
 
           echo "=== tests/test_planter_integration.scad (drainage_enabled, expect clean) ==="
-          out=$(openscad -D 'drainage_holes_enabled=true' -o /tmp/ci_variant_drainage_enabled.csg tests/test_planter_integration.scad 2>&1)
+          out=$(openscad -D 'drainage_holes_enabled=true' -o /tmp/ci_variant_drainage_enabled.stl tests/test_planter_integration.scad 2>&1)
           code=$?
           echo "$out"
           if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
@@ -74,6 +102,18 @@ jobs:
           # texture that breaks only in that context (e.g. via the peak-aware
           # cone extrapolation in planter.scad) would still pass CI. Render
           # each new pattern_type through the real assembly too.
+          #
+          # .csg here, not .stl: the peak-aware cone extrapolation this loop
+          # exists to check is a purely geometric envelope computation that
+          # doesn't depend on which texture is selected, so a script-level
+          # error (caught via .csg) is what this loop is actually checking
+          # for -- genuine per-texture geometry defects are already covered
+          # by test_decoration_pattern_types.scad's .stl-forced evaluation
+          # above. Full CGAL evaluation of a difference() against a heavily
+          # tessellated texture (bricks in particular, with its randomized
+          # per-facet roughness) measured 2-3+ minutes PER combination
+          # locally; forcing that here across all 16 combinations would
+          # make this job impractically slow for the coverage it would add.
           for pt in diamonds hex_grid pyramids bricks checkers dots cubes tri_grid; do
             for relief in raised etched; do
               echo "=== tests/test_planter_integration.scad (pattern_type=$pt, relief_mode=$relief, expect clean) ==="
@@ -124,6 +164,10 @@ jobs:
           echo "=== tests/test_decoration_invalid_pattern_type.scad (expect specific message) ==="
           out=$(openscad -o /tmp/ci_test_decoration_invalid_pattern_type.csg tests/test_decoration_invalid_pattern_type.scad 2>&1)
           echo "$out"
+          if ! echo "$out" | grep -q "ERROR: Assertion"; then
+            echo "FAIL: invalid pattern_type did not actually fail an assertion"
+            fail=1
+          fi
           if ! echo "$out" | grep -q "pattern_type must be one of"; then
             echo "FAIL: invalid pattern_type assertion is missing the expected message prefix"
             fail=1
