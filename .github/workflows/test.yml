@@ -113,6 +113,24 @@ jobs:
             fi
           done
 
+          # Insert preset RESOLUTION (not just error-free rendering): confirms
+          # insert_preset's override actually reaches _resolved_insert_top_d/
+          # _resolved_insert_bottom_d/_resolved_insert_height with the exact
+          # documented values. The full-assembly loop above only proves the
+          # geometry renders without error under each preset -- a regression
+          # that dropped a ternary (e.g. _resolved_insert_top_d = insert_top_d;)
+          # would still render a valid (just wrong) planter and pass that loop.
+          for preset in small medium large; do
+            echo "=== tests/test_insert_preset_resolved.scad (insert_preset=$preset, expect clean) ==="
+            out=$(openscad -D "insert_preset=\"$preset\"" -o /tmp/ci_resolved_${preset}.csg tests/test_insert_preset_resolved.scad 2>&1)
+            code=$?
+            echo "$out"
+            if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
+              echo "FAIL: insert_preset resolution check for insert_preset=$preset (exit $code, or ERROR in output)"
+              fail=1
+            fi
+          done
+
           # test_decoration_pattern_types.scad only calls decorated_solid()
           # directly -- it never exercises the full planter() assembly, so a
           # texture that breaks only in that context (e.g. via the peak-aware
@@ -197,10 +215,11 @@ jobs:
           done
 
           # tests/test_insert_presets.scad asserts the 3 named presets'
-          # dimensions match TODO.md, then deliberately triggers
-          # _insert_preset_dims("bogus") -- a wrong dimension above would
-          # fail with a different assertion message, so checking for this
-          # exact one still validates the earlier asserts passed.
+          # dimensions match README.md's insert_preset table, then
+          # deliberately triggers _insert_preset_dims("bogus") -- a wrong
+          # dimension above would fail with a different assertion message,
+          # so checking for this exact one still validates the earlier
+          # asserts passed.
           echo "=== tests/test_insert_presets.scad (expect specific message) ==="
           out=$(openscad -o /tmp/ci_test_insert_presets.csg tests/test_insert_presets.scad 2>&1)
           echo "$out"
@@ -208,7 +227,7 @@ jobs:
             echo "FAIL: invalid insert_preset did not actually fail an assertion"
             fail=1
           fi
-          if ! echo "$out" | grep -q 'insert_preset must be one of \["small", "medium", "large"\], got "bogus"'; then
+          if ! echo "$out" | grep -q 'insert_preset must be "custom" or one of \["small", "medium", "large"\], got "bogus"'; then
             echo "FAIL: invalid insert_preset assertion is missing the expected message"
             fail=1
           fi

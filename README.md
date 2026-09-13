@@ -19,13 +19,15 @@ An `exports/` directory is included for rendered output (STL, 3MF, PNG, etc.) �
 
 ## Measuring Your Insert
 
-To generate a planter for a different insert, measure these three dimensions:
+Before measuring, check whether your insert is close to one of the 3 named sizes in `insert_preset` (see the Insert Dimensions table below) — if so, just pick that preset and skip measuring entirely.
+
+Otherwise, to generate a planter for a different insert, measure these three dimensions:
 
 - **`insert_top_d`** — the widest point of your insert (the rim or top diameter), in millimeters.
 - **`insert_bottom_d`** — the bottom diameter of your insert, in millimeters.
 - **`insert_height`** — the vertical height of your insert, in millimeters.
 
-These three measurements are the **only parameters you need to change** to reprint the planter for a different insert. The generator will automatically adjust the cavity (internal pocket) to fit your insert's tapered shape. All other parameters control fit clearance, wall thickness, decoration, and base options—leave them at their defaults unless you need to customize further.
+With `insert_preset` left at `"custom"`, these three measurements are the **only parameters you need to change** to reprint the planter for a different insert. The generator will automatically adjust the cavity (internal pocket) to fit your insert's tapered shape. All other parameters control fit clearance, wall thickness, decoration, and base options—leave them at their defaults unless you need to customize further.
 
 ## Parameter Reference
 
@@ -94,7 +96,7 @@ In `"custom"` outer mode, the actual floor thickness is `floor_thickness + (oute
 |-----------|-------------|---------|
 | `smoothness` | Mesh resolution for all revolved geometry (OpenSCAD `$fn`) | 80 |
 
-## Preset: This Project's Insert
+## Reference Settings: This Project's Insert
 
 The planter was designed around this insert. Use these settings to reproduce the exact geometry from this project:
 

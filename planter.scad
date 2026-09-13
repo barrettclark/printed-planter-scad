@@ -1,6 +1,7 @@
 // planter.scad
 include <lib/BOSL2/std.scad>
 include <modules/insert.scad>
+include <modules/insert_presets.scad>
 include <modules/body.scad>
 include <modules/decoration.scad>
 include <modules/base.scad>
@@ -15,21 +16,10 @@ insert_top_d = 150;     // top rim diameter (mm) -- used when insert_preset == "
 insert_bottom_d = 110;  // bottom diameter (mm) -- used when insert_preset == "custom"
 insert_height = 130;    // insert height (mm) -- used when insert_preset == "custom"
 
-// Single source of truth for both the Customizer's insert_preset list and
-// the dimensions each preset resolves to (mirrors PATTERN_TYPES's pattern).
-INSERT_PRESET_NAMES = ["small", "medium", "large"];
-// [top_d, bottom_d, height], matches TODO.md's "100x85 (75mm bottom)" etc.
-_INSERT_PRESET_DIMS = [
-    [100, 75, 85],
-    [130, 100, 120],
-    [180, 125, 160],
-];
-
-function _insert_preset_dims(name) =
-    let(i = search([name], INSERT_PRESET_NAMES)[0])
-    assert(is_num(i), str("insert_preset must be one of ", INSERT_PRESET_NAMES, ", got \"", name, "\""))
-    _INSERT_PRESET_DIMS[i];
-
+// Internal only -- not a Customizer field. Hidden so the resolved values
+// (derived from insert_preset, not user-editable themselves) don't show up
+// as bogus extra widgets in the Customizer GUI.
+/* [Hidden] */
 _resolved_insert_top_d    = (insert_preset == "custom") ? insert_top_d    : _insert_preset_dims(insert_preset)[0];
 _resolved_insert_bottom_d = (insert_preset == "custom") ? insert_bottom_d : _insert_preset_dims(insert_preset)[1];
 _resolved_insert_height   = (insert_preset == "custom") ? insert_height   : _insert_preset_dims(insert_preset)[2];
