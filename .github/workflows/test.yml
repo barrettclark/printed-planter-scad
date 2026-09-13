@@ -1,0 +1,101 @@
+name: Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  scad-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install OpenSCAD
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y openscad
+          openscad --version
+
+      - name: Run test suite
+        run: |
+          # GitHub Actions runs bash steps as `bash -e {0}` by default, which
+          # would abort this script the moment any openscad invocation exits
+          # nonzero (expected behavior for both the assertion-failure tests
+          # and the wall-thickness invariant's empty-STL check below) before
+          # its output can be inspected. Disable that here.
+          set +e
+          fail=0
+
+          # Tests expected to succeed cleanly (exit 0, no ERROR in output).
+          for f in tests/test_insert.scad \
+                   tests/test_body.scad \
+                   tests/test_base.scad \
+                   tests/test_bosl2_texture_smoke.scad \
+                   tests/test_decoration.scad \
+                   tests/test_decoration_ridges.scad \
+                   tests/test_planter_integration.scad; do
+            echo "=== $f (expect clean) ==="
+            out=$(openscad -o /tmp/ci_$(basename "$f" .scad).csg "$f" 2>&1)
+            code=$?
+            echo "$out"
+            if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
+              echo "FAIL: $f (exit $code, or ERROR in output)"
+              fail=1
+            fi
+          done
+
+          # Full-assembly variants: the default-only invocation above never
+          # exercises the custom outer-mode path (translation/containment
+          # asserts) or the drainage-hole subtraction path in planter() --
+          # both have had real regressions before. -D overrides the
+          # Customizer defaults for these dedicated checks.
+          echo "=== tests/test_planter_integration.scad (custom_outer_mode, expect clean) ==="
+          out=$(openscad -D 'outer_mode="custom"' -o /tmp/ci_variant_custom_outer_mode.csg tests/test_planter_integration.scad 2>&1)
+          code=$?
+          echo "$out"
+          if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
+            echo "FAIL: full-assembly variant custom_outer_mode (exit $code, or ERROR in output)"
+            fail=1
+          fi
+
+          echo "=== tests/test_planter_integration.scad (drainage_enabled, expect clean) ==="
+          out=$(openscad -D 'drainage_holes_enabled=true' -o /tmp/ci_variant_drainage_enabled.csg tests/test_planter_integration.scad 2>&1)
+          code=$?
+          echo "$out"
+          if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
+            echo "FAIL: full-assembly variant drainage_enabled (exit $code, or ERROR in output)"
+            fail=1
+          fi
+
+          # Wall-thickness invariant: must render EMPTY (cavity never pokes
+          # through the outer wall) for all 3 documented parameter combos.
+          # .csg export does not force full CGAL evaluation (a non-empty
+          # difference() would still "succeed" with no ERROR), so this uses
+          # .stl output, which does force evaluation. A truly empty result
+          # makes OpenSCAD refuse to write the STL and exit nonzero -- that
+          # nonzero exit is EXPECTED here; the actual pass signal is the
+          # "Current top level object is empty." sentinel string.
+          for combo in 0 1 2; do
+            echo "=== tests/test_wall_thickness_invariant.scad combo=$combo (expect empty) ==="
+            out=$(openscad -D "combo=$combo" -o /tmp/ci_wall_thickness_$combo.stl tests/test_wall_thickness_invariant.scad 2>&1)
+            echo "$out"
+            if ! echo "$out" | grep -q "Current top level object is empty."; then
+              echo "FAIL: wall thickness invariant combo=$combo (expected 'Current top level object is empty.')"
+              fail=1
+            fi
+          done
+
+          # Tests expected to fail their internal assertion (ERROR is success here).
+          for f in tests/test_body_custom_assert.scad \
+                   tests/test_decoration_depth_assert.scad; do
+            echo "=== $f (expect ERROR: Assertion failed) ==="
+            out=$(openscad -o /tmp/ci_$(basename "$f" .scad).csg "$f" 2>&1)
+            echo "$out"
+            if ! echo "$out" | grep -q "ERROR: Assertion"; then
+              echo "FAIL: $f (expected an assertion failure, got none)"
+              fail=1
+            fi
+          done
+
+          exit $fail
