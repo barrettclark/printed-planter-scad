@@ -21,41 +21,46 @@ assert(PATTERN_TYPES == EXPECTED_PATTERN_TYPES,
 
 // Rendering without error only proves each name produces *some* geometry --
 // it wouldn't catch _decoration_texture() accidentally mapping one pattern
-// to a different (but still valid) BOSL2 texture. "ridges" is the sole
-// alias (-> "ribs") and "teardrop" is the sole VNF tile (checked in detail by
-// test_decoration_teardrop.scad); every other pattern_type must map to itself.
+// to a different (but still valid) BOSL2 texture. In raised mode "ridges" is
+// the sole alias (-> "ribs") and "teardrop" is the sole VNF tile (checked in
+// detail by test_decoration_teardrop.scad); every other pattern_type must map
+// to itself. Etched mode's flat-top/V-groove routing has its own file,
+// test_decoration_etched_groove.scad.
 for (pt = PATTERN_TYPES) {
     if (pt != "none" && pt != "teardrop") {
         expected_tex = (pt == "ridges") ? "ribs" : pt;
-        assert(_decoration_texture(pt) == expected_tex,
-            str("_decoration_texture(\"", pt, "\") should be \"", expected_tex,
-                "\", got \"", _decoration_texture(pt), "\""));
+        assert(_decoration_texture(pt, "raised") == expected_tex,
+            str("_decoration_texture(\"", pt, "\", \"raised\") should be \"", expected_tex,
+                "\", got \"", _decoration_texture(pt, "raised"), "\""));
     }
 }
-assert(is_vnf(_decoration_texture("teardrop")),
-    "_decoration_texture(\"teardrop\") should be a VNF tile");
+assert(is_vnf(_decoration_texture("teardrop", "raised")),
+    "_decoration_texture(\"teardrop\", \"raised\") should be a VNF tile");
 
 // Rendering without error also wouldn't catch a regression that dropped or
 // changed one of the three explicit style overrides -- BOSL2 would still
 // accept an undef/wrong style and produce *some* valid-looking geometry
 // (silently the wrong shape, e.g. "pyramids" reverting to mini-diamonds
 // under BOSL2's default style), not an error. Pin the three overrides and
-// confirm every other pattern_type has no override at all.
+// confirm every other pattern_type has no override at all. Etched mode is
+// pinned separately in test_decoration_etched_groove.scad, since the etched
+// texture (and so the style) differs for ridges/pyramids/diamonds.
 EXPECTED_STYLES = [
     ["diamonds", "concave"],
     ["pyramids", "convex"],
     ["bricks",   "convex"],
 ];
 for (pair = EXPECTED_STYLES) {
-    assert(_decoration_style(pair[0]) == pair[1],
-        str("_decoration_style(\"", pair[0], "\") should be \"", pair[1],
-            "\", got ", _decoration_style(pair[0])));
+    assert(_decoration_style(pair[0], "raised") == pair[1],
+        str("_decoration_style(\"", pair[0], "\", \"raised\") should be \"", pair[1],
+            "\", got ", _decoration_style(pair[0], "raised")));
 }
 _styled_types = [for (pair = EXPECTED_STYLES) pair[0]];
 for (pt = PATTERN_TYPES) {
     if (!in_list(pt, _styled_types)) {
-        assert(_decoration_style(pt) == undef,
-            str("_decoration_style(\"", pt, "\") should be undef, got ", _decoration_style(pt)));
+        assert(_decoration_style(pt, "raised") == undef,
+            str("_decoration_style(\"", pt, "\", \"raised\") should be undef, got ",
+                _decoration_style(pt, "raised")));
     }
 }
 

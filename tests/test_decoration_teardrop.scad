@@ -24,7 +24,7 @@ include <../modules/decoration.scad>
 
 assert(in_list("teardrop", PATTERN_TYPES), "PATTERN_TYPES must contain \"teardrop\"");
 
-_tex = _decoration_texture("teardrop");
+_tex = _decoration_texture("teardrop", "raised");
 assert(is_list(_tex) && len(_tex) == 2,
     "_decoration_texture(\"teardrop\") must be a VNF ([points, faces]), not a texture name");
 assert(is_vnf(_tex), "_decoration_texture(\"teardrop\") must be a valid VNF");
@@ -36,7 +36,7 @@ assert(min(_bounds[0]) >= -EPSILON && max(_bounds[1]) <= 1 + EPSILON,
     str("teardrop tile must fit in the unit cube, got bounds ", _bounds));
 
 // VNF tiles take no `style` (that's a heightfield-triangulation setting).
-assert(_decoration_style("teardrop") == undef,
+assert(_decoration_style("teardrop", "raised") == undef,
     "teardrop is a VNF tile and must not carry a style override");
 
 // The invariant the whole tile design rests on: every vertex the tile leaves on
