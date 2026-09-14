@@ -28,6 +28,17 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 OUT="$ROOT/docs/images"
 mkdir -p "$OUT"
 
+# Install cleanup before creating anything that needs cleaning up, not
+# after: if `mktemp` below failed while `set -e` is active, exiting between
+# creating $LOCK and installing this trap would leave $LOCK behind forever
+# (every later invocation would report a false "already running" and refuse
+# to proceed until someone deletes it by hand). $TMP and $LOCK are declared
+# empty first so this trap is safe to fire even if it runs before either is
+# actually set -- `rm -rf ""` is a no-op, not an error, under `set -u`.
+TMP=""
+LOCK=""
+trap 'rm -rf "$TMP" "$LOCK"' EXIT
+
 # Two concurrent invocations would each clone $OUT into their own $STAGE at
 # start time; if one publishes and then the other publishes its (now stale)
 # clone, the first run's images silently vanish. `mkdir` on a path that
@@ -36,10 +47,19 @@ mkdir -p "$OUT"
 # exactly the platform this script has to run on without extras (see the
 # bash-3.2 note below).
 LOCK="$ROOT/docs/.render-lock"
-if ! mkdir "$LOCK" 2>/dev/null; then
-    echo "FATAL: another render.sh looks like it's already running ($LOCK exists)." >&2
-    echo "       Wait for it to finish, or remove that directory by hand if it's" >&2
-    echo "       stale from a run that crashed without cleaning up." >&2
+# `if ! VAR=$(cmd); then` (not a bare assignment) for the same `set -e`
+# reason as the PATTERN_TYPES extraction below: a bare failing assignment
+# would exit the script before this diagnostic could run. Capturing stderr
+# instead of discarding it also fixes a second problem: `mkdir` fails for
+# reasons other than "the lock already exists" (a read-only or unwritable
+# docs/, for instance), and blindly reporting all of them as "another
+# render.sh is running" would send someone to delete a lock that was never
+# actually stale.
+if ! MKDIR_ERR="$(mkdir "$LOCK" 2>&1)"; then
+    echo "FATAL: could not create lock directory $LOCK:" >&2
+    echo "       $MKDIR_ERR" >&2
+    echo "       If another render.sh is already running, wait for it to finish." >&2
+    echo "       If this is stale from a run that crashed, remove it by hand." >&2
     exit 1
 fi
 # $TMP lives under $OUT's own parent, not the system tmpdir: `mv` (rename) is
@@ -48,7 +68,6 @@ fi
 # instead means the publish step below is a real same-filesystem rename, not
 # a cross-filesystem copy-then-delete that could be interrupted partway.
 TMP="$(mktemp -d "$ROOT/docs/.render-tmp.XXXXXX")"
-trap 'rm -rf "$TMP" "$LOCK"' EXIT
 
 # $OLD is set just before the publish step's two renames (below). If this
 # script is interrupted in the brief window between them -- $OUT already
@@ -126,8 +145,16 @@ printf 'include <%s/modules/decoration.scad>\nfor (p = PATTERN_TYPES) echo(p);\n
 # silently publishing a gallery missing whatever patterns came after the
 # crash point.
 LIST_OUT="$TMP/list_patterns.out"
+# set +e / capture $? / set -e, same as render() below: with `set -e` still
+# active, a bare failing command exits the script immediately -- BEFORE the
+# next line's `list_code=$?` ever runs -- so the exit-status check two lines
+# down would be unreachable for the very failure it exists to catch.
+# Confirmed directly: `set -e; false; code=$?; echo "reached"` never prints
+# "reached". This needs to be a non-strict context for the one line.
+set +e
 openscad -o "$TMP/list_patterns.csg" "$TMP/list_patterns.scad" > "$LIST_OUT" 2>&1
 list_code=$?
+set -e
 # Checking the exit code alone isn't enough here either: confirmed by testing
 # directly that OpenSCAD's .csg export exits 0 even when the file being
 # compiled hits a real assertion failure partway through (the same
