@@ -146,6 +146,15 @@ the same bump pushed below the surface.
 tiling is its own inverse, so etching it yields the same tiling half a tile
 over.
 
+**Aspect note:** BOSL2's own docs for the `"cubes"` texture say it needs an
+extra `sqrt(3)` vertical scale to render at its true isometric proportions
+(`lib/BOSL2/skin.scad`, the "cubes" texture example) — `decorated_solid()`
+doesn't apply that correction, so this close-up (like the actual pot) is
+slightly compressed vertically compared to a true cube. Everything above
+about this section's images being "at their designed proportions" is about
+the *pattern_repeat* aspect ratio (square vs. stretched tiles), not this
+per-texture correction, which is a separate, smaller, pre-existing gap.
+
 ### tri_grid
 
 Flat triangular panels divided by raised ridge borders — the same
@@ -280,7 +289,8 @@ indistinguishable from `"follow"` and the pair would show nothing.
 
 ```bash
 ./docs/images/render.sh              # everything, ~10-15 minutes (dominated by "intertwine" and "bricks")
-./docs/images/render.sh outer- pot-  # only names with these prefixes
+./docs/images/render.sh outer- pot-  # only output-file prefixes
+./docs/images/render.sh islamic_star # only this pattern's close-ups (raised + etched)
 ```
 
 The script hard-fails if any render's console output contains `CGAL error`.

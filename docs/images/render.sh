@@ -66,7 +66,14 @@ wanted() {
     [ ${#FILTERS[@]} -eq 0 ] && return 0
     local f
     for f in "${FILTERS[@]}"; do
+        # Match either the full output name (e.g. "pot-", "outer-", "preset-",
+        # or "pattern-islamic_star" as a prefix) or a bare pattern_type name
+        # against its "pattern-<type>-<relief>" close-up name -- every pattern
+        # is referred to by its bare name throughout the rest of this page, so
+        # `render.sh islamic_star` needs to work, not just `render.sh
+        # pattern-islamic_star`.
         case "$1" in "$f"*) return 0 ;; esac
+        case "$1" in pattern-"$f"-*) return 0 ;; esac
     done
     return 1
 }
@@ -95,14 +102,23 @@ render() {
     fi
     # Both are silent-corruption signals: OpenSCAD 2021.01 exits 0 and writes
     # the PNG regardless.
-    if echo "$out" | grep -q "CGAL error"; then
+    #
+    # Use a here-string, not `echo "$out" | grep`: under `set -o pipefail`,
+    # piping a large $out into `grep -q` (which exits the instant it finds a
+    # match) can make `echo` receive SIGPIPE and exit 141 before it finishes
+    # writing -- and pipefail then reports the PIPELINE as failed even though
+    # grep matched, so this whole check would silently skip exactly the
+    # large-verbose-output case (a real CGAL failure) it exists to catch. A
+    # here-string has no pipe and no second process, so there's nothing to
+    # race.
+    if grep -q "CGAL error" <<< "$out"; then
         echo "FATAL: CGAL error while rendering $name -- the PNG it just wrote is" >&2
         echo "       from an aborted evaluation and must not be shipped. Nudge" >&2
         echo "       pattern_repeat or smoothness for this pattern and re-run." >&2
         rm -f "$OUT/$name.png"
         exit 1
     fi
-    if echo "$out" | grep -q "ERROR:"; then
+    if grep -q "ERROR:" <<< "$out"; then
         echo "FATAL: ERROR in openscad output for $name" >&2
         rm -f "$OUT/$name.png"
         exit 1
