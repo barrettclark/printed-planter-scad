@@ -2,7 +2,7 @@
 #
 # Regenerates every image in docs/gallery.md. Run from anywhere:
 #
-#     ./docs/images/render.sh              # everything (~13 minutes)
+#     ./docs/images/render.sh              # everything (~10-15 minutes)
 #     ./docs/images/render.sh outer- pot-  # only images whose name starts with
 #                                          # one of these prefixes
 #
@@ -83,7 +83,11 @@ render() {
     echo "$out"
     # A failed render must not leave a bad or half-written PNG behind for a
     # later `git add docs/images/` to pick up -- every failure path below
-    # removes it before exiting.
+    # removes it before exiting. For a partial re-run (e.g. `render.sh
+    # islamic_star`) this deletes a previously-good committed image on
+    # failure rather than leaving it in place -- deliberate: a loud deletion
+    # `git status` will show is safer than a stale-but-good file silently
+    # masking a real regression.
     if [ $code -ne 0 ]; then
         echo "FATAL: openscad exited $code for $name" >&2
         rm -f "$OUT/$name.png"
@@ -105,6 +109,7 @@ render() {
     fi
     if [ ! -s "$OUT/$name.png" ]; then
         echo "FATAL: $OUT/$name.png is missing or empty" >&2
+        rm -f "$OUT/$name.png"
         exit 1
     fi
 }

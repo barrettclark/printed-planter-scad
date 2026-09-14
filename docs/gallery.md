@@ -31,7 +31,7 @@ See [README.md](../README.md) for what each parameter means.
 
 ## Pattern Comparison
 
-**These are flat tile close-ups, not pictures of a pot.** Each one is a
+**These are square-tile close-ups, not pictures of a pot.** Each one is a
 `decorated_solid()` cylinder whose height equals its own circumference, so
 `tex_reps = [n, n]` lays down **square** tiles and every pattern is shown at its
 designed proportions. On the actual planter the same tiles come out roughly
@@ -89,6 +89,9 @@ grooves.
 
 ### hex_grid
 
+Honeycomb grid of raised hexagons; etched sinks the same hexagons into the
+surface as dimples.
+
 | Raised | Etched |
 |---|---|
 | ![hex_grid, raised](images/pattern-hex_grid-raised.png) | ![hex_grid, etched](images/pattern-hex_grid-etched.png) |
@@ -144,6 +147,9 @@ tiling is its own inverse, so etching it yields the same tiling half a tile
 over.
 
 ### tri_grid
+
+Regular grid of raised triangles, alternating point-up and point-down;
+etched sinks them into the surface instead.
 
 | Raised | Etched |
 |---|---|
@@ -249,6 +255,10 @@ look like.
 | ![small preset](images/preset-small.png) | ![medium preset](images/preset-medium.png) | ![large preset](images/preset-large.png) |
 
 ## Outer Shape Modes
+
+Both at default `pattern_type = "ridges"`, which — like the presets above —
+reads as plain at pot scale; these renders are about silhouette, not
+decoration.
 
 | `"follow"` | `"custom"` |
 |---|---|
