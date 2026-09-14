@@ -1,9 +1,12 @@
 # Pattern Gallery
 
-Every `pattern_type` this generator offers, in both `relief_mode` values, plus
-the insert presets and outer shape modes. All images are real OpenSCAD renders
-produced by [`images/render.sh`](images/render.sh) — nothing here is drawn by
-hand or touched up.
+Every `pattern_type` this generator offers, plus the insert presets and outer
+shape modes. Most patterns show both `relief_mode` values; a few (`none`,
+`checkers`, `cubes`) show only one because the other mode renders visually
+indistinguishable from it — the per-pattern notes below say why in each case.
+All images are real OpenSCAD renders produced by
+[`images/render.sh`](images/render.sh) — nothing here is drawn by hand or
+touched up.
 
 See [README.md](../README.md) for what each parameter means.
 
@@ -90,7 +93,11 @@ grooves.
 ### hex_grid
 
 Flat hexagonal panels divided by raised ridge borders — a honeycomb grid,
-same family as `diamonds` above.
+same family as `diamonds` above. BOSL2's docs note the tile needs a `sqrt(3)`
+vertical scale for the V-groove width to be perfectly uniform on all six
+sides of each hexagon; `decorated_solid()` doesn't apply it, so the grooves
+here are slightly uneven (narrower on some sides than others) rather than
+outright wrong-shaped — a smaller version of the `cubes` gap below.
 
 | Raised | Etched |
 |---|---|
@@ -120,10 +127,13 @@ also why `bricks` is one of the slower patterns to render.
 |---|
 | ![checkers, raised](images/pattern-checkers-raised.png) |
 
-**No etched image:** a checkerboard is its own inverse. Recessing the motif
-produces the identical tiling shifted half a tile, so an etched render is
-indistinguishable from this one. Rendered and compared side by side before
-deciding to omit it.
+**No etched image:** `tex_inset=true` shifts the whole two-level checkerboard
+relief down by exactly its own depth, rather than shifting it sideways.
+Whichever squares were raised end up flush with the nominal surface, and
+whichever were flush end up recessed by that same depth — so the step height
+between adjacent squares, which is all a render actually shows, comes out
+identical either way. Rendered and compared side by side before deciding to
+omit it.
 
 ### dots
 
@@ -142,9 +152,8 @@ the same bump pushed below the surface.
 |---|
 | ![cubes, raised](images/pattern-cubes-raised.png) |
 
-**No etched image**, for the same reason as `checkers`: the isometric cube
-tiling is its own inverse, so etching it yields the same tiling half a tile
-over.
+**No etched image**, for the same reason as `checkers`: the same
+depth-preserving-shift argument applies to this texture's step relief.
 
 **Aspect note:** BOSL2's own docs for the `"cubes"` texture say it needs an
 extra `sqrt(3)` vertical scale to render at its true isometric proportions
@@ -159,7 +168,8 @@ per-texture correction, which is a separate, smaller, pre-existing gap.
 
 Flat triangular panels divided by raised ridge borders — the same
 groove-bordered-panel family as `diamonds`/`hex_grid`, just on a triangular
-grid instead of hexagonal.
+grid instead of hexagonal. Same `sqrt(3)`-scale gap as `hex_grid` above:
+grooves are slightly uneven rather than perfectly uniform on all three sides.
 
 | Raised | Etched |
 |---|---|

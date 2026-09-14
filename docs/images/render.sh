@@ -61,6 +61,7 @@ PATTERN_TYPES=(none ridges diamonds hex_grid pyramids bricks checkers dots
 # same code path (and the same CGAL check) as a full run, so a single re-rendered
 # image can't silently drift from the settings the rest of the gallery uses.
 FILTERS=("$@")
+MATCHED=0
 
 wanted() {
     [ ${#FILTERS[@]} -eq 0 ] && return 0
@@ -81,6 +82,7 @@ wanted() {
 render() {
     local name="$1"; shift
     wanted "$name" || return 0
+    MATCHED=$((MATCHED + 1))
     echo "=== $name ==="
     local out code
     set +e
@@ -195,5 +197,12 @@ pot outer-follow -D 'outer_mode="follow"'
 pot outer-custom -D 'outer_mode="custom"' \
     -D 'outer_top_d=180' -D 'outer_bottom_d=180' -D 'outer_height=175'
 
+if [ ${#FILTERS[@]} -gt 0 ] && [ "$MATCHED" -eq 0 ]; then
+    echo "FATAL: no image name matched any of: ${FILTERS[*]} -- a typo'd filter" >&2
+    echo "       would otherwise leave stale committed PNGs while this script" >&2
+    echo "       reports success. Check the name against docs/gallery.md." >&2
+    exit 1
+fi
+
 echo
-echo "All renders complete and CGAL-clean: $OUT"
+echo "All renders complete and CGAL-clean: $OUT ($MATCHED image(s) rendered)"
