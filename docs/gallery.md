@@ -230,9 +230,9 @@ parameter drives both axes.
 
 This is pre-existing behaviour, not something this gallery changed, and it is
 not fixed: a proper fix means deriving the vertical repeat count from the pot's
-actual height-to-circumference ratio instead of reusing `pattern_repeat`. The
-repository does not use GitHub issues, so there is no issue link to point at —
-this section is the tracking record.
+actual height-to-circumference ratio instead of reusing `pattern_repeat`.
+Tracked in the repository's `TODO.md` (untracked, local to each checkout —
+not committed to git) rather than a GitHub issue.
 
 ## Insert Presets
 
