@@ -53,11 +53,12 @@ trap 'rm -rf "$TMP" "$LOCK"' EXIT
 # $OLD is set just before the publish step's two renames (below). If this
 # script is interrupted in the brief window between them -- $OUT already
 # renamed away, $STAGE not yet renamed into place -- $OUT would be left
-# missing. Ctrl-C (SIGINT) and a plain `kill` (SIGTERM) are both catchable,
-# so recover() puts $OLD back the moment either arrives, same as the
-# explicit check after the second mv already does for an ordinary command
-# failure. SIGKILL and power loss are NOT catchable by any process, so this
-# can't cover every possible interruption -- but even then nothing is lost:
+# missing. Ctrl-C (SIGINT), a plain `kill` (SIGTERM), and a closed terminal
+# or dropped SSH session (SIGHUP) are all catchable, so recover() puts $OLD
+# back the moment any of them arrives, same as the explicit check after the
+# second mv already does for an ordinary command failure. SIGKILL and power
+# loss are NOT catchable by any process, so this can't cover every possible
+# interruption -- but even then nothing is lost:
 # $OLD survives under docs/.render-tmp.*/old (the EXIT trap that would
 # delete it never runs on SIGKILL either), so the previous gallery is still
 # recoverable by hand with `mv docs/.render-tmp.*/old docs/images`.
@@ -69,6 +70,7 @@ recover() {
 }
 trap 'recover; exit 130' INT
 trap 'recover; exit 143' TERM
+trap 'recover; exit 129' HUP
 
 # STAGE starts as a full clone of the current docs/images/ -- EVERY file in
 # it, not just the *.png renders. This directory also holds render.sh itself
@@ -114,6 +116,31 @@ CU_IMG="800,800"
 # remembering to update this file.
 printf 'include <%s/modules/decoration.scad>\nfor (p = PATTERN_TYPES) echo(p);\n' "$ROOT" \
     > "$TMP/list_patterns.scad"
+# Run this synchronously into a real file first, checked for its own exit
+# status, rather than piping straight into the `while read` below via
+# process substitution: `while ... done < <(cmd)` does NOT propagate cmd's
+# exit status to the enclosing shell (`$?` after the loop reflects the loop
+# itself, not the process-substituted command), so if openscad printed a few
+# ECHO lines and then crashed partway, PATTERN_TYPES would come out
+# non-empty-but-incomplete and the empty-check below would never fire --
+# silently publishing a gallery missing whatever patterns came after the
+# crash point.
+LIST_OUT="$TMP/list_patterns.out"
+openscad -o "$TMP/list_patterns.csg" "$TMP/list_patterns.scad" > "$LIST_OUT" 2>&1
+list_code=$?
+# Checking the exit code alone isn't enough here either: confirmed by testing
+# directly that OpenSCAD's .csg export exits 0 even when the file being
+# compiled hits a real assertion failure partway through (the same
+# exit-0-on-error behavior this script already works around for CGAL
+# failures elsewhere) -- so an error partway through the PATTERN_TYPES loop
+# would leave list_code at 0 with a truncated but nonempty ECHO list. Check
+# for the literal ERROR string too, same convention as render()'s own checks.
+if [ $list_code -ne 0 ] || grep -q "ERROR" "$LIST_OUT"; then
+    echo "FATAL: could not evaluate modules/decoration.scad to list PATTERN_TYPES" >&2
+    echo "       (exit $list_code, or ERROR in output):" >&2
+    cat "$LIST_OUT" >&2
+    exit 1
+fi
 # `while read` array-append, not `mapfile`/`readarray`: those were added in
 # bash 4.0, and macOS ships bash 3.2 as /bin/bash for licensing reasons (only
 # a `brew install bash` gets you newer, and that's not on $PATH by default).
@@ -123,10 +150,7 @@ printf 'include <%s/modules/decoration.scad>\nfor (p = PATTERN_TYPES) echo(p);\n
 PATTERN_TYPES=()
 while IFS= read -r pt; do
     PATTERN_TYPES+=("$pt")
-done < <(
-    openscad -o "$TMP/list_patterns.csg" "$TMP/list_patterns.scad" 2>&1 \
-        | grep '^ECHO:' | sed -E 's/^ECHO: "(.*)"$/\1/'
-)
+done < <(grep '^ECHO:' "$LIST_OUT" | sed -E 's/^ECHO: "(.*)"$/\1/')
 if [ ${#PATTERN_TYPES[@]} -eq 0 ]; then
     echo "FATAL: could not read PATTERN_TYPES from modules/decoration.scad" >&2
     exit 1
