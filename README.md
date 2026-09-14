@@ -122,7 +122,7 @@ drainage_holes_enabled = false;
 
 ## Decoration Examples
 
-**See the [pattern gallery](docs/gallery.md) for a rendered example of every `pattern_type`** (most in both relief modes; a few only where the two actually look different), plus full-pot renders, the three insert presets and both outer shape modes. The rest of this section covers the behaviour the pictures can't show.
+**See the [pattern gallery](docs/gallery.md) for a rendered example of every `pattern_type` in both relief modes** (except `"none"`, which has no texture to show a second mode of), plus full-pot renders, the three insert presets and both outer shape modes. The rest of this section covers the behaviour the pictures can't show.
 
 `"etched"` works one of two ways depending on the pattern. `"ridges"`, `"pyramids"` and `"diamonds"` have a flat-topped counterpart shape, so etching them is a true line engrave: the wall keeps its nominal surface as flat panels, and only a thin V-groove is cut along each of the pattern's outlines — the look of a design engraved into wood or stone rather than moulded into it. The groove takes up roughly a tenth of each tile, so the flat panel dominates.
 

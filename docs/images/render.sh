@@ -147,13 +147,6 @@ for pt in "${PATTERN_TYPES[@]}"; do
     reliefs=(raised etched)
     # "none" has no texture at all, so relief_mode cannot change anything.
     [ "$pt" = "none" ] && reliefs=(raised)
-    # "checkers" and "cubes": tex_inset=true shifts the whole height profile
-    # down by exactly tex_depth (a rigid vertical/radial translation, not a
-    # lateral tile shift), which preserves every relative height difference
-    # exactly -- the only thing a render can show -- so etched is pixel-
-    # identical to raised for these two. Rendering it would only add a
-    # duplicate image to the repo -- docs/gallery.md says so in prose instead.
-    case "$pt" in checkers|cubes) reliefs=(raised) ;; esac
     for rel in "${reliefs[@]}"; do
         render "pattern-$pt-$rel" \
             --projection=o --imgsize="$CU_IMG" --camera="$CU_CAMERA" \

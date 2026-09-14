@@ -1,10 +1,9 @@
 # Pattern Gallery
 
 Every `pattern_type` this generator offers, plus the insert presets and outer
-shape modes. Most patterns show both `relief_mode` values; a few (`none`,
-`checkers`, `cubes`) show only one because the other mode renders visually
-indistinguishable from it — the per-pattern notes below say why in each case.
-All images are real OpenSCAD renders produced by
+shape modes. Every pattern shows both `relief_mode` values except `"none"`,
+which has no texture at all so `relief_mode` cannot change anything. All
+images are real OpenSCAD renders produced by
 [`images/render.sh`](images/render.sh) — nothing here is drawn by hand or
 touched up.
 
@@ -57,8 +56,8 @@ Two rendering caveats worth knowing before you read the pictures:
   same `cos(25°) = 0.91`, so tile aspect is essentially preserved.
 - **The relief reads slightly deeper here than it will on a printed pot.** The
   depth is the real default (1.5mm), but these tiles are 17.7mm across where
-  the default pot's are ~27.9mm, so the depth-to-width ratio is 8.5% here
-  versus 5.4% on the pot.
+  the default pot's tiles are ~27.9mm, so the depth-to-width ratio is 8.5%
+  here versus 5.4% on the pot.
 
 ### none
 
@@ -123,17 +122,16 @@ also why `bricks` is one of the slower patterns to render.
 
 ### checkers
 
-| Raised |
-|---|
-| ![checkers, raised](images/pattern-checkers-raised.png) |
+A two-level checkerboard. `tex_inset=true` shifts the whole height profile
+radially inward by exactly the pattern's depth rather than inverting it in
+place, and on this curved wall that comes out visibly different from raised,
+not just a relabeling of the same shape — an earlier draft of this page
+claimed the two would render identically and was wrong; measured directly
+(RMSE ≈ 0.12 between the two renders below) before writing this.
 
-**No etched image:** `tex_inset=true` shifts the whole two-level checkerboard
-relief down by exactly its own depth, rather than shifting it sideways.
-Whichever squares were raised end up flush with the nominal surface, and
-whichever were flush end up recessed by that same depth — so the step height
-between adjacent squares, which is all a render actually shows, comes out
-identical either way. Rendered and compared side by side before deciding to
-omit it.
+| Raised | Etched |
+|---|---|
+| ![checkers, raised](images/pattern-checkers-raised.png) | ![checkers, etched](images/pattern-checkers-etched.png) |
 
 ### dots
 
@@ -148,12 +146,9 @@ the same bump pushed below the surface.
 
 ### cubes
 
-| Raised |
-|---|
-| ![cubes, raised](images/pattern-cubes-raised.png) |
-
-**No etched image**, for the same reason as `checkers`: the same
-depth-preserving-shift argument applies to this texture's step relief.
+| Raised | Etched |
+|---|---|
+| ![cubes, raised](images/pattern-cubes-raised.png) | ![cubes, etched](images/pattern-cubes-etched.png) |
 
 **Aspect note:** BOSL2's own docs for the `"cubes"` texture say it needs an
 extra `sqrt(3)` vertical scale to render at its true isometric proportions
@@ -264,8 +259,8 @@ actual height-to-circumference ratio instead of reusing `pattern_repeat`.
 to a named size. All three renders use the same fixed camera (no `--viewall`),
 so the sizes are directly comparable rather than each normalised to fill the
 frame. Everything else is at defaults, including `pattern_type = "ridges"` --
-at pot scale, `"ridges"`' 16 tiles are barely distinguishable from the
-cylinder's own 80-facet smoothness, so these pots read as plain. These
+at pot scale, its 16 tiles are barely distinguishable from the cylinder's own
+80-facet smoothness, so these pots read as plain. These
 sections are about silhouette and size, not decoration; see
 [Pattern Comparison](#pattern-comparison) for what the patterns themselves
 look like.
