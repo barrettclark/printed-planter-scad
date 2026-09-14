@@ -62,6 +62,7 @@ PATTERN_TYPES=(none ridges diamonds hex_grid pyramids bricks checkers dots
 # image can't silently drift from the settings the rest of the gallery uses.
 FILTERS=("$@")
 MATCHED=0
+RENDERED=()
 
 wanted() {
     [ ${#FILTERS[@]} -eq 0 ] && return 0
@@ -86,20 +87,21 @@ render() {
     echo "=== $name ==="
     local out code
     set +e
-    out=$(openscad --render -o "$OUT/$name.png" "$@" 2>&1)
+    # Write into $TMP, not $OUT: this run's images only reach docs/images/ in
+    # the "publish" step at the very end, once every selected render has
+    # passed every check below. Writing straight into $OUT would let a run
+    # that fails or is interrupted partway leave a mixed gallery -- some
+    # images from this run's (possibly different) settings sitting next to
+    # stale images from whatever the last successful run produced -- with no
+    # signal that anything is inconsistent. $TMP is wiped by the EXIT trap
+    # regardless of how the script ends, so an interrupted run leaves $OUT
+    # completely untouched.
+    out=$(openscad --render -o "$TMP/$name.png" "$@" 2>&1)
     code=$?
     set -e
     echo "$out"
-    # A failed render must not leave a bad or half-written PNG behind for a
-    # later `git add docs/images/` to pick up -- every failure path below
-    # removes it before exiting. For a partial re-run (e.g. `render.sh
-    # islamic_star`) this deletes a previously-good committed image on
-    # failure rather than leaving it in place -- deliberate: a loud deletion
-    # `git status` will show is safer than a stale-but-good file silently
-    # masking a real regression.
     if [ $code -ne 0 ]; then
         echo "FATAL: openscad exited $code for $name" >&2
-        rm -f "$OUT/$name.png"
         exit 1
     fi
     # Both are silent-corruption signals: OpenSCAD 2021.01 exits 0 and writes
@@ -117,19 +119,17 @@ render() {
         echo "FATAL: CGAL error while rendering $name -- the PNG it just wrote is" >&2
         echo "       from an aborted evaluation and must not be shipped. Nudge" >&2
         echo "       pattern_repeat or smoothness for this pattern and re-run." >&2
-        rm -f "$OUT/$name.png"
         exit 1
     fi
     if grep -q "ERROR:" <<< "$out"; then
         echo "FATAL: ERROR in openscad output for $name" >&2
-        rm -f "$OUT/$name.png"
         exit 1
     fi
-    if [ ! -s "$OUT/$name.png" ]; then
-        echo "FATAL: $OUT/$name.png is missing or empty" >&2
-        rm -f "$OUT/$name.png"
+    if [ ! -s "$TMP/$name.png" ]; then
+        echo "FATAL: $TMP/$name.png is missing or empty" >&2
         exit 1
     fi
+    RENDERED+=("$name")
 }
 
 # --- pattern close-ups -------------------------------------------------------
@@ -147,9 +147,11 @@ for pt in "${PATTERN_TYPES[@]}"; do
     reliefs=(raised etched)
     # "none" has no texture at all, so relief_mode cannot change anything.
     [ "$pt" = "none" ] && reliefs=(raised)
-    # "checkers" and "cubes" are their own inverse: recessing the motif yields
-    # the identical tiling shifted half a tile, so the etched render is
-    # indistinguishable from the raised one. Rendering it would only add a
+    # "checkers" and "cubes": tex_inset=true shifts the whole height profile
+    # down by exactly tex_depth (a rigid vertical/radial translation, not a
+    # lateral tile shift), which preserves every relative height difference
+    # exactly -- the only thing a render can show -- so etched is pixel-
+    # identical to raised for these two. Rendering it would only add a
     # duplicate image to the repo -- docs/gallery.md says so in prose instead.
     case "$pt" in checkers|cubes) reliefs=(raised) ;; esac
     for rel in "${reliefs[@]}"; do
@@ -203,6 +205,16 @@ if [ ${#FILTERS[@]} -gt 0 ] && [ "$MATCHED" -eq 0 ]; then
     echo "       reports success. Check the name against docs/gallery.md." >&2
     exit 1
 fi
+
+# Publish: every selected render passed every check above (a failure exits the
+# whole script before this line runs), so it's now safe to move this run's
+# images from $TMP into the committed docs/images/ -- atomically, from
+# docs/images/'s point of view: it goes straight from "last run's complete,
+# consistent set" to "this run's complete, consistent set," with no
+# in-between state a concurrent `git add` could observe.
+for name in "${RENDERED[@]}"; do
+    mv "$TMP/$name.png" "$OUT/$name.png"
+done
 
 echo
 echo "All renders complete and CGAL-clean: $OUT ($MATCHED image(s) rendered)"
