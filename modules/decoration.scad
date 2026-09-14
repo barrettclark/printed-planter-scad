@@ -110,14 +110,31 @@ function _teardrop_tile() =
         [for (d = drops) vnf_from_region([d], transform = up(1), reverse = true)],
         [for (d = drops) _td_wall(d)])));
 
+// Half-width of an etched V-groove, as a fraction of one texture tile. Each
+// tile contributes this much slope on each side of a shared edge, so the
+// finished groove is twice this wide and the flat land is the remaining
+// 1 - 2*_ETCH_BORDER of the tile. Kept small on purpose: the point of etched
+// mode is a thin incised line, not a chamfered plateau.
+_ETCH_BORDER = 0.05;
+
 // Patterns with a flat-top/V-groove counterpart texture in BOSL2, used when
 // relief_mode == "etched" so etched reads as engraved lines cut into a flat
 // surface rather than a smoothly inverted bump. Insetting one of these (see
 // decorated_solid) puts the flat tops at the nominal wall radius and sinks
 // only the grooves, which is the laser-engraved look.
+//
+// The "_vnf" variants rather than the plain "trunc_ribs"/"trunc_pyramids"
+// heightfields: those two have a fixed profile with no groove-width parameter
+// (trunc_ribs is a hardcoded quarter land to three-quarters flat-bottomed
+// channel, trunc_pyramids about a third land to two-thirds slope), which reads
+// as fluting and as a heavy chamfer respectively rather than as an incised
+// line. The VNF variants take `border=`/`gap=` and can be cut as narrow as we
+// like. gap=0 makes the ribs' groove a true V with no flat floor, matching the
+// pyramids and diamonds grooves. These return VNFs, so -- like "hex_grid",
+// "dots" and "teardrop" -- they take no `style`.
 function _decoration_etched_texture(pattern_type) =
-    pattern_type == "ridges"   ? "trunc_ribs" :
-    pattern_type == "pyramids" ? "trunc_pyramids" :
+    pattern_type == "ridges"   ? texture("trunc_ribs_vnf", gap = 0, border = _ETCH_BORDER) :
+    pattern_type == "pyramids" ? texture("trunc_pyramids_vnf", border = _ETCH_BORDER) :
     pattern_type == "diamonds" ? "trunc_diamonds" :
     undef; // no counterpart -- falls back to insetting the raised bump
 
@@ -132,20 +149,20 @@ function _decoration_texture(pattern_type, relief_mode) =
 // Heightfield textures have their grid samples triangulated according to a
 // `style`; VNF textures come pre-triangulated and ignore it. BOSL2's default
 // style ("min_edge") renders "pyramids" as flat-topped mini-diamonds instead
-// of actual pyramids, and its docs call for style="convex" on "pyramids",
-// "bricks" and "trunc_pyramids", and style="concave" on "diamonds".
-// "ribs"/"trunc_ribs" are heightfields whose docs say the style does not
-// matter, and everything else here is a VNF.
+// of actual pyramids, and its docs call for style="convex" on "pyramids" and
+// "bricks", and style="concave" on "diamonds". "ribs" is a heightfield whose
+// docs say the style does not matter, and everything else here -- including
+// all three etched counterparts -- is a VNF.
 //
 // Keyed on the resolved texture rather than on pattern_type so the etched
-// flat-top variants can't drift out of sync: "diamonds" etched becomes the
-// *VNF* "trunc_diamonds", which must not inherit "concave".
+// variants can't drift out of sync: all three of them are VNFs, so every
+// pattern's etched style falls through to undef without needing a second
+// relief-mode-specific table to keep in step with the texture table.
 function _decoration_style(pattern_type, relief_mode) =
     let (tex = _decoration_texture(pattern_type, relief_mode))
-    tex == "diamonds"       ? "concave" :
-    tex == "pyramids"       ? "convex" :
-    tex == "bricks"         ? "convex" :
-    tex == "trunc_pyramids" ? "convex" :
+    tex == "diamonds" ? "concave" :
+    tex == "pyramids" ? "convex" :
+    tex == "bricks"   ? "convex" :
     undef;
 
 module decorated_solid(pattern_type, pattern_orientation, relief_mode, pattern_depth,
