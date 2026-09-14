@@ -54,8 +54,9 @@ cp -a "$OUT"/. "$STAGE"/
 #
 # A straight cylinder whose height is exactly its own circumference, so
 # tex_reps=[n,n] lays down SQUARE tiles -- the flat-tile shot the gallery leads
-# with, free of the ~3.2x horizontal stretch the real pot applies (see
-# docs/gallery.md, "Full-Pot Examples").
+# with, free of the ~2.8-3.75x horizontal stretch (it varies along the real
+# pot's taper) that the real pot applies (see docs/gallery.md, "Full-Pot
+# Examples").
 CU_R=90
 CU_H=565.4867        # 2 * pi * 90
 CU_REPS=32           # 32 tiles around 565mm of circumference -> ~17.7mm tiles
@@ -78,7 +79,16 @@ CU_IMG="800,800"
 # remembering to update this file.
 printf 'include <%s/modules/decoration.scad>\nfor (p = PATTERN_TYPES) echo(p);\n' "$ROOT" \
     > "$TMP/list_patterns.scad"
-mapfile -t PATTERN_TYPES < <(
+# `while read` array-append, not `mapfile`/`readarray`: those were added in
+# bash 4.0, and macOS ships bash 3.2 as /bin/bash for licensing reasons (only
+# a `brew install bash` gets you newer, and that's not on $PATH by default).
+# `#!/usr/bin/env bash` at the top of this file resolves to whatever's first
+# in the invoking user's PATH, which is 3.2 on a stock Mac -- `mapfile` would
+# fail outright there before rendering a single image.
+PATTERN_TYPES=()
+while IFS= read -r pt; do
+    PATTERN_TYPES+=("$pt")
+done < <(
     openscad -o "$TMP/list_patterns.csg" "$TMP/list_patterns.scad" 2>&1 \
         | grep '^ECHO:' | sed -E 's/^ECHO: "(.*)"$/\1/'
 )

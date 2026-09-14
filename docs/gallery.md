@@ -36,9 +36,10 @@ See [README.md](../README.md) for what each parameter means.
 **These are square-tile close-ups, not pictures of a pot.** Each one is a
 `decorated_solid()` cylinder whose height equals its own circumference, so
 `tex_reps = [n, n]` lays down **square** tiles and every pattern is shown at its
-designed proportions. On the actual planter the same tiles come out roughly
-**3.75× wider than tall** — see [Full-Pot Examples](#full-pot-examples) below
-for what that does to them, and why these close-ups lead the page instead.
+designed proportions. On the actual planter the same tiles come out
+**roughly 2.8–3.75× wider than tall** (it varies along the wall's taper, see
+below) — see [Full-Pot Examples](#full-pot-examples) below for what that does
+to them, and why these close-ups lead the page instead.
 
 Settings shared by every image in this section: `r1 = r2 = 90mm`,
 `height = 565.5mm` (= 2πr), `pattern_repeat = 32` (so tiles are ~17.7mm square),
@@ -56,8 +57,9 @@ Two rendering caveats worth knowing before you read the pictures:
   same `cos(25°) = 0.91`, so tile aspect is essentially preserved.
 - **The relief reads slightly deeper here than it will on a printed pot.** The
   depth is the real default (1.5mm), but these tiles are 17.7mm across where
-  the default pot's tiles are ~32.3mm, so the depth-to-width ratio is 8.5%
-  here versus 4.6% on the pot.
+  the default pot's tiles are ~24–32mm depending on height (the wall tapers,
+  see below), so the depth-to-width ratio is 8.5% here versus roughly 4.6–
+  6.3% on the pot.
 
 ### none
 
@@ -227,14 +229,19 @@ and `relief_mode` overridden.
 |---|
 | ![pot, islamic_star raised](images/pot-islamic_star-raised.png) |
 
-**Known limitation — tiles are stretched ~3.75× wider than tall.**
-`decorated_solid()` passes `tex_reps = [pattern_repeat, pattern_repeat]`, which
-asks for the same number of repeats around the circumference as up the height
-without accounting for the pot not being square. The decorated wall's actual
-radius is ~82.3mm (`planter.scad`'s peak-aware cone calculation, not the
-insert's own radius) giving a ~517mm circumference; on the default planter
-that puts 16 tiles around it and 16 tiles up a 138mm wall: **32.3mm wide by
-8.6mm tall, an aspect ratio of 3.75**.
+**Known limitation — tiles are stretched roughly 2.8–3.75× wider than tall,
+and it's not even a fixed number.** `decorated_solid()` passes
+`tex_reps = [pattern_repeat, pattern_repeat]`, asking for the same number of
+repeats around the circumference as up the height regardless of the pot's
+proportions. Worse, the decorated wall is a cone, not a cylinder --
+`planter.scad`'s own peak-aware calculation puts its radius at ~61mm at the
+bottom growing to ~82.3mm at the top (not the insert's own radius) -- and
+BOSL2 scales each texture strip to the *local* radius as it revolves
+(`lib/BOSL2/skin.scad`'s `_textured_revolution()`), so the 16 tiles around
+the circumference are genuinely trapezoidal: about 24mm wide at the bottom,
+about 32mm wide at the top, against a fixed 8.6mm tile height (138mm wall /
+16 tiles) throughout. That's an aspect ratio of **2.8× at the bottom rim
+widening to 3.75× at the top rim**.
 
 This is visible, not theoretical. Compare the `hex_grid` pot above with
 [its close-up](#hex_grid) — the hexagons have flattened into wide ribbons. The
