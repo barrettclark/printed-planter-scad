@@ -35,9 +35,17 @@ mkdir -p "$OUT"
 # to proceed until someone deletes it by hand). $TMP and $LOCK are declared
 # empty first so this trap is safe to fire even if it runs before either is
 # actually set -- `rm -rf ""` is a no-op, not an error, under `set -u`.
+#
+# $LOCK_OWNED gates the $LOCK removal specifically: this trap also fires
+# when THIS invocation fails to acquire the lock (mkdir below exits nonzero
+# because another render.sh already holds it), and unconditionally removing
+# $LOCK in that case would delete the OTHER run's lock out from under it,
+# reopening the exact stale-clone race the lock exists to prevent. Only the
+# invocation that actually created the lock (mkdir succeeded) may remove it.
 TMP=""
 LOCK=""
-trap 'rm -rf "$TMP" "$LOCK"' EXIT
+LOCK_OWNED=""
+trap '[ -n "$LOCK_OWNED" ] && rm -rf "$LOCK"; rm -rf "$TMP"' EXIT
 
 # Two concurrent invocations would each clone $OUT into their own $STAGE at
 # start time; if one publishes and then the other publishes its (now stale)
@@ -62,6 +70,7 @@ if ! MKDIR_ERR="$(mkdir "$LOCK" 2>&1)"; then
     echo "       If this is stale from a run that crashed, remove it by hand." >&2
     exit 1
 fi
+LOCK_OWNED=1
 # $TMP lives under $OUT's own parent, not the system tmpdir: `mv` (rename) is
 # only guaranteed atomic within a single filesystem, and $TMPDIR can be a
 # different filesystem from the repo (e.g. tmpfs on Linux) -- staging here
