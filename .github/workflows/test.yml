@@ -233,6 +233,26 @@ jobs:
             run_assembly_combo "islamic_star" "$relief" 16 80
           done
 
+          # README documents that "tumbling_cubes" and "islamic_star" union
+          # cleanly with another textured solid, while "teardrop" and
+          # "intertwine" abort CGAL in that case. Nothing enforced the clean
+          # half of that claim: test_decoration_pattern_types.scad unions every
+          # pattern but exports .csg, which never invokes CGAL. That gap is how
+          # the claim came to be documented (wrongly) for "intertwine" in the
+          # first place. Union with a "dots" solid, difference against a
+          # disjoint cube to force real evaluation, ~100s each.
+          for pt in tumbling_cubes islamic_star; do
+            echo "=== union($pt, dots) differenced (expect clean CGAL union) ==="
+            printf 'include <%s/modules/decoration.scad>\ndifference() {\n  union() {\n    decorated_solid("%s", "vertical", "raised", 1.5, 8, 75, 60, 100, 4);\n    translate([200, 0, 0]) decorated_solid("dots", "vertical", "raised", 1.5, 8, 75, 60, 100, 4);\n  }\n  translate([600, 0, 0]) cube(10, center = true);\n}\n' "$(pwd)" "$pt" > /tmp/ci_union_${pt}.scad
+            out=$(openscad -o /tmp/ci_union_${pt}.stl /tmp/ci_union_${pt}.scad 2>&1)
+            code=$?
+            echo "$out"
+            if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
+              echo "FAIL: textured-solid union check for pattern_type=$pt (exit $code, or ERROR in output)"
+              fail=1
+            fi
+          done
+
           # Wall-thickness invariant: must render EMPTY (cavity never pokes
           # through the outer wall) for all 3 documented parameter combos.
           # .csg export does not force full CGAL evaluation (a non-empty

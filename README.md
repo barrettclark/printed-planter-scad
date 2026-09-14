@@ -162,6 +162,8 @@ Which parameter values trip this depends on `pattern_repeat` **and** `smoothness
 
 **Watch the console.** When this happens OpenSCAD still exits 0 and still writes an STL — a large, plausible-looking file from a subtraction that aborted part-way. The only signal is `CGAL error: assertion violation!` in the console log, with no error dialog in the GUI. If you see it, or if you get a broken/exploded render, nudge either `pattern_repeat` or `smoothness` by a small amount and render again.
 
+`"intertwine"` is by far the most expensive of the three to render: roughly 7 minutes and a ~79MB STL at the shipped defaults on a modern laptop, versus well under a minute for `"tumbling_cubes"`/`"islamic_star"`. A silent console for several minutes on `"intertwine"` is normal — it is not a hang, and it is not the CGAL failure above (which happens quickly, not after several minutes).
+
 Adjust `pattern_orientation` to switch between vertical and horizontal layouts, and `pattern_repeat` to change how many tiles wrap around the circumference — the same value also sets the vertical repeat count for tileable patterns, so raising it makes tiles both more numerous around the pot and shorter top-to-bottom.
 
 Note: enabling decoration changes the pot's outer silhouette slightly. BOSL2's textured `cyl()` only supports a straight r1/r2 cone, so the decorated body is approximated as a straight cone through the cavity's peak radius rather than following the cavity's exact ledge/shoulder profile — at defaults this means the rim wall goes from ~3mm (plain `wall_thickness`) to ~7mm. This is a deliberate, documented tradeoff, not a bug.
