@@ -252,13 +252,22 @@ fi
 # directory renames rather than looping mv per file: each rename is a single
 # atomic same-filesystem syscall (see $TMP above), so there's no point in the
 # swap where docs/images/ could be observed holding a mix of old and new
-# files the way a per-file loop would allow. A crash between the two renames
-# below leaves the old gallery under docs/.render-tmp.*/old -- recoverable by
-# hand, and .gitignore already excludes that path so it can't get committed
-# by accident.
+# files the way a per-file loop would allow.
+#
+# The second mv is checked explicitly (not left to `set -e`): $OLD lives
+# under $TMP, and the EXIT trap unconditionally `rm -rf`s $TMP on ANY exit,
+# including one `set -e` triggers. If the second mv failed and we just let
+# `set -e` exit, that trap would delete $OLD along with everything else,
+# destroying the previously-committed gallery with nothing left in its
+# place. If it fails, move $OLD back to $OUT first so the worst case is
+# "nothing published" rather than "gallery gone."
 OLD="$TMP/old"
 mv "$OUT" "$OLD"
-mv "$STAGE" "$OUT"
+if ! mv "$STAGE" "$OUT"; then
+    echo "FATAL: could not publish to $OUT; restoring the previous gallery" >&2
+    mv "$OLD" "$OUT"
+    exit 1
+fi
 
 echo
 echo "All renders complete and CGAL-clean: $OUT ($MATCHED image(s) rendered)"
