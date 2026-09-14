@@ -118,6 +118,55 @@ jobs:
             fail=1
           fi
 
+          # Insert presets: one real full-assembly STL evaluation per named
+          # preset, exercising insert_preset's override of insert_top_d/
+          # insert_bottom_d/insert_height through the whole planter() build.
+          for preset in small medium large; do
+            echo "=== tests/test_planter_integration.scad (insert_preset=$preset, expect clean) ==="
+            out=$(openscad -D "insert_preset=\"$preset\"" -o /tmp/ci_variant_preset_${preset}.stl tests/test_planter_integration.scad 2>&1)
+            code=$?
+            echo "$out"
+            if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
+              echo "FAIL: full-assembly variant insert_preset=$preset (exit $code, or ERROR in output)"
+              fail=1
+            fi
+          done
+
+          # Insert preset RESOLUTION (not just error-free rendering): confirms
+          # insert_preset's override actually reaches _resolved_insert_top_d/
+          # _resolved_insert_bottom_d/_resolved_insert_height with the exact
+          # documented values. The full-assembly loop above only proves the
+          # geometry renders without error under each preset -- a regression
+          # that dropped a ternary (e.g. _resolved_insert_top_d = insert_top_d;)
+          # would still render a valid (just wrong) planter and pass that loop.
+          for preset in small medium large; do
+            echo "=== tests/test_insert_preset_resolved.scad (insert_preset=$preset, expect clean) ==="
+            out=$(openscad -D "insert_preset=\"$preset\"" -o /tmp/ci_resolved_${preset}.csg tests/test_insert_preset_resolved.scad 2>&1)
+            code=$?
+            echo "$out"
+            if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
+              echo "FAIL: insert_preset resolution check for insert_preset=$preset (exit $code, or ERROR in output)"
+              fail=1
+            fi
+          done
+
+          # "custom" case: passes explicit insert_top_d/insert_bottom_d/
+          # insert_height that differ from both planter.scad's defaults
+          # (150/110/130) and every named preset, so a regression that
+          # resolved "custom" to the defaults or to a preset's values
+          # (instead of passing these fields through unchanged) shows up as
+          # a mismatch rather than passing by coincidence. Flagged by
+          # Copilot review on PR #6: the original version of this loop only
+          # covered the 3 named presets, never the "custom" branch.
+          echo "=== tests/test_insert_preset_resolved.scad (insert_preset=custom, explicit dims, expect clean) ==="
+          out=$(openscad -D 'insert_preset="custom"' -D 'insert_top_d=140' -D 'insert_bottom_d=90' -D 'insert_height=111' -o /tmp/ci_resolved_custom.csg tests/test_insert_preset_resolved.scad 2>&1)
+          code=$?
+          echo "$out"
+          if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
+            echo "FAIL: insert_preset resolution check for insert_preset=custom (exit $code, or ERROR in output)"
+            fail=1
+          fi
+
           # test_decoration_pattern_types.scad only calls decorated_solid()
           # directly -- it never exercises the full planter() assembly, so a
           # texture that breaks only in that context (e.g. via the peak-aware
@@ -131,7 +180,7 @@ jobs:
           # "bricks" alone measured 2-3+ minutes PER combination for a full
           # difference() against the cavity (its randomized per-facet
           # roughness multiplies out badly), which made real evaluation of
-          # all 16 combinations impractically slow. At these reduced
+          # all 18 combinations impractically slow. At these reduced
           # settings the same "bricks" check measured ~15s and everything
           # else under 5s -- fewer facets to evaluate, same code paths
           # exercised, so this still catches a self-intersecting or
@@ -200,5 +249,23 @@ jobs:
               fail=1
             fi
           done
+
+          # tests/test_insert_presets.scad asserts the 3 named presets'
+          # dimensions match README.md's insert_preset table, then
+          # deliberately triggers _insert_preset_dims("bogus") -- a wrong
+          # dimension above would fail with a different assertion message,
+          # so checking for this exact one still validates the earlier
+          # asserts passed.
+          echo "=== tests/test_insert_presets.scad (expect specific message) ==="
+          out=$(openscad -o /tmp/ci_test_insert_presets.csg tests/test_insert_presets.scad 2>&1)
+          echo "$out"
+          if ! echo "$out" | grep -q "ERROR: Assertion"; then
+            echo "FAIL: invalid insert_preset did not actually fail an assertion"
+            fail=1
+          fi
+          if ! echo "$out" | grep -q 'insert_preset must be "custom" or one of \["small", "medium", "large"\], got "bogus"'; then
+            echo "FAIL: invalid insert_preset assertion is missing the expected message"
+            fail=1
+          fi
 
           exit $fail
