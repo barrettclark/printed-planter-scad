@@ -1,6 +1,10 @@
 *.3mf
 *.csg
 *.png
+# docs/images/ is documentation, not disposable export output -- these renders
+# are what docs/gallery.md embeds, so they are committed. Regenerate with
+# docs/images/render.sh.
+!docs/images/*.png
 *.stl
 .DS_Store
 .claude/
