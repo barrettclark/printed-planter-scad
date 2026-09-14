@@ -237,7 +237,12 @@ actual height-to-circumference ratio instead of reusing `pattern_repeat`.
 `insert_preset` resolves `insert_top_d` / `insert_bottom_d` / `insert_height`
 to a named size. All three renders use the same fixed camera (no `--viewall`),
 so the sizes are directly comparable rather than each normalised to fill the
-frame. Everything else is at defaults, including `pattern_type = "ridges"`.
+frame. Everything else is at defaults, including `pattern_type = "ridges"` --
+at pot scale, `"ridges"`' 16 tiles are barely distinguishable from the
+cylinder's own 80-facet smoothness, so these pots read as plain. These
+sections are about silhouette and size, not decoration; see
+[Pattern Comparison](#pattern-comparison) for what the patterns themselves
+look like.
 
 | `"small"` (100 / 75 / 85) | `"medium"` (130 / 100 / 120) | `"large"` (180 / 125 / 160) |
 |---|---|---|
@@ -263,7 +268,7 @@ indistinguishable from `"follow"` and the pair would show nothing.
 ## Regenerating These Images
 
 ```bash
-./docs/images/render.sh              # everything, ~13 minutes
+./docs/images/render.sh              # everything, ~10-15 minutes (dominated by "intertwine" and "bricks")
 ./docs/images/render.sh outer- pot-  # only names with these prefixes
 ```
 

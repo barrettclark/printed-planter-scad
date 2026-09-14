@@ -81,8 +81,12 @@ render() {
     code=$?
     set -e
     echo "$out"
+    # A failed render must not leave a bad or half-written PNG behind for a
+    # later `git add docs/images/` to pick up -- every failure path below
+    # removes it before exiting.
     if [ $code -ne 0 ]; then
         echo "FATAL: openscad exited $code for $name" >&2
+        rm -f "$OUT/$name.png"
         exit 1
     fi
     # Both are silent-corruption signals: OpenSCAD 2021.01 exits 0 and writes
@@ -91,10 +95,12 @@ render() {
         echo "FATAL: CGAL error while rendering $name -- the PNG it just wrote is" >&2
         echo "       from an aborted evaluation and must not be shipped. Nudge" >&2
         echo "       pattern_repeat or smoothness for this pattern and re-run." >&2
+        rm -f "$OUT/$name.png"
         exit 1
     fi
     if echo "$out" | grep -q "ERROR:"; then
         echo "FATAL: ERROR in openscad output for $name" >&2
+        rm -f "$OUT/$name.png"
         exit 1
     fi
     if [ ! -s "$OUT/$name.png" ]; then
