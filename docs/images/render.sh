@@ -26,10 +26,29 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 OUT="$ROOT/docs/images"
-TMP="$(mktemp -d)"
+mkdir -p "$OUT"
+# $TMP lives under $OUT's own parent, not the system tmpdir: `mv` (rename) is
+# only guaranteed atomic within a single filesystem, and $TMPDIR can be a
+# different filesystem from the repo (e.g. tmpfs on Linux) -- staging here
+# instead means the publish step below is a real same-filesystem rename, not
+# a cross-filesystem copy-then-delete that could be interrupted partway.
+TMP="$(mktemp -d "$ROOT/docs/.render-tmp.XXXXXX")"
 trap 'rm -rf "$TMP"' EXIT
 
-mkdir -p "$OUT"
+# STAGE starts as a full clone of the current docs/images/ -- EVERY file in
+# it, not just the *.png renders. This directory also holds render.sh itself
+# (this very script) and .gitignore's carve-out comment; cloning only *.png
+# would silently delete those the moment the swap below replaces the whole
+# directory with STAGE. A filtered run's untouched images (and everything
+# non-PNG) ride along unchanged; each render() call overwrites just the
+# name(s) it produces. Publishing is then a single same-filesystem rename of
+# the whole directory, swapping straight from "old complete state" to "new
+# complete state" with no window where docs/images/ holds a mix of old and
+# new -- a per-file mv loop can't offer that no matter how carefully it's
+# ordered, since some files are moved before others.
+STAGE="$TMP/stage"
+mkdir -p "$STAGE"
+cp -a "$OUT"/. "$STAGE"/
 
 # --- close-up geometry -------------------------------------------------------
 #
@@ -105,15 +124,13 @@ render() {
     echo "=== $name ==="
     local out code
     set +e
-    # Write into $TMP, not $OUT: this run's images only reach docs/images/ in
-    # the "publish" step at the very end, once every selected render has
-    # passed every check below. Writing straight into $OUT would let a run
-    # that fails or is interrupted partway leave a mixed gallery -- some
-    # images from this run's (possibly different) settings sitting next to
-    # stale images from whatever the last successful run produced -- with no
-    # signal that anything is inconsistent. $TMP is wiped by the EXIT trap
-    # regardless of how the script ends, so an interrupted run leaves $OUT
-    # completely untouched.
+    # Write into $TMP (scratch), not $STAGE or $OUT directly: only a render
+    # that passes every check below gets moved into $STAGE. $TMP (and
+    # everything under it, including $STAGE) is wiped by the EXIT trap
+    # regardless of how the script ends, so a failed or interrupted run
+    # never touches $OUT at all -- the actual publish into $OUT is a single
+    # directory-rename swap at the very end of the script, once every
+    # selected render has succeeded.
     out=$(openscad --render -o "$TMP/$name.png" "$@" 2>&1)
     code=$?
     set -e
@@ -147,6 +164,7 @@ render() {
         echo "FATAL: $TMP/$name.png is missing or empty" >&2
         exit 1
     fi
+    mv "$TMP/$name.png" "$STAGE/$name.png"
     RENDERED+=("$name")
 }
 
@@ -217,19 +235,20 @@ if [ ${#FILTERS[@]} -gt 0 ] && [ "$MATCHED" -eq 0 ]; then
     exit 1
 fi
 
-# Publish: every selected render passed every check above (a failure exits the
-# whole script before this line runs), so it's now safe to move this run's
-# images from $TMP into the committed docs/images/. This closes the main gap
-# (a failed or interrupted run leaving partial new images mixed with stale
-# old ones) but is NOT a single atomic operation: `mv` is atomic per file,
-# not for the whole set, so a `git add docs/images/` running concurrently
-# with this loop could in principle see some files moved and others not yet.
-# This script is a manual dev tool, not run concurrently with anything in
-# normal use -- if that ever changes, stage into a fresh directory and
-# rename the whole directory in one step instead of looping mv per file.
-for name in "${RENDERED[@]}"; do
-    mv "$TMP/$name.png" "$OUT/$name.png"
-done
+# Publish: every selected render passed every check above (a failure exits
+# the whole script before this line runs), so $STAGE now holds the complete,
+# correct gallery -- the untouched files it started as a clone of, plus this
+# run's fresh renders overwriting their names. Swap it in with two whole-
+# directory renames rather than looping mv per file: each rename is a single
+# atomic same-filesystem syscall (see $TMP above), so there's no point in the
+# swap where docs/images/ could be observed holding a mix of old and new
+# files the way a per-file loop would allow. A crash between the two renames
+# below leaves the old gallery under docs/.render-tmp.*/old -- recoverable by
+# hand, and .gitignore already excludes that path so it can't get committed
+# by accident.
+OLD="$TMP/old"
+mv "$OUT" "$OLD"
+mv "$STAGE" "$OUT"
 
 echo
 echo "All renders complete and CGAL-clean: $OUT ($MATCHED image(s) rendered)"

@@ -5,6 +5,10 @@
 # are what docs/gallery.md embeds, so they are committed. Regenerate with
 # docs/images/render.sh.
 !docs/images/*.png
+# docs/images/render.sh's staging directory. Normally removed by its own EXIT
+# trap; this covers the case where it's killed hard enough to skip that (e.g.
+# SIGKILL) and leaves one behind.
+docs/.render-tmp.*
 *.stl
 .DS_Store
 .claude/

@@ -91,8 +91,9 @@ grooves.
 
 ### hex_grid
 
-Flat hexagonal panels divided by raised ridge borders — a honeycomb grid,
-same family as `diamonds` above. BOSL2's docs note the tile needs a `sqrt(3)`
+Flat hexagonal panels (raised) divided by V-groove borders (recessed) — a
+honeycomb grid, same family as `diamonds` above. BOSL2's docs note the tile
+needs a `sqrt(3)`
 vertical scale for the V-groove width to be perfectly uniform on all six
 sides of each hexagon; `decorated_solid()` doesn't apply it, so the grooves
 here are slightly uneven (narrower on some sides than others) rather than
@@ -161,9 +162,10 @@ per-texture correction, which is a separate, smaller, pre-existing gap.
 
 ### tri_grid
 
-Flat triangular panels divided by raised ridge borders — the same
-groove-bordered-panel family as `diamonds`/`hex_grid`, just on a triangular
-grid instead of hexagonal. Same `sqrt(3)`-scale gap as `hex_grid` above:
+Flat triangular panels (raised) divided by V-groove borders (recessed) — the
+same groove-bordered-panel family as `diamonds`/`hex_grid`, just on a
+triangular grid instead of hexagonal. Same `sqrt(3)`-scale gap as `hex_grid`
+above:
 grooves are slightly uneven rather than perfectly uniform on all three sides.
 
 | Raised | Etched |
