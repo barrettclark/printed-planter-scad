@@ -291,7 +291,13 @@ decoration.
 | ![outer_mode follow](images/outer-follow.png) | ![outer_mode custom](images/outer-custom.png) |
 
 `"follow"` wraps the outer body around the insert's own taper at a constant
-`wall_thickness`. `"custom"` ignores the taper and builds whatever
+`wall_thickness` -- when `pattern_type = "none"`. These renders use the
+default `pattern_type = "ridges"` instead, and with a pattern active
+`planter.scad` approximates the decorated wall as a straight cone through
+the cavity's peak radius rather than exactly following the insert's
+ledge/shoulder profile (see "Note: enabling decoration..." in README.md), so
+the wall thickness isn't perfectly constant here even in `"follow"` mode.
+`"custom"` ignores the taper either way and builds whatever
 `outer_top_d` / `outer_bottom_d` / `outer_height` describe, subject to the
 containment asserts in `planter.scad`.
 
