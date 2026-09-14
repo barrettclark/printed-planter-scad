@@ -73,7 +73,7 @@ The 3 named presets:
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `pattern_type` | Decoration style: `"none"`, `"ridges"`, or a geometric tile pattern — `"diamonds"`, `"hex_grid"`, `"pyramids"`, `"bricks"`, `"checkers"`, `"dots"`, `"cubes"`, `"tri_grid"`, `"teardrop"` | `"ridges"` |
+| `pattern_type` | Decoration style: `"none"`, `"ridges"`, or a geometric tile pattern — `"diamonds"`, `"hex_grid"`, `"pyramids"`, `"bricks"`, `"checkers"`, `"dots"`, `"cubes"`, `"tri_grid"`, `"teardrop"`, `"tumbling_cubes"`, `"intertwine"`, `"islamic_star"` | `"ridges"` |
 | `pattern_orientation` | Direction: `"vertical"` or `"horizontal"` | `"vertical"` |
 | `relief_mode` | Relief type: `"raised"` (pattern stands proud of the wall) or `"etched"` (pattern is cut into the wall) | `"raised"` |
 | `pattern_depth` | Depth of pattern relief (mm) | 1.5 |
@@ -148,8 +148,21 @@ Every other pattern has no flat-topped counterpart, so `"etched"` instead sinks 
 | `"cubes"` | `"raised"` / `"etched"` | Repeating cube facets, projecting or recessed. |
 | `"tri_grid"` | `"raised"` / `"etched"` | Triangular grid pattern, projecting or recessed. |
 | `"teardrop"` | `"raised"` / `"etched"` | Interlocking teardrops: two columns of drops half a period out of phase, so each point nests between the bellies of its neighbours. |
+| `"tumbling_cubes"` | `"raised"` / `"etched"` | The isometric tumbling-block tessellation: a rhombille tiling whose three rhombi per hexagon sit at three different heights, so the wall reads as a wall of stacked cubes with the cube edges engraved as lines. |
+| `"intertwine"` | `"raised"` / `"etched"` | Interlocking rings on a diagonal lattice. Each ring overlaps its four diagonal neighbours and is broken at alternate crossings, so the strands genuinely weave over and under each other rather than merely overlapping. |
+| `"islamic_star"` | `"raised"` / `"etched"` | The khatim star tiling: an eight-point star rosette with a four-point cross filling each gap between rosettes. The star stands at full depth and the cross a little lower, with an incised line between them. |
 
-Note on `"teardrop"`: its tile is a hand-built VNF whose drops cross the tile's top and bottom edges (that overlap is what makes them interlock), so a decorated body ends up with scalloped rather than circular end caps. The planter itself renders fine, but OpenSCAD 2021.01 aborts with a CGAL assertion if you `union()` a teardrop-decorated solid with another *textured* solid. Render teardrop pots on their own, or combine them with plain (untextured) geometry.
+The last four are *interlocking* patterns: their motifs deliberately cross the tile boundary so that adjacent repeats join into one continuous design rather than sitting in visible boxes.
+
+Note on `"teardrop"` and `"intertwine"`: both tiles cross the tile boundary in a way that leaves a decorated body with scalloped rather than circular end caps. The planter itself renders fine, but OpenSCAD 2021.01 aborts with a CGAL assertion if you `union()` such a solid with another *textured* solid. Render these pots on their own, or combine them with plain (untextured) geometry — keep a `"teardrop"` or `"intertwine"` solid as the only textured solid per render when forcing CGAL evaluation. `"tumbling_cubes"` and `"islamic_star"` cross their tile edges too but union cleanly with another textured solid in the same test.
+
+Note on the interlocking patterns and CGAL: `"tumbling_cubes"`, `"intertwine"` and `"islamic_star"` build their motifs from a few large flat plateaus, and BOSL2 lays a single *flat* facet across each one. When a plateau spans a wide arc, that flat facet is a chord that cuts back inside the wall — at `pattern_repeat=4` a plateau covering most of a tile spans 90° and its chord dips about 24mm inside a 3mm wall. OpenSCAD 2021.01's CGAL then aborts the cavity subtraction with an assertion or reports an unclosed mesh.
+
+Which parameter values trip this depends on `pattern_repeat` **and** `smoothness` *jointly*, and is not predictable from either one alone. It is not a low-`pattern_repeat` problem and not a simple threshold in either parameter: measured on the default pot, `"tumbling_cubes"` fails at `pattern_repeat` 4 and 5 but is fine at 3 and 6, while `"islamic_star"` in etched mode at the default `pattern_repeat=16` is clean at `smoothness` 40 and 80 but fails at 24 and 60. The shipped defaults (`pattern_repeat=16`, `smoothness=80`) are clean for all three in both relief modes, so the out-of-the-box experience is fine. CI pins this for `"islamic_star"` and `"tumbling_cubes"`; `"intertwine"` at the defaults is verified manually rather than in CI, since it takes roughly 7 minutes per relief mode there (see below) — re-verify it by hand if its tile construction ever changes.
+
+**Watch the console.** When this happens OpenSCAD still exits 0 and still writes an STL — a large, plausible-looking file from a subtraction that aborted part-way. The only signal is `CGAL error: assertion violation!` in the console log, with no error dialog in the GUI. If you see it, or if you get a broken/exploded render, nudge either `pattern_repeat` or `smoothness` by a small amount and render again.
+
+`"intertwine"` is by far the most expensive of the three to render: roughly 7 minutes and a ~79MB STL at the shipped defaults on a modern laptop, versus well under a minute for `"tumbling_cubes"`/`"islamic_star"`. A silent console for several minutes on `"intertwine"` is normal — it is not a hang, and it is not the CGAL failure above (which happens quickly, not after several minutes).
 
 Adjust `pattern_orientation` to switch between vertical and horizontal layouts, and `pattern_repeat` to change how many tiles wrap around the circumference — the same value also sets the vertical repeat count for tileable patterns, so raising it makes tiles both more numerous around the pot and shorter top-to-bottom.
 

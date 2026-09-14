@@ -29,9 +29,9 @@ jobs:
 
           # Tests expected to succeed cleanly (exit 0, no ERROR in output).
           # These are compile checks only -- .csg does not evaluate geometry.
-          # For test_decoration_pattern_types.scad (eleven side-by-side solids)
+          # For test_decoration_pattern_types.scad (fourteen side-by-side solids)
           # .csg is not a preference, it is required: exporting that file to
-          # .stl would union all eleven through CGAL, and unioning the
+          # .stl would union all fourteen through CGAL, and unioning the
           # "teardrop" solid with another textured solid aborts CGAL outright
           # on OpenSCAD 2021.01 (see modules/decoration.scad). Even before
           # "teardrop" existed the union measured 5+ minutes because of
@@ -57,19 +57,24 @@ jobs:
             fi
           done
 
-          # "teardrop" is the only pattern_type built from a hand-rolled VNF
-          # tile rather than a BOSL2 texture name, so it gets its own .stl
-          # (CGAL-forcing) check on top of the loops below -- the file also
-          # asserts the tile's shape invariants (unit cube footprint, VNF not
-          # string, no style override).
-          echo "=== tests/test_decoration_teardrop.scad (expect clean) ==="
-          out=$(openscad -o /tmp/ci_test_decoration_teardrop.stl tests/test_decoration_teardrop.scad 2>&1)
-          code=$?
-          echo "$out"
-          if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
-            echo "FAIL: tests/test_decoration_teardrop.scad (exit $code, or ERROR in output)"
-            fail=1
-          fi
+          # The four interlocking pattern_types are built from hand-rolled VNF
+          # tiles rather than BOSL2 texture names, so each gets its own .stl
+          # (CGAL-forcing) check on top of the loops below -- those files also
+          # assert the tile shape invariants (unit cube footprint, VNF not
+          # string, no style override, and the twin-vertex rule that makes the
+          # tile stitch to its own repeats). One file per tile, not one shared
+          # file: "teardrop" cannot be union()ed with any other textured solid
+          # without aborting CGAL on OpenSCAD 2021.01.
+          for f in teardrop tumbling_cubes intertwine islamic_star; do
+            echo "=== tests/test_decoration_$f.scad (expect clean) ==="
+            out=$(openscad -o /tmp/ci_test_decoration_$f.stl tests/test_decoration_$f.scad 2>&1)
+            code=$?
+            echo "$out"
+            if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
+              echo "FAIL: tests/test_decoration_$f.scad (exit $code, or ERROR in output)"
+              fail=1
+            fi
+          done
 
           # Build every texture individually (one solid at a time, no
           # union/difference), which is cheap even for "bricks", without
@@ -81,7 +86,7 @@ jobs:
           # it through CGAL in OpenSCAD 2021.01, so this loop proves the VNF
           # builds, not that it is manifold; the full-assembly loop further
           # down (a real difference()) is what validates the mesh.
-          for pt in none ridges diamonds hex_grid pyramids bricks checkers dots cubes tri_grid teardrop; do
+          for pt in none ridges diamonds hex_grid pyramids bricks checkers dots cubes tri_grid teardrop tumbling_cubes intertwine islamic_star; do
             for relief in raised etched; do
               echo "=== decorated_solid pattern_type=$pt relief_mode=$relief (expect texture build to succeed) ==="
               printf 'include <%s/modules/decoration.scad>\ndecorated_solid("%s", "vertical", "%s", 1.5, 12, 75, 60, 100, 4);\n' "$(pwd)" "$pt" "$relief" > /tmp/ci_single_pattern.scad
@@ -175,27 +180,85 @@ jobs:
           # Render each new pattern_type through the real assembly too, with
           # real .stl evaluation.
           #
-          # Reduced pattern_repeat (4, not the default 16) and smoothness
+          # Reduced pattern_repeat (4 or 6, not the default 16) and smoothness
           # (24, not 80) specifically for this check: at default settings,
           # "bricks" alone measured 2-3+ minutes PER combination for a full
           # difference() against the cavity (its randomized per-facet
           # roughness multiplies out badly), which made real evaluation of
-          # all 18 combinations impractically slow. At these reduced
+          # all 26 combinations impractically slow. At these reduced
           # settings the same "bricks" check measured ~15s and everything
           # else under 5s -- fewer facets to evaluate, same code paths
           # exercised, so this still catches a self-intersecting or
           # degenerate result from any texture/relief combination.
-          for pt in ridges diamonds hex_grid pyramids bricks checkers dots cubes tri_grid teardrop; do
+          #
+          # "tumbling_cubes" and "intertwine" run at 6 rather than 4. Both
+          # build their motif from a few large flat plateaus, and BOSL2 lays a
+          # single FLAT facet across each one: with only a handful of tiles
+          # round the pot a plateau spans a wide arc, so its chord cuts back
+          # inside the wall and CGAL aborts the cavity subtraction. The
+          # threshold is not a clean cutoff, and it depends on pattern_repeat
+          # and smoothness jointly -- "islamic_star" is fine at 4 but fails at
+          # 6 and 8 at this smoothness -- so these are the values measured
+          # clean in both relief modes, not values believed safe by rule.
+          # README.md documents the limitation; the defaults are covered
+          # separately after this loop.
+          run_assembly_combo() {
+            pt="$1"; relief="$2"; reps="$3"; smooth="${4:-24}"
+            echo "=== tests/test_planter_integration.scad (pattern_type=$pt, relief_mode=$relief, pattern_repeat=$reps, smoothness=$smooth, expect real evaluation to succeed) ==="
+            out=$(openscad -D "pattern_type=\"$pt\"" -D "relief_mode=\"$relief\"" -D "pattern_repeat=$reps" -D "smoothness=$smooth" -o /tmp/ci_variant_${pt}_${relief}_${reps}_${smooth}.stl tests/test_planter_integration.scad 2>&1)
+            code=$?
+            echo "$out"
+            if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
+              echo "FAIL: full-assembly STL evaluation for pattern_type=$pt relief_mode=$relief pattern_repeat=$reps smoothness=$smooth (exit $code, or ERROR in output)"
+              fail=1
+            fi
+          }
+          for combo in "ridges 4" "diamonds 4" "hex_grid 4" "pyramids 4" "bricks 4" \
+                       "checkers 4" "dots 4" "cubes 4" "tri_grid 4" "teardrop 4" \
+                       "islamic_star 4" "tumbling_cubes 6" "intertwine 6"; do
+            set -- $combo
             for relief in raised etched; do
-              echo "=== tests/test_planter_integration.scad (pattern_type=$pt, relief_mode=$relief, expect real evaluation to succeed) ==="
-              out=$(openscad -D "pattern_type=\"$pt\"" -D "relief_mode=\"$relief\"" -D 'pattern_repeat=4' -D 'smoothness=24' -o /tmp/ci_variant_${pt}_${relief}.stl tests/test_planter_integration.scad 2>&1)
-              code=$?
-              echo "$out"
-              if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
-                echo "FAIL: full-assembly STL evaluation for pattern_type=$pt relief_mode=$relief (exit $code, or ERROR in output)"
-                fail=1
-              fi
+              run_assembly_combo "$1" "$relief" "$2"
             done
+          done
+
+          # The loop above dodges the CGAL fragility with measured-safe reduced
+          # values, which means it never covers what a Customizer user actually
+          # gets. The fragility depends on pattern_repeat and smoothness
+          # JOINTLY -- islamic_star etched at pattern_repeat=16 is clean at
+          # smoothness 40 and 80 but aborts at 24 and 60 -- so "clean at the
+          # reduced values" says nothing about the defaults. Pin the real
+          # defaults for islamic_star and tumbling_cubes (measured ~1-2 min per
+          # relief mode each). "intertwine" is deliberately NOT pinned here --
+          # it measured ~7 minutes PER relief mode at these defaults, which
+          # would roughly double this job's runtime for one combination.
+          # README's "clean for all three" claim covers intertwine based on
+          # that manual measurement, not CI; if intertwine's tile construction
+          # ever changes, re-verify it manually rather than assuming CI would
+          # catch a regression there.
+          for relief in raised etched; do
+            run_assembly_combo "islamic_star" "$relief" 16 80
+            run_assembly_combo "tumbling_cubes" "$relief" 16 80
+          done
+
+          # README documents that "tumbling_cubes" and "islamic_star" union
+          # cleanly with another textured solid, while "teardrop" and
+          # "intertwine" abort CGAL in that case. Nothing enforced the clean
+          # half of that claim: test_decoration_pattern_types.scad unions every
+          # pattern but exports .csg, which never invokes CGAL. That gap is how
+          # the claim came to be documented (wrongly) for "intertwine" in the
+          # first place. Union with a "dots" solid, difference against a
+          # disjoint cube to force real evaluation, ~100s each.
+          for pt in tumbling_cubes islamic_star; do
+            echo "=== union($pt, dots) differenced (expect clean CGAL union) ==="
+            printf 'include <%s/modules/decoration.scad>\ndifference() {\n  union() {\n    decorated_solid("%s", "vertical", "raised", 1.5, 8, 75, 60, 100, 4);\n    translate([200, 0, 0]) decorated_solid("dots", "vertical", "raised", 1.5, 8, 75, 60, 100, 4);\n  }\n  translate([600, 0, 0]) cube(10, center = true);\n}\n' "$(pwd)" "$pt" > /tmp/ci_union_${pt}.scad
+            out=$(openscad -o /tmp/ci_union_${pt}.stl /tmp/ci_union_${pt}.scad 2>&1)
+            code=$?
+            echo "$out"
+            if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
+              echo "FAIL: textured-solid union check for pattern_type=$pt (exit $code, or ERROR in output)"
+              fail=1
+            fi
           done
 
           # Wall-thickness invariant: must render EMPTY (cavity never pokes
@@ -243,7 +306,7 @@ jobs:
             echo "FAIL: invalid pattern_type assertion is missing the expected message prefix"
             fail=1
           fi
-          for pt in none ridges diamonds hex_grid pyramids bricks checkers dots cubes tri_grid teardrop; do
+          for pt in none ridges diamonds hex_grid pyramids bricks checkers dots cubes tri_grid teardrop tumbling_cubes intertwine islamic_star; do
             if ! echo "$out" | grep -q "\"$pt\""; then
               echo "FAIL: invalid pattern_type assertion message is missing \"$pt\""
               fail=1

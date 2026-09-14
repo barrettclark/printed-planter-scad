@@ -44,13 +44,18 @@ assert(is_vnf(_decoration_texture("pyramids", "etched")),
 assert(_ETCH_BORDER > 0 && _ETCH_BORDER <= 0.1,
     str("_ETCH_BORDER should stay a narrow groove (0 < b <= 0.1), got ", _ETCH_BORDER));
 
+// The hand-rolled VNF tiles have no flat-top counterpart either, but unlike the
+// patterns below they do not map to their own name -- they map to the tile --
+// so they are excluded here and checked on their own further down.
+VNF_PATTERN_TYPES = ["teardrop", "tumbling_cubes", "intertwine", "islamic_star"];
+
 // Every other pattern_type has no flat-top counterpart and must keep today's
 // inset-the-bump behavior: same texture in both modes, and therefore the same
 // style in both modes. _decoration_style() resolves the texture itself, so
 // etched is a genuinely separate code path for style too -- pin the parity.
 _trunc_patterns = [for (row = EXPECTED_ETCHED) row[0]];
 for (pt = PATTERN_TYPES) {
-    if (pt != "none" && pt != "teardrop" && !in_list(pt, _trunc_patterns)) {
+    if (pt != "none" && !in_list(pt, VNF_PATTERN_TYPES) && !in_list(pt, _trunc_patterns)) {
         assert(_decoration_etched_texture(pt) == undef,
             str("_decoration_etched_texture(\"", pt, "\") should be undef, got ",
                 _decoration_etched_texture(pt)));
@@ -68,12 +73,25 @@ for (pt = PATTERN_TYPES) {
 assert(_decoration_style("bricks", "etched") == "convex",
     str("_decoration_style(\"bricks\", \"etched\") should be \"convex\", got ",
         _decoration_style("bricks", "etched")));
-assert(is_vnf(_decoration_texture("teardrop", "etched")),
-    "_decoration_texture(\"teardrop\", \"etched\") should still be the VNF tile");
+// The VNF tiles have no flat-top counterpart: etched must keep the raised tile
+// (and fall back to insetting it), not silently route somewhere else.
+for (pt = VNF_PATTERN_TYPES) {
+    assert(in_list(pt, PATTERN_TYPES), str("\"", pt, "\" is not a pattern_type"));
+    assert(_decoration_etched_texture(pt) == undef,
+        str("_decoration_etched_texture(\"", pt, "\") should be undef, got ",
+            _decoration_etched_texture(pt)));
+    assert(is_vnf(_decoration_texture(pt, "etched")),
+        str("_decoration_texture(\"", pt, "\", \"etched\") should still be the VNF tile"));
+    assert(_decoration_texture(pt, "etched") == _decoration_texture(pt, "raised"),
+        str("\"", pt, "\" must resolve to the same tile in both relief modes"));
+    assert(_decoration_style(pt, "etched") == undef,
+        str("_decoration_style(\"", pt, "\", \"etched\") should be undef (VNF tile), got ",
+            _decoration_style(pt, "etched")));
+}
 
 // Raised mode is untouched: the pre-existing mapping, unchanged.
 for (pt = PATTERN_TYPES) {
-    if (pt != "none" && pt != "teardrop") {
+    if (pt != "none" && !in_list(pt, VNF_PATTERN_TYPES)) {
         expected = (pt == "ridges") ? "ribs" : pt;
         assert(_decoration_texture(pt, "raised") == expected,
             str("_decoration_texture(\"", pt, "\", \"raised\") should be \"", expected,
