@@ -14,7 +14,15 @@ include <../modules/decoration.scad>
 
 EXPECTED_PATTERN_TYPES = ["none", "ridges", "diamonds", "hex_grid", "pyramids",
                           "bricks", "checkers", "dots", "cubes", "tri_grid",
-                          "teardrop"];
+                          "teardrop", "tumbling_cubes", "intertwine",
+                          "islamic_star"];
+
+// The pattern_types that resolve to a hand-rolled VNF tile instead of a BOSL2
+// texture name. Listed explicitly (and pinned below) rather than derived, so a
+// pattern that silently stopped being a VNF -- or a new BOSL2 texture name that
+// accidentally resolved to one -- fails here.
+EXPECTED_VNF_PATTERN_TYPES = ["teardrop", "tumbling_cubes", "intertwine",
+                              "islamic_star"];
 
 assert(PATTERN_TYPES == EXPECTED_PATTERN_TYPES,
     str("PATTERN_TYPES changed -- expected ", EXPECTED_PATTERN_TYPES, ", got ", PATTERN_TYPES));
@@ -22,20 +30,29 @@ assert(PATTERN_TYPES == EXPECTED_PATTERN_TYPES,
 // Rendering without error only proves each name produces *some* geometry --
 // it wouldn't catch _decoration_texture() accidentally mapping one pattern
 // to a different (but still valid) BOSL2 texture. In raised mode "ridges" is
-// the sole alias (-> "ribs") and "teardrop" is the sole VNF tile (checked in
-// detail by test_decoration_teardrop.scad); every other pattern_type must map
-// to itself. Etched mode's flat-top/V-groove routing has its own file,
-// test_decoration_etched_groove.scad.
+// the sole alias (-> "ribs") and the four interlocking patterns are the VNF
+// tiles (each checked in detail by its own test_decoration_<name>.scad); every
+// other pattern_type must map to itself. Etched mode's flat-top/V-groove
+// routing has its own file, test_decoration_etched_groove.scad.
 for (pt = PATTERN_TYPES) {
-    if (pt != "none" && pt != "teardrop") {
+    if (pt != "none" && !in_list(pt, EXPECTED_VNF_PATTERN_TYPES)) {
         expected_tex = (pt == "ridges") ? "ribs" : pt;
         assert(_decoration_texture(pt, "raised") == expected_tex,
             str("_decoration_texture(\"", pt, "\", \"raised\") should be \"", expected_tex,
                 "\", got \"", _decoration_texture(pt, "raised"), "\""));
     }
 }
-assert(is_vnf(_decoration_texture("teardrop", "raised")),
-    "_decoration_texture(\"teardrop\", \"raised\") should be a VNF tile");
+// Deliberately phrased as is_vnf() == in_list(): this catches BOTH a tile that
+// stopped being a VNF and a plain texture name that started being one, without
+// ever str()-ing a VNF into an assertion message (which dumps the whole mesh).
+for (pt = PATTERN_TYPES) {
+    if (pt != "none") {
+        assert(is_vnf(_decoration_texture(pt, "raised")) ==
+                   in_list(pt, EXPECTED_VNF_PATTERN_TYPES),
+            str("\"", pt, "\" disagrees with EXPECTED_VNF_PATTERN_TYPES about whether ",
+                "_decoration_texture() returns a custom VNF tile"));
+    }
+}
 
 // Rendering without error also wouldn't catch a regression that dropped or
 // changed one of the three explicit style overrides -- BOSL2 would still

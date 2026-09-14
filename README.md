@@ -73,7 +73,7 @@ The 3 named presets:
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `pattern_type` | Decoration style: `"none"`, `"ridges"`, or a geometric tile pattern — `"diamonds"`, `"hex_grid"`, `"pyramids"`, `"bricks"`, `"checkers"`, `"dots"`, `"cubes"`, `"tri_grid"`, `"teardrop"` | `"ridges"` |
+| `pattern_type` | Decoration style: `"none"`, `"ridges"`, or a geometric tile pattern — `"diamonds"`, `"hex_grid"`, `"pyramids"`, `"bricks"`, `"checkers"`, `"dots"`, `"cubes"`, `"tri_grid"`, `"teardrop"`, `"tumbling_cubes"`, `"intertwine"`, `"islamic_star"` | `"ridges"` |
 | `pattern_orientation` | Direction: `"vertical"` or `"horizontal"` | `"vertical"` |
 | `relief_mode` | Relief type: `"raised"` (pattern stands proud of the wall) or `"etched"` (pattern is cut into the wall) | `"raised"` |
 | `pattern_depth` | Depth of pattern relief (mm) | 1.5 |
@@ -148,8 +148,15 @@ Every other pattern has no flat-topped counterpart, so `"etched"` instead sinks 
 | `"cubes"` | `"raised"` / `"etched"` | Repeating cube facets, projecting or recessed. |
 | `"tri_grid"` | `"raised"` / `"etched"` | Triangular grid pattern, projecting or recessed. |
 | `"teardrop"` | `"raised"` / `"etched"` | Interlocking teardrops: two columns of drops half a period out of phase, so each point nests between the bellies of its neighbours. |
+| `"tumbling_cubes"` | `"raised"` / `"etched"` | The isometric tumbling-block tessellation: a rhombille tiling whose three rhombi per hexagon sit at three different heights, so the wall reads as a wall of stacked cubes with the cube edges engraved as lines. |
+| `"intertwine"` | `"raised"` / `"etched"` | Interlocking rings on a diagonal lattice. Each ring overlaps its four diagonal neighbours and is broken at alternate crossings, so the strands genuinely weave over and under each other rather than merely overlapping. |
+| `"islamic_star"` | `"raised"` / `"etched"` | The khatim star tiling: an eight-point star rosette with a four-point cross filling each gap between rosettes. The star stands at full depth and the cross a little lower, with an incised line between them. |
 
-Note on `"teardrop"`: its tile is a hand-built VNF whose drops cross the tile's top and bottom edges (that overlap is what makes them interlock), so a decorated body ends up with scalloped rather than circular end caps. The planter itself renders fine, but OpenSCAD 2021.01 aborts with a CGAL assertion if you `union()` a teardrop-decorated solid with another *textured* solid. Render teardrop pots on their own, or combine them with plain (untextured) geometry.
+The last four are *interlocking* patterns: their motifs deliberately cross the tile boundary so that adjacent repeats join into one continuous design rather than sitting in visible boxes.
+
+Note on `"teardrop"`: its tile is a hand-built VNF whose drops cross the tile's top and bottom edges (that overlap is what makes them interlock), so a decorated body ends up with scalloped rather than circular end caps. The planter itself renders fine, but OpenSCAD 2021.01 aborts with a CGAL assertion if you `union()` a teardrop-decorated solid with another *textured* solid. Render teardrop pots on their own, or combine them with plain (untextured) geometry. `"tumbling_cubes"`, `"intertwine"` and `"islamic_star"` cross their tile edges too, but were checked against the same case and do **not** hit that limitation: a solid decorated with any of the three unions cleanly with another textured solid.
+
+Note on low `pattern_repeat` with the interlocking patterns: `"tumbling_cubes"`, `"intertwine"` and `"islamic_star"` build their motifs from a few large flat plateaus, and BOSL2 lays a single *flat* facet across each one. Wrap only a handful of tiles around the pot and a plateau spans a wide arc, so that flat facet is a chord that cuts back inside the wall — at `pattern_repeat=4` a plateau covering most of a tile spans 90° and its chord dips about 24mm inside a 3mm wall. OpenSCAD 2021.01's CGAL then aborts the cavity subtraction with an assertion or reports an unclosed mesh. The default `pattern_repeat` of 16 is clean for all three; single-digit values are not reliably safe, and the cutoff is not a simple threshold (measured on the default pot: `"tumbling_cubes"` fails at 4 and 5 but is fine at 3 and 6; `"islamic_star"` is fine at 4 but fails at 6 and 8). If you hit it, move `pattern_repeat` by one.
 
 Adjust `pattern_orientation` to switch between vertical and horizontal layouts, and `pattern_repeat` to change how many tiles wrap around the circumference — the same value also sets the vertical repeat count for tileable patterns, so raising it makes tiles both more numerous around the pot and shorter top-to-bottom.
 
