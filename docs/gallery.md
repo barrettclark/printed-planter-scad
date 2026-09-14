@@ -37,8 +37,8 @@ See [README.md](../README.md) for what each parameter means.
 `decorated_solid()` cylinder whose height equals its own circumference, so
 `tex_reps = [n, n]` lays down **square** tiles and every pattern is shown at its
 designed proportions. On the actual planter the same tiles come out roughly
-**3.2× wider than tall** — see [Full-Pot Examples](#full-pot-examples) below for
-what that does to them, and why these close-ups lead the page instead.
+**3.75× wider than tall** — see [Full-Pot Examples](#full-pot-examples) below
+for what that does to them, and why these close-ups lead the page instead.
 
 Settings shared by every image in this section: `r1 = r2 = 90mm`,
 `height = 565.5mm` (= 2πr), `pattern_repeat = 32` (so tiles are ~17.7mm square),
@@ -56,8 +56,8 @@ Two rendering caveats worth knowing before you read the pictures:
   same `cos(25°) = 0.91`, so tile aspect is essentially preserved.
 - **The relief reads slightly deeper here than it will on a printed pot.** The
   depth is the real default (1.5mm), but these tiles are 17.7mm across where
-  the default pot's tiles are ~27.9mm, so the depth-to-width ratio is 8.5%
-  here versus 5.4% on the pot.
+  the default pot's tiles are ~32.3mm, so the depth-to-width ratio is 8.5%
+  here versus 4.6% on the pot.
 
 ### none
 
@@ -225,12 +225,14 @@ and `relief_mode` overridden.
 |---|
 | ![pot, islamic_star raised](images/pot-islamic_star-raised.png) |
 
-**Known limitation — tiles are stretched ~3.2× wider than tall.**
+**Known limitation — tiles are stretched ~3.75× wider than tall.**
 `decorated_solid()` passes `tex_reps = [pattern_repeat, pattern_repeat]`, which
 asks for the same number of repeats around the circumference as up the height
-without accounting for the pot not being square. On the default planter that
-puts 16 tiles around a ~446mm circumference and 16 tiles up a 138mm wall:
-**27.9mm wide by 8.6mm tall, an aspect ratio of 3.23**.
+without accounting for the pot not being square. The decorated wall's actual
+radius is ~82.3mm (`planter.scad`'s peak-aware cone calculation, not the
+insert's own radius) giving a ~517mm circumference; on the default planter
+that puts 16 tiles around it and 16 tiles up a 138mm wall: **32.3mm wide by
+8.6mm tall, an aspect ratio of 3.75**.
 
 This is visible, not theoretical. Compare the `hex_grid` pot above with
 [its close-up](#hex_grid) — the hexagons have flattened into wide ribbons. The

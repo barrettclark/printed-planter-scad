@@ -53,13 +53,31 @@ CU_FN=80             # planter.scad's shipped smoothness default
 CU_CAMERA="53.6,-115.0,341.9,0,0,282.7"
 CU_IMG="800,800"
 
-PATTERN_TYPES=(none ridges diamonds hex_grid pyramids bricks checkers dots
-               cubes tri_grid teardrop tumbling_cubes intertwine islamic_star)
+# Read straight from modules/decoration.scad's own PATTERN_TYPES rather than
+# keeping a second hardcoded copy here -- a hardcoded list would silently omit
+# a future pattern_type's gallery renders if someone added one without also
+# remembering to update this file.
+printf 'include <%s/modules/decoration.scad>\nfor (p = PATTERN_TYPES) echo(p);\n' "$ROOT" \
+    > "$TMP/list_patterns.scad"
+mapfile -t PATTERN_TYPES < <(
+    openscad -o "$TMP/list_patterns.csg" "$TMP/list_patterns.scad" 2>&1 \
+        | grep '^ECHO:' | sed -E 's/^ECHO: "(.*)"$/\1/'
+)
+if [ ${#PATTERN_TYPES[@]} -eq 0 ]; then
+    echo "FATAL: could not read PATTERN_TYPES from modules/decoration.scad" >&2
+    exit 1
+fi
 
 # --- render helper -----------------------------------------------------------
-# Optional name prefixes to restrict this run to. Partial re-runs go through the
-# same code path (and the same CGAL check) as a full run, so a single re-rendered
-# image can't silently drift from the settings the rest of the gallery uses.
+# Optional name prefixes to restrict this run to. A filtered run goes through
+# the same code path (and the same CGAL check) as a full run, so the image(s)
+# it does render use exactly the current settings in this file, not some
+# earlier version of them. It does NOT guard against gallery-wide drift the
+# other direction: if a shared setting here, or something in
+# modules/decoration.scad, changes, a filtered run only refreshes the names
+# you asked for -- every other already-committed image keeps reflecting
+# whatever was true when IT was last generated. Re-run with no filter after
+# any shared change to bring the whole gallery back in sync.
 FILTERS=("$@")
 MATCHED=0
 RENDERED=()
@@ -201,10 +219,14 @@ fi
 
 # Publish: every selected render passed every check above (a failure exits the
 # whole script before this line runs), so it's now safe to move this run's
-# images from $TMP into the committed docs/images/ -- atomically, from
-# docs/images/'s point of view: it goes straight from "last run's complete,
-# consistent set" to "this run's complete, consistent set," with no
-# in-between state a concurrent `git add` could observe.
+# images from $TMP into the committed docs/images/. This closes the main gap
+# (a failed or interrupted run leaving partial new images mixed with stale
+# old ones) but is NOT a single atomic operation: `mv` is atomic per file,
+# not for the whole set, so a `git add docs/images/` running concurrently
+# with this loop could in principle see some files moved and others not yet.
+# This script is a manual dev tool, not run concurrently with anything in
+# normal use -- if that ever changes, stage into a fresh directory and
+# rename the whole directory in one step instead of looping mv per file.
 for name in "${RENDERED[@]}"; do
     mv "$TMP/$name.png" "$OUT/$name.png"
 done
