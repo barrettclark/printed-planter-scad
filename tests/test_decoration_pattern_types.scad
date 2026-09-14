@@ -13,7 +13,8 @@
 include <../modules/decoration.scad>
 
 EXPECTED_PATTERN_TYPES = ["none", "ridges", "diamonds", "hex_grid", "pyramids",
-                          "bricks", "checkers", "dots", "cubes", "tri_grid"];
+                          "bricks", "checkers", "dots", "cubes", "tri_grid",
+                          "teardrop"];
 
 assert(PATTERN_TYPES == EXPECTED_PATTERN_TYPES,
     str("PATTERN_TYPES changed -- expected ", EXPECTED_PATTERN_TYPES, ", got ", PATTERN_TYPES));
@@ -21,15 +22,18 @@ assert(PATTERN_TYPES == EXPECTED_PATTERN_TYPES,
 // Rendering without error only proves each name produces *some* geometry --
 // it wouldn't catch _decoration_texture() accidentally mapping one pattern
 // to a different (but still valid) BOSL2 texture. "ridges" is the sole
-// alias (-> "ribs"); every other pattern_type must map to itself.
+// alias (-> "ribs") and "teardrop" is the sole VNF tile (checked in detail by
+// test_decoration_teardrop.scad); every other pattern_type must map to itself.
 for (pt = PATTERN_TYPES) {
-    if (pt != "none") {
+    if (pt != "none" && pt != "teardrop") {
         expected_tex = (pt == "ridges") ? "ribs" : pt;
         assert(_decoration_texture(pt) == expected_tex,
             str("_decoration_texture(\"", pt, "\") should be \"", expected_tex,
                 "\", got \"", _decoration_texture(pt), "\""));
     }
 }
+assert(is_vnf(_decoration_texture("teardrop")),
+    "_decoration_texture(\"teardrop\") should be a VNF tile");
 
 // Rendering without error also wouldn't catch a regression that dropped or
 // changed one of the three explicit style overrides -- BOSL2 would still
