@@ -27,13 +27,28 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 OUT="$ROOT/docs/images"
 mkdir -p "$OUT"
+
+# Two concurrent invocations would each clone $OUT into their own $STAGE at
+# start time; if one publishes and then the other publishes its (now stale)
+# clone, the first run's images silently vanish. `mkdir` on a path that
+# doesn't yet exist is atomic on every POSIX filesystem, which makes it a
+# portable mutex without needing `flock` -- not present on macOS, which is
+# exactly the platform this script has to run on without extras (see the
+# bash-3.2 note below).
+LOCK="$ROOT/docs/.render-lock"
+if ! mkdir "$LOCK" 2>/dev/null; then
+    echo "FATAL: another render.sh looks like it's already running ($LOCK exists)." >&2
+    echo "       Wait for it to finish, or remove that directory by hand if it's" >&2
+    echo "       stale from a run that crashed without cleaning up." >&2
+    exit 1
+fi
 # $TMP lives under $OUT's own parent, not the system tmpdir: `mv` (rename) is
 # only guaranteed atomic within a single filesystem, and $TMPDIR can be a
 # different filesystem from the repo (e.g. tmpfs on Linux) -- staging here
 # instead means the publish step below is a real same-filesystem rename, not
 # a cross-filesystem copy-then-delete that could be interrupted partway.
 TMP="$(mktemp -d "$ROOT/docs/.render-tmp.XXXXXX")"
-trap 'rm -rf "$TMP"' EXIT
+trap 'rm -rf "$TMP" "$LOCK"' EXIT
 
 # $OLD is set just before the publish step's two renames (below). If this
 # script is interrupted in the brief window between them -- $OUT already

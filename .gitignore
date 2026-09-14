@@ -9,6 +9,8 @@
 # trap; this covers the case where it's killed hard enough to skip that (e.g.
 # SIGKILL) and leaves one behind.
 docs/.render-tmp.*
+# docs/images/render.sh's lock directory, same reasoning as above.
+docs/.render-lock
 *.stl
 .DS_Store
 .claude/
