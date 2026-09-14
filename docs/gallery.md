@@ -89,8 +89,8 @@ grooves.
 
 ### hex_grid
 
-Honeycomb grid of raised hexagons; etched sinks the same hexagons into the
-surface as dimples.
+Flat hexagonal panels divided by raised ridge borders — a honeycomb grid,
+same family as `diamonds` above.
 
 | Raised | Etched |
 |---|---|
@@ -148,8 +148,9 @@ over.
 
 ### tri_grid
 
-Regular grid of raised triangles, alternating point-up and point-down;
-etched sinks them into the surface instead.
+Flat triangular panels divided by raised ridge borders — the same
+groove-bordered-panel family as `diamonds`/`hex_grid`, just on a triangular
+grid instead of hexagonal.
 
 | Raised | Etched |
 |---|---|
