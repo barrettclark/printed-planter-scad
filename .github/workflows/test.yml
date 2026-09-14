@@ -180,7 +180,7 @@ jobs:
           # Render each new pattern_type through the real assembly too, with
           # real .stl evaluation.
           #
-          # Reduced pattern_repeat (4 or 8, not the default 16) and smoothness
+          # Reduced pattern_repeat (4 or 6, not the default 16) and smoothness
           # (24, not 80) specifically for this check: at default settings,
           # "bricks" alone measured 2-3+ minutes PER combination for a full
           # difference() against the cavity (its randomized per-facet
@@ -196,19 +196,20 @@ jobs:
           # single FLAT facet across each one: with only a handful of tiles
           # round the pot a plateau spans a wide arc, so its chord cuts back
           # inside the wall and CGAL aborts the cavity subtraction. The
-          # threshold is not a clean cutoff -- "islamic_star" is fine at 4 but
-          # fails at 6 and 8 -- so these are the values measured clean in both
-          # relief modes, not values believed safe by rule. README.md documents
-          # the limitation; the default pattern_repeat of 16 is clean for all
-          # three and is what a user actually gets.
+          # threshold is not a clean cutoff, and it depends on pattern_repeat
+          # and smoothness jointly -- "islamic_star" is fine at 4 but fails at
+          # 6 and 8 at this smoothness -- so these are the values measured
+          # clean in both relief modes, not values believed safe by rule.
+          # README.md documents the limitation; the defaults are covered
+          # separately after this loop.
           run_assembly_combo() {
-            pt="$1"; relief="$2"; reps="$3"
-            echo "=== tests/test_planter_integration.scad (pattern_type=$pt, relief_mode=$relief, pattern_repeat=$reps, expect real evaluation to succeed) ==="
-            out=$(openscad -D "pattern_type=\"$pt\"" -D "relief_mode=\"$relief\"" -D "pattern_repeat=$reps" -D 'smoothness=24' -o /tmp/ci_variant_${pt}_${relief}.stl tests/test_planter_integration.scad 2>&1)
+            pt="$1"; relief="$2"; reps="$3"; smooth="${4:-24}"
+            echo "=== tests/test_planter_integration.scad (pattern_type=$pt, relief_mode=$relief, pattern_repeat=$reps, smoothness=$smooth, expect real evaluation to succeed) ==="
+            out=$(openscad -D "pattern_type=\"$pt\"" -D "relief_mode=\"$relief\"" -D "pattern_repeat=$reps" -D "smoothness=$smooth" -o /tmp/ci_variant_${pt}_${relief}_${reps}_${smooth}.stl tests/test_planter_integration.scad 2>&1)
             code=$?
             echo "$out"
             if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
-              echo "FAIL: full-assembly STL evaluation for pattern_type=$pt relief_mode=$relief pattern_repeat=$reps (exit $code, or ERROR in output)"
+              echo "FAIL: full-assembly STL evaluation for pattern_type=$pt relief_mode=$relief pattern_repeat=$reps smoothness=$smooth (exit $code, or ERROR in output)"
               fail=1
             fi
           }
@@ -219,6 +220,17 @@ jobs:
             for relief in raised etched; do
               run_assembly_combo "$1" "$relief" "$2"
             done
+          done
+
+          # The loop above dodges the CGAL fragility with measured-safe reduced
+          # values, which means it never covers what a Customizer user actually
+          # gets. The fragility depends on pattern_repeat and smoothness
+          # JOINTLY -- islamic_star etched at pattern_repeat=16 is clean at
+          # smoothness 40 and 80 but aborts at 24 and 60 -- so "clean at the
+          # reduced values" says nothing about the defaults. Pin the real
+          # defaults for one of the three; measured ~1 minute per relief mode.
+          for relief in raised etched; do
+            run_assembly_combo "islamic_star" "$relief" 16 80
           done
 
           # Wall-thickness invariant: must render EMPTY (cavity never pokes

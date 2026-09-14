@@ -217,6 +217,10 @@ function _tumbling_cubes_tile() =
 // two rings also swaps which crossing is clockwise, the rule is consistent from
 // both sides, and it alternates over/under all the way round each ring, so the
 // rings are genuinely linked rather than merely overlapping.
+//
+// Shares teardrop's union limitation: a solid decorated with this tile aborts
+// CGAL when union()ed with another textured solid. Keep it the only textured
+// solid per render when forcing CGAL evaluation.
 _IW_RO = 0.4975;            // outer radius: < 0.5 so same-class rings never touch
 _IW_RI = 0.4125;
 _IW_RM = (_IW_RO + _IW_RI) / 2;
@@ -373,6 +377,18 @@ module decorated_solid(pattern_type, pattern_orientation, relief_mode, pattern_d
             str("pattern_depth (", pattern_depth, ") must be < 70% of wall_thickness (", wall_thickness, ")"));
         assert(is_int(pattern_repeat) && pattern_repeat > 0,
             str("pattern_repeat must be a positive whole number, got ", pattern_repeat));
+        // These three tile large flat plateaus, whose single flat facet can cut
+        // back inside the wall and abort the cavity subtraction in CGAL. Which
+        // values trip it depends on pattern_repeat and smoothness jointly (see
+        // README). OpenSCAD still exits 0 and still writes an STL when it
+        // happens, so warn up front rather than let a silently-truncated export
+        // look successful.
+        if (in_list(pattern_type, ["tumbling_cubes", "intertwine", "islamic_star"]))
+            echo(str("WARNING: pattern_type \"", pattern_type, "\" is known to abort CGAL ",
+                     "for some pattern_repeat/smoothness combinations, and OpenSCAD still ",
+                     "exits 0 and writes a truncated STL when it does. Scan this console for ",
+                     "a CGAL assertion before trusting the export; if you see one, nudge ",
+                     "pattern_repeat or smoothness. See README.md."));
         tex = _decoration_texture(pattern_type, relief_mode);
         rot = (pattern_orientation == "horizontal") ? 90 : 0;
         is_etched = (relief_mode == "etched");
