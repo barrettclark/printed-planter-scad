@@ -15,7 +15,7 @@ Command-line users can override any parameter without the Customizer by using th
 openscad -D 'insert_top_d=160' -D 'pattern_type="hex_grid"' -o exports/planter.stl planter.scad
 ```
 
-An `exports/` directory is included for rendered output (STL, 3MF, PNG, etc.) — `.gitignore` already excludes those file types repo-wide, so anything you save there stays local and won't get committed.
+An `exports/` directory is included for rendered output (STL, 3MF, PNG, etc.) — `.gitignore` already excludes those file types repo-wide, so anything you save there stays local and won't get committed. (The one carve-out is `docs/images/`, whose PNGs are documentation rather than disposable output — regenerate them with `docs/images/render.sh`.)
 
 ## Measuring Your Insert
 
@@ -122,7 +122,7 @@ drainage_holes_enabled = false;
 
 ## Decoration Examples
 
-The `pattern_type` and `relief_mode` parameters combine to create different visual effects.
+**See the [pattern gallery](docs/gallery.md) for a rendered example of every `pattern_type` in both relief modes** (except `"none"`, which has no texture, so it only has one useful mode), plus full-pot renders, the three insert presets and both outer shape modes. The rest of this section covers the behaviour the pictures can't show.
 
 `"etched"` works one of two ways depending on the pattern. `"ridges"`, `"pyramids"` and `"diamonds"` have a flat-topped counterpart shape, so etching them is a true line engrave: the wall keeps its nominal surface as flat panels, and only a thin V-groove is cut along each of the pattern's outlines — the look of a design engraved into wood or stone rather than moulded into it. The groove takes up roughly a tenth of each tile, so the flat panel dominates.
 
@@ -130,29 +130,9 @@ The `pattern_type` and `relief_mode` parameters combine to create different visu
 - `"pyramids"` — flat square panels divided by a thin engraved grid.
 - `"diamonds"` — flat diamond panels divided by thin 45° engraved lines.
 
-Every other pattern has no flat-topped counterpart, so `"etched"` instead sinks the same shape below the surface — a recess or dimple rather than an incised outline.
+Most other patterns have no flat-topped counterpart, so `"etched"` instead sinks the same shape below the surface — a recess or dimple rather than an incised outline. `"hex_grid"` and `"tri_grid"` are the exception: like `"diamonds"`, they're already flat panels divided by V-groove borders in `"raised"` mode too, so `"etched"` there shifts that same panel/groove relief inward rather than turning a bump into a dimple — see the [gallery](docs/gallery.md#pattern-comparison) for both.
 
-| `pattern_type` | `relief_mode` | Result |
-|---|---|---|
-| `"none"` | — | Plain smooth walls with no decoration. |
-| `"ridges"` | `"raised"` | Vertical (or horizontal) ridge lines that protrude outward. |
-| `"ridges"` | `"etched"` | Smooth wall with thin vertical (or horizontal) V-grooves engraved into it. |
-| `"diamonds"` | `"raised"` | Repeating lattice of pointed diamond bumps. |
-| `"diamonds"` | `"etched"` | Flat diamond panels separated by thin 45° V-groove lines engraved into the wall. |
-| `"hex_grid"` | `"raised"` / `"etched"` | Honeycomb hexagon grid, projecting or recessed. |
-| `"pyramids"` | `"raised"` | Repeating four-sided pyramids projecting outward. |
-| `"pyramids"` | `"etched"` | Flat square panels separated by a thin engraved grid of V-grooves. |
-| `"bricks"` | `"raised"` / `"etched"` | Offset brick/masonry courses, projecting or recessed. |
-| `"checkers"` | `"raised"` / `"etched"` | Checkerboard squares, projecting or recessed. |
-| `"dots"` | `"raised"` / `"etched"` | Repeating round dots (bumps or dimples). |
-| `"cubes"` | `"raised"` / `"etched"` | Repeating cube facets, projecting or recessed. |
-| `"tri_grid"` | `"raised"` / `"etched"` | Triangular grid pattern, projecting or recessed. |
-| `"teardrop"` | `"raised"` / `"etched"` | Interlocking teardrops: two columns of drops half a period out of phase, so each point nests between the bellies of its neighbours. |
-| `"tumbling_cubes"` | `"raised"` / `"etched"` | The isometric tumbling-block tessellation: a rhombille tiling whose three rhombi per hexagon sit at three different heights, so the wall reads as a wall of stacked cubes with the cube edges engraved as lines. |
-| `"intertwine"` | `"raised"` / `"etched"` | Interlocking rings on a diagonal lattice. Each ring overlaps its four diagonal neighbours and is broken at alternate crossings, so the strands genuinely weave over and under each other rather than merely overlapping. |
-| `"islamic_star"` | `"raised"` / `"etched"` | The khatim star tiling: an eight-point star rosette with a four-point cross filling each gap between rosettes. The star stands at full depth and the cross a little lower, with an incised line between them. |
-
-The last four are *interlocking* patterns: their motifs deliberately cross the tile boundary so that adjacent repeats join into one continuous design rather than sitting in visible boxes.
+The last four `pattern_type` values — `"teardrop"`, `"tumbling_cubes"`, `"intertwine"` and `"islamic_star"` — are *interlocking* patterns: their motifs deliberately cross the tile boundary so that adjacent repeats join into one continuous design rather than sitting in visible boxes. The [gallery](docs/gallery.md#pattern-comparison) shows what each one looks like; the notes below cover their rendering quirks.
 
 Note on `"teardrop"` and `"intertwine"`: both tiles cross the tile boundary in a way that leaves a decorated body with scalloped rather than circular end caps. The planter itself renders fine, but OpenSCAD 2021.01 aborts with a CGAL assertion if you `union()` such a solid with another *textured* solid. Render these pots on their own, or combine them with plain (untextured) geometry — keep a `"teardrop"` or `"intertwine"` solid as the only textured solid per render when forcing CGAL evaluation. `"tumbling_cubes"` and `"islamic_star"` cross their tile edges too but union cleanly with another textured solid in the same test.
 
@@ -165,6 +145,8 @@ Which parameter values trip this depends on `pattern_repeat` **and** `smoothness
 `"intertwine"` is by far the most expensive of the three to render: roughly 7 minutes and a ~79MB STL at the shipped defaults on a modern laptop, versus well under a minute for `"tumbling_cubes"`/`"islamic_star"`. A silent console for several minutes on `"intertwine"` is normal — it is not a hang, and it is not the CGAL failure above (which happens quickly, not after several minutes).
 
 Adjust `pattern_orientation` to switch between vertical and horizontal layouts, and `pattern_repeat` to change how many tiles wrap around the circumference — the same value also sets the vertical repeat count for tileable patterns, so raising it makes tiles both more numerous around the pot and shorter top-to-bottom.
+
+Note: tiles come out **roughly 2.8–3.75× wider than tall** on the pot, and it's not a fixed number: `tex_reps` is set to `[pattern_repeat, pattern_repeat]`, asking for the same repeat count around the circumference as up the height regardless of the pot's proportions, and because the decorated wall is a cone (BOSL2 scales each texture strip to the local radius, per `lib/BOSL2/skin.scad`'s `_textured_revolution()`), the tiles themselves are trapezoidal, not uniform rectangles — narrower at the bottom (radius ~61mm) than the top (radius ~82.3mm, `planter.scad`'s own peak-aware cone calculation). At defaults that's roughly 24mm wide at the bottom rising to roughly 32mm at the top, against an 8.6mm tile height (138mm wall / 16 tiles). `"ridges"` and `"bricks"` are unaffected in practice; large-motif patterns like `"islamic_star"` are squashed enough to lose the motif. Raising `pattern_repeat` shortens the tiles vertically (and multiplies them horizontally). See [the gallery's full-pot section](docs/gallery.md#full-pot-examples) for side-by-side evidence.
 
 Note: enabling decoration changes the pot's outer silhouette slightly. BOSL2's textured `cyl()` only supports a straight r1/r2 cone, so the decorated body is approximated as a straight cone through the cavity's peak radius rather than following the cavity's exact ledge/shoulder profile — at defaults this means the rim wall goes from ~3mm (plain `wall_thickness`) to ~7mm. This is a deliberate, documented tradeoff, not a bug.
 
