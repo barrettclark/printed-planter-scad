@@ -26,7 +26,6 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 OUT="$ROOT/docs/images"
-mkdir -p "$OUT"
 
 # Install cleanup before creating anything that needs cleaning up, not
 # after: if `mktemp` below failed while `set -e` is active, exiting between
@@ -71,6 +70,16 @@ if ! MKDIR_ERR="$(mkdir "$LOCK" 2>&1)"; then
     exit 1
 fi
 LOCK_OWNED=1
+# Only the lock holder may create $OUT. Doing this before lock acquisition
+# let a second invocation recreate $OUT as an empty directory while the
+# first was mid-publish (the brief window between its two `mv`s where $OUT
+# is legitimately absent); the first invocation's second `mv "$STAGE" "$OUT"`
+# then found $OUT already existing and, per plain `mv` semantics, moved
+# $STAGE INSIDE it (docs/images/stage/*.png) instead of replacing it,
+# silently corrupting the published gallery with exit 0. Confirmed this
+# exact nesting behavior directly: `mv sourcedir existing_empty_dir` leaves
+# existing_empty_dir/sourcedir, not existing_empty_dir's contents replaced.
+mkdir -p "$OUT"
 # $TMP lives under $OUT's own parent, not the system tmpdir: `mv` (rename) is
 # only guaranteed atomic within a single filesystem, and $TMPDIR can be a
 # different filesystem from the repo (e.g. tmpfs on Linux) -- staging here
