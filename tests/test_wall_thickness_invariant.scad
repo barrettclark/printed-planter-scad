@@ -44,6 +44,8 @@ ledge_ramp_height = 2;
 // at 0 keeps both solids' z-domains aligned at [floor_thickness/0, pot_height]
 // so the check is purely about radial wall thickness.
 difference() {
-    insert_cavity(p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], ledge_ramp_height, overshoot=0, fn=80);
-    outer_body_follow(p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], ledge_ramp_height, fn=80);
+    insert_cavity(p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], overshoot=0, fn=80,
+        ledge_ramp_height=ledge_ramp_height);
+    outer_body_follow(p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], fn=80,
+        ledge_ramp_height=ledge_ramp_height);
 }

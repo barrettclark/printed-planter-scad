@@ -1,10 +1,16 @@
 // modules/body.scad
 include <insert.scad>
 
+// ledge_ramp_height is appended after the pre-existing optional fn, not
+// inserted before it: a caller using the old positional arity -- a 10th
+// positional argument meant as fn -- must keep landing on fn, not silently
+// be reinterpreted as the new parameter (which would both change the
+// profile and leave fn at its default, silently altering mesh resolution
+// too).
 module outer_body_follow(insert_top_d, insert_bottom_d, insert_height,
                           ledge_engagement_height, fit_clearance, body_clearance,
-                          bottom_margin, floor_thickness, wall_thickness,
-                          ledge_ramp_height, fn=50) {
+                          bottom_margin, floor_thickness, wall_thickness, fn=50,
+                          ledge_ramp_height=0) {
     pot_height = insert_cavity_height(insert_height, floor_thickness, bottom_margin);
     insert_bottom_z = pot_height - insert_height;
     ledge_bottom_z  = pot_height - ledge_engagement_height;

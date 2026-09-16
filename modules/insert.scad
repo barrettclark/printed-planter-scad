@@ -14,7 +14,7 @@ function insert_cavity_height(insert_height, floor_thickness, bottom_margin) =
 // handled by the second branch.
 function cavity_radius_at(z, insert_top_d, insert_bottom_d, insert_height,
                            ledge_engagement_height, fit_clearance, body_clearance,
-                           pot_height, ledge_ramp_height) =
+                           pot_height, ledge_ramp_height=0) =
     let(
         insert_bottom_z = pot_height - insert_height,
         ledge_bottom_z  = pot_height - ledge_engagement_height,
@@ -28,9 +28,15 @@ function cavity_radius_at(z, insert_top_d, insert_bottom_d, insert_height,
                                   (z - ledge_bottom_z) / ledge_ramp_height) :
     insert_top_d/2 + fit_clearance;
 
+// ledge_ramp_height is appended after the pre-existing optional arguments
+// (overshoot, fn), not inserted before them: a caller using the old
+// positional arity -- e.g. a 9th positional argument meant as overshoot --
+// must keep landing on overshoot, not silently be reinterpreted as the new
+// parameter.
 module insert_cavity(insert_top_d, insert_bottom_d, insert_height,
                       ledge_engagement_height, fit_clearance, body_clearance,
-                      bottom_margin, floor_thickness, ledge_ramp_height, overshoot=20, fn=50) {
+                      bottom_margin, floor_thickness, overshoot=20, fn=50,
+                      ledge_ramp_height=0) {
     pot_height = insert_cavity_height(insert_height, floor_thickness, bottom_margin);
     ledge_bottom_z = pot_height - ledge_engagement_height;
     ledge_ramp_z = ledge_bottom_z + ledge_ramp_height;

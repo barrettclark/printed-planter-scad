@@ -69,7 +69,8 @@ module cavity_slab(z) {
     intersection() {
         insert_cavity(insert_top_d, insert_bottom_d, insert_height,
             ledge_engagement_height, fit_clearance, body_clearance,
-            bottom_margin, floor_thickness, ledge_ramp_height, overshoot=0, fn=180);
+            bottom_margin, floor_thickness, overshoot=0, fn=180,
+            ledge_ramp_height=ledge_ramp_height);
         translate([0, 0, z - slab_h/2]) cylinder(h=slab_h, r=500, $fn=8);
     }
 }
