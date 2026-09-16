@@ -9,7 +9,7 @@ pot_h = insert_cavity_height(130, 3, 5); // 138
 assert(pot_h == 138);
 
 // follow-insert outer radius at the rim must equal cavity radius + wall_thickness
-r = cavity_radius_at(138, 150, 110, 130, 8, 0.3, 3, 138) + 2.4;
+r = cavity_radius_at(138, 150, 110, 130, 8, 0.3, 3, 138, 2) + 2.4;
 assert(r == 150/2 + 0.3 + 2.4, str("expected 77.7, got ", r));
 
 cube(0.001);

@@ -31,6 +31,12 @@ params = [
 
 p = params[combo];
 
+// Not varied across combos -- this invariant is about radial wall thickness,
+// which the ramp doesn't change at either endpoint, only the shape between
+// them (see modules/insert.scad). Same value must reach both calls below,
+// since insert_cavity and outer_body_follow are meant to be mirror shapes.
+ledge_ramp_height = 2;
+
 // overshoot=0: insert_cavity's default overshoot pokes the cavity above
 // pot_height (intentional in the real assembly, to punch through the rim of
 // a taller outer body) which would make this difference falsely non-empty
@@ -38,6 +44,6 @@ p = params[combo];
 // at 0 keeps both solids' z-domains aligned at [floor_thickness/0, pot_height]
 // so the check is purely about radial wall thickness.
 difference() {
-    insert_cavity(p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], overshoot=0, fn=80);
-    outer_body_follow(p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], fn=80);
+    insert_cavity(p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], ledge_ramp_height, overshoot=0, fn=80);
+    outer_body_follow(p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], ledge_ramp_height, fn=80);
 }
