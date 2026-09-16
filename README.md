@@ -55,6 +55,7 @@ The 3 named presets:
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | `ledge_engagement_height` | Depth of the rim's tight-fit seat (mm) | 8 |
+| `ledge_ramp_height` | Height over which the seat narrows to its tight clearance, instead of as a hard step (mm); `0` reproduces the old hard step | 2 |
 | `fit_clearance` | Radial clearance at the rim seat (mm) | 0.3 |
 | `body_clearance` | Radial clearance around the tapered insert body (mm) | 3 |
 | `bottom_margin` | Air gap below the insert's bottom (mm) | 5 |
@@ -106,6 +107,7 @@ insert_top_d = 150;
 insert_bottom_d = 110;
 insert_height = 130;
 ledge_engagement_height = 8;
+ledge_ramp_height = 2;
 fit_clearance = 0.3;
 body_clearance = 3;
 bottom_margin = 5;

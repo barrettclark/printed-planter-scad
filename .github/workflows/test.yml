@@ -279,6 +279,23 @@ jobs:
             fi
           done
 
+          # Geometry-level check that insert_cavity()'s actual rendered
+          # boundary -- not just cavity_radius_at()'s numbers, which
+          # tests/test_insert.scad already covers -- follows the ramp. The
+          # module's own polygon could independently drift from the function
+          # (e.g. a copy-paste error that left a stale breakpoint) and still
+          # pass every purely numeric check. Same "must render empty" idiom
+          # as the wall-thickness invariant above.
+          for check in 0 1 2; do
+            echo "=== tests/test_insert_cavity_ramp_geometry.scad check=$check (expect empty) ==="
+            out=$(openscad -D "check=$check" -o /tmp/ci_ramp_geometry_$check.stl tests/test_insert_cavity_ramp_geometry.scad 2>&1)
+            echo "$out"
+            if ! echo "$out" | grep -q "Current top level object is empty."; then
+              echo "FAIL: insert_cavity ramp geometry check=$check (expected 'Current top level object is empty.')"
+              fail=1
+            fi
+          done
+
           # Tests expected to fail their internal assertion (ERROR is success here).
           for f in tests/test_body_custom_assert.scad \
                    tests/test_decoration_depth_assert.scad; do
@@ -287,6 +304,30 @@ jobs:
             echo "$out"
             if ! echo "$out" | grep -q "ERROR: Assertion"; then
               echo "FAIL: $f (expected an assertion failure, got none)"
+              fail=1
+            fi
+          done
+
+          # ledge_ramp_height's bounds check lives in planter.scad as a
+          # top-level assert, not inside a module -- pre-include variable
+          # assignment can't override it (OpenSCAD flattens repeated
+          # top-level assignments to the textually last one), so this has to
+          # go through test_planter_integration.scad with -D, same as every
+          # other planter.scad-level override in this file. Checks both
+          # invalid boundaries (negative, and larger than
+          # ledge_engagement_height) and the exact message, not just that
+          # some assertion fired -- a regression that asserted the wrong
+          # condition could still produce a generic "ERROR: Assertion".
+          for bad in -1 9; do
+            echo "=== tests/test_planter_integration.scad (ledge_ramp_height=$bad, expect specific message) ==="
+            out=$(openscad -D "ledge_ramp_height=$bad" -o /tmp/ci_ledge_ramp_height_$bad.csg tests/test_planter_integration.scad 2>&1)
+            echo "$out"
+            if ! echo "$out" | grep -q "ERROR: Assertion"; then
+              echo "FAIL: ledge_ramp_height=$bad did not actually fail an assertion"
+              fail=1
+            fi
+            if ! echo "$out" | grep -q "ledge_ramp_height must be between 0 and ledge_engagement_height (8), got $bad"; then
+              echo "FAIL: ledge_ramp_height=$bad assertion is missing the expected message"
               fail=1
             fi
           done
