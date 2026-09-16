@@ -15,6 +15,41 @@ PATTERN_TYPES = ["none", "ridges", "diamonds", "hex_grid", "pyramids",
                  "bricks", "checkers", "dots", "cubes", "tri_grid",
                  "teardrop", "tumbling_cubes", "intertwine", "islamic_star"];
 
+// Excluded from the square-tile correction: "none" has no texture at all;
+// "ridges" is a directional stripe pattern with no discrete shape to square;
+// "bricks" is intentionally rectangular, like real bricks.
+_ASPECT_EXCLUDED_PATTERNS = ["none", "ridges", "bricks"];
+
+// BOSL2's own documentation (lib/BOSL2/skin.scad texture catalog comments)
+// says these three need an additional sqrt(3) Y-scale for correct aspect:
+// "cubes" for a true isometric-cube look, "hex_grid"/"tri_grid" so their
+// V-groove border width is uniform on every side of the hexagon/triangle
+// (regular hexagons/triangles, not stretched ones).
+_ASPECT_SQRT3_PATTERNS = ["cubes", "hex_grid", "tri_grid"];
+
+// decorated_solid() passes the same pattern_repeat for both the horizontal
+// (circumferential) and vertical tex_reps, which only produces square tiles
+// by coincidence: the wall's average circumference (~440mm at defaults) is
+// nothing like its height (~138mm). This derives the vertical repeat count
+// from the real geometry instead, so tiles come out approximately square
+// (only approximately, since the wall is a cone: BOSL2 scales each texture
+// strip to the LOCAL radius, so a single vertical_reps can only be exact at
+// one radius -- see README.md's "Decoration" section for the residual
+// taper effect this leaves).
+//
+// The four custom VNF tiles (teardrop, tumbling_cubes, intertwine,
+// islamic_star) are built on _UNIT_TILE, confirmed elsewhere in this file
+// to be exactly the unit square with no intrinsic distortion, so they use
+// the plain formula like every BOSL2 catalog texture without a documented
+// sqrt(3)/sqrt(2) requirement.
+function _square_tile_vertical_reps(pattern_type, pattern_repeat, r1, r2, height) =
+    in_list(pattern_type, _ASPECT_EXCLUDED_PATTERNS) ? pattern_repeat :
+    let(
+        avg_circumference = PI * (r1 + r2),
+        aspect_correction = in_list(pattern_type, _ASPECT_SQRT3_PATTERNS) ? sqrt(3) : 1
+    )
+    max(1, round(pattern_repeat * height / (avg_circumference * aspect_correction)));
+
 // --- Interlocking teardrop VNF tile -----------------------------------------
 //
 // A BOSL2 VNF texture tile is a surface whose XY footprint fills the unit
@@ -400,7 +435,7 @@ module decorated_solid(pattern_type, pattern_orientation, relief_mode, pattern_d
         depth = (pattern_type == "dots" && is_etched) ? -pattern_depth : pattern_depth;
         cyl(h = height, r1 = r1, r2 = r2, anchor = BOTTOM, $fn = fn,
             texture = tex,
-            tex_reps = [pattern_repeat, pattern_repeat],
+            tex_reps = [pattern_repeat, _square_tile_vertical_reps(pattern_type, pattern_repeat, r1, r2, height)],
             tex_depth = depth,
             // BOSL2 normalises tex_inset=true to exactly 1 (skin.scad:5203),
             // so this is full inset: the texture's high points land on the
