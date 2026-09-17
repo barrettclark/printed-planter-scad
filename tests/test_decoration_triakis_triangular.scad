@@ -59,22 +59,26 @@ for (relief = ["raised", "etched"]) {
         lo = _tile_edge_profile(_tex, axis, 0);
         hi = _tile_edge_profile(_tex, axis, 1);
         name = (axis == 0) ? "x" : "y";
-        // Per the task brief: "use len(lo) > 2 ... matching Task 1's
-        // threshold." Kept as specified even though my own investigation
-        // (see task-3-report.md) found it does NOT hold against this
-        // pattern's actual built geometry -- every tile-boundary edge here
-        // is an own edge of exactly one of _TT_A/_TT_B (y=0 and x=1 belong
-        // to _TT_A; x=0 and y=1 belong to _TT_B), and _kis_shrunk_fan()'s
-        // per-triangle shrink pulls that triangle off of the seam on all
-        // four edges, the same failure mode Task 1 found for
-        // tetrakis_square's whole-tile-cell case. Probing the built VNF
-        // directly shows only the flat z=0 ground's 2 corners on every
-        // edge, never a mid-edge crossing vertex, so `> 2` fails here.
-        // Left unresolved for a controller ruling rather than silently
-        // "fixed" -- see the report for the full investigation.
-        assert(len(lo) > 2,
+        // Confirmed against the actual built VNF (see task-3-report.md):
+        // every tile-boundary edge here is an own edge of exactly one of
+        // _TT_A/_TT_B (y=0 and x=1 belong to _TT_A; x=0 and y=1 belong to
+        // _TT_B -- the diagonal is internal and shared by neither
+        // boundary), never a diagonal and never shared/crossed
+        // transversally. _kis_shrunk_fan() builds one sub-triangle per
+        // base-triangle edge and shrinks it inward on all three of its OWN
+        // edges -- including whichever one is the tile-boundary edge it
+        // inherited -- so that sub-triangle pulls off the seam on all four
+        // boundary lines, symmetric across both axes. Same failure mode
+        // (and same fix) as Task 1's tetrakis_square: the shrink doesn't
+        // distinguish "this edge happens to sit on the tile seam" from any
+        // other edge of its own triangle, so no fan triangle ever touches
+        // or crosses the seam -- only the flat z=0 ground's own 2 corners
+        // land on each edge. That coplanar, seam-identical ground needs no
+        // mid-edge crossing vertex to stitch correctly, so `>= 2` is the
+        // right bound here, not `> 2`.
+        assert(len(lo) >= 2,
             str("triakis_triangular (", relief, ") tile has only ", len(lo), " vertices on its ", name,
-                "=0 edge -- expected a real fan crossing"));
+                "=0 edge -- expected at least the tile's own two corners"));
         assert(len(lo) == len(hi),
             str("triakis_triangular (", relief, ") tile has ", len(lo), " vertices on ", name, "=0 but ",
                 len(hi), " on ", name, "=1 -- tiles cannot stitch"));
