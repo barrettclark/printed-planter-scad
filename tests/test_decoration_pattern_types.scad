@@ -16,7 +16,7 @@ EXPECTED_PATTERN_TYPES = ["none", "ridges", "diamonds", "hex_grid", "pyramids",
                           "bricks", "checkers", "dots", "cubes", "tri_grid",
                           "teardrop", "tumbling_cubes", "intertwine",
                           "islamic_star", "tetrakis_square", "kisrhombille",
-                          "triakis_triangular"];
+                          "triakis_triangular", "rhombille"];
 
 // The pattern_types that resolve to a hand-rolled VNF tile instead of a BOSL2
 // texture name. Listed explicitly (and pinned below) rather than derived, so a
@@ -24,10 +24,14 @@ EXPECTED_PATTERN_TYPES = ["none", "ridges", "diamonds", "hex_grid", "pyramids",
 // accidentally resolved to one -- fails here. The three "kis"-family patterns
 // belong here too in raised mode: they resolve to a hand-rolled VNF just like
 // the other four (their etched-vs-raised distinction is checked separately in
-// test_decoration_etched_groove.scad).
+// test_decoration_etched_groove.scad). "rhombille" joins them as an eighth VNF
+// pattern, but unlike the "kis" family its geometry does NOT branch on
+// relief_mode at all -- it resolves to the exact same VNF whether raised or
+// etched (see test_decoration_rhombille.scad), so it needs no etched-specific
+// carve-out anywhere in this file.
 EXPECTED_VNF_PATTERN_TYPES = ["teardrop", "tumbling_cubes", "intertwine",
                               "islamic_star", "tetrakis_square", "kisrhombille",
-                              "triakis_triangular"];
+                              "triakis_triangular", "rhombille"];
 
 assert(PATTERN_TYPES == EXPECTED_PATTERN_TYPES,
     str("PATTERN_TYPES changed -- expected ", EXPECTED_PATTERN_TYPES, ", got ", PATTERN_TYPES));

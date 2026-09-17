@@ -5,18 +5,20 @@ include <../lib/BOSL2/std.scad>
 // table for _decoration_texture(). Most entries are literal BOSL2 texture
 // names (see the texture() catalog in lib/BOSL2/skin.scad) and map to
 // themselves; the exceptions are "none" (no texture at all), "ridges" (an
-// alias for BOSL2's "ribs"), and the seven custom VNF tiles built below --
+// alias for BOSL2's "ribs"), and the eight custom VNF tiles built below --
 // the four interlocking patterns ("teardrop", "tumbling_cubes",
-// "intertwine", "islamic_star") and the three "kis" family patterns
-// ("tetrakis_square", "kisrhombille", "triakis_triangular") -- which are not
-// BOSL2 textures at all. So
+// "intertwine", "islamic_star"), the three "kis" family patterns
+// ("tetrakis_square", "kisrhombille", "triakis_triangular"), and "rhombille"
+// (the plain rhombille tiling tumbling_cubes' own isometric illusion is
+// built from) -- which are not BOSL2 textures at all. So
 // _decoration_texture() returns
 // either a string or a VNF, and callers must not assume a string. The mapping
 // is also relief-mode dependent -- see _decoration_etched_texture().
 PATTERN_TYPES = ["none", "ridges", "diamonds", "hex_grid", "pyramids",
                  "bricks", "checkers", "dots", "cubes", "tri_grid",
                  "teardrop", "tumbling_cubes", "intertwine", "islamic_star",
-                 "tetrakis_square", "kisrhombille", "triakis_triangular"];
+                 "tetrakis_square", "kisrhombille", "triakis_triangular",
+                 "rhombille"];
 
 // Excluded from the square-tile correction: "none" has no texture at all;
 // "ridges" is a directional stripe pattern with no discrete shape to square;
@@ -41,7 +43,7 @@ _ASPECT_SQRT3_PATTERNS = ["cubes", "hex_grid", "tri_grid"];
 // taper effect this leaves).
 //
 // The custom VNF tiles (teardrop, tumbling_cubes, intertwine, islamic_star,
-// tetrakis_square, kisrhombille, triakis_triangular) are built on
+// tetrakis_square, kisrhombille, triakis_triangular, rhombille) are built on
 // _UNIT_TILE, confirmed elsewhere in this file to be exactly the unit
 // square with no intrinsic distortion, so they use the plain formula like
 // every BOSL2 catalog texture without a documented sqrt(3) requirement.
@@ -301,6 +303,28 @@ function _tumbling_cubes_tile() =
             let (r = offset(_tc_rhombus(c, k), delta = -_TC_GAP / 2, closed = true))
             if (len(r) >= 3) [[r], _TC_Z[k]]]);
 
+// --- Rhombille (the tiling tumbling_cubes' illusion is built from) ----------
+//
+// Wikipedia: "a tiling of the plane by rhombi... also known as ... the
+// tumbling blocks pattern." tumbling_cubes raises the three rhombi per
+// hexagon to three DIFFERENT heights to sell an isometric-cube illusion;
+// this pattern is the plain tiling underneath that illusion -- the same
+// _TC_CENTERS/_tc_rhombus() hexagon geometry, but every rhombus at the SAME
+// height, so it reads as a clean rhombus-grid relief/etch rather than a set
+// of cubes. Because the geometry doesn't change between raised and etched,
+// this tile (like tumbling_cubes/intertwine/islamic_star) takes no
+// relief_mode parameter -- decorated_solid()'s tex_inset handles that.
+_RH_Z   = 1.0;   // every rhombus reaches the tile's full height
+_RH_GAP = 0.055; // engraved line between rhombi, in tile fractions -- own
+                 // constant rather than reusing _TC_GAP, matching how the
+                 // kis family owns _KIS_GAP distinct from _TC_GAP
+
+function _rhombille_tile() =
+    _tile_from_islands([
+        for (c = _TC_CENTERS) for (k = [0:2])
+            let (r = offset(_tc_rhombus(c, k), delta = -_RH_GAP / 2, closed = true))
+            if (len(r) >= 3) [[r], _RH_Z]]);
+
 // --- Kisrhombille (kis of the rhombille tiling) ------------------------------
 //
 // Wikipedia: kis applied to the rhombille tiling's rhombi ("each rhombus
@@ -482,6 +506,7 @@ function _decoration_texture(pattern_type, relief_mode) =
     pattern_type == "tetrakis_square" ? _tetrakis_square_tile(relief_mode) :
     pattern_type == "kisrhombille"    ? _kisrhombille_tile(relief_mode) :
     pattern_type == "triakis_triangular" ? _triakis_triangular_tile(relief_mode) :
+    pattern_type == "rhombille"          ? _rhombille_tile() :
     pattern_type;
 
 // Heightfield textures have their grid samples triangulated according to a
@@ -527,12 +552,16 @@ module decorated_solid(pattern_type, pattern_orientation, relief_mode, pattern_d
         // pattern_repeat and smoothness jointly (see README). OpenSCAD still
         // exits 0 and still writes an STL when it happens, so warn up front
         // rather than let a silently-truncated export look successful.
+        // "rhombille" reuses tumbling_cubes' own hexagon/rhombus geometry
+        // directly (same large flat plateaus, just one height instead of
+        // three) and measured the same class of CGAL fragility -- see
+        // README.md for the specific failing/clean values.
         // The three "kis" family patterns share the same small-triangular-facet
         // tile construction and get the same defensive warning as a precaution,
         // but every tested pattern_repeat/smoothness/relief_mode combination for
         // them has measured CGAL-clean, so their message doesn't claim a known
         // failure -- see README.md's CGAL section.
-        if (in_list(pattern_type, ["tumbling_cubes", "intertwine", "islamic_star"]))
+        if (in_list(pattern_type, ["tumbling_cubes", "intertwine", "islamic_star", "rhombille"]))
             echo(str("WARNING: pattern_type \"", pattern_type, "\" is known to abort CGAL ",
                      "for some pattern_repeat/smoothness combinations, and OpenSCAD still ",
                      "exits 0 and writes a truncated STL when it does. Scan this console for ",

@@ -29,6 +29,7 @@ See [README.md](../README.md) for what each parameter means.
   - [tetrakis_square](#tetrakis_square)
   - [kisrhombille](#kisrhombille)
   - [triakis_triangular](#triakis_triangular)
+  - [rhombille](#rhombille)
 - [Full-Pot Examples](#full-pot-examples)
 - [Insert Presets](#insert-presets)
 - [Outer Shape Modes](#outer-shape-modes)
@@ -39,7 +40,7 @@ See [README.md](../README.md) for what each parameter means.
 **These are square-tile close-ups, not pictures of a pot.** Each one is a
 `decorated_solid()` cylinder whose height equals its own circumference, so
 the vertical repeat count `_square_tile_vertical_reps()` derives comes out
-equal to the horizontal one for 14 of the 17 patterns — the three sqrt(3)-
+equal to the horizontal one for 15 of the 18 patterns — the three sqrt(3)-
 corrected patterns (`cubes`, `hex_grid`, `tri_grid`) instead render with a
 vertical repeat count of 18, not 32, so their tiles are ~17.7mm wide by
 ~31.4mm tall rather than literally square. Every pattern is still shown at
@@ -56,7 +57,7 @@ taper looks like, and why these close-ups (free of it) lead the page instead.
 
 Settings shared by every image in this section: `r1 = r2 = 90mm`,
 `height = 565.5mm` (= 2πr), `pattern_repeat = 32` (so tiles are ~17.7mm wide,
-and square for 14 of the 17 patterns — see above for the three exceptions),
+and square for 15 of the 18 patterns — see above for the three exceptions),
 `pattern_depth = 1.5` and `smoothness = 60` (the shipped defaults),
 `pattern_orientation = "vertical"`. Uniform across all of them, so the images
 are comparable with each other.
@@ -283,6 +284,20 @@ Same relief behavior as the other two "kis"-family patterns above: raised
 gives three real heights per fan; etched flattens every triangle to one height
 with only the engraved fan lines, a flat scribed panel rather than an inverted
 raised bump.
+
+### rhombille
+
+| Raised | Etched |
+|---|---|
+| ![rhombille, raised](images/pattern-rhombille-raised.png) | ![rhombille, etched](images/pattern-rhombille-etched.png) |
+
+Interlocking. The plain rhombille tiling `tumbling_cubes`'s isometric-cube
+illusion is built from: the exact same hexagon/rhombus geometry, but every
+rhombus raised to the same height instead of three different ones, so it
+reads as a clean rhombus-grid relief rather than a set of stacked cubes.
+Because the geometry doesn't change between raised and etched, `"etched"`
+here is a true inverted copy of the raised relief, not a separate flat-panel
+construction like the "kis" family above.
 
 ## Full-Pot Examples
 
