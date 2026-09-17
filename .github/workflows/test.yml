@@ -198,14 +198,21 @@ jobs:
           # the wall and aborts the cavity subtraction in CGAL. The square-tile
           # fix (deriving vertical_reps from real geometry instead of reusing
           # pattern_repeat) changed each pattern's tile shape enough to move
-          # these thresholds: re-measured at smoothness=24, "islamic_star"
-          # fails at 3, 4, 5, 7, 11, 12 but is clean at 6, 8, 9, 10 in at least
-          # one relief mode -- 8 is the smallest value clean in BOTH relief
-          # modes; "tumbling_cubes" fails everywhere from 3 through 8 and
-          # again at 11, but is clean at 9, 10, 12; "intertwine" fails at 4 and
-          # 6 but is clean at 3, 5, 7, 8. None of this is a clean cutoff in
-          # either parameter, so these are the specific values measured clean
-          # in both relief modes, not values believed safe by rule. README.md
+          # these thresholds. Re-measured at smoothness=24 IN BOTH RELIEF
+          # MODES -- "clean" below always means clean in both "raised" and
+          # "etched", since a value clean in only one mode is not safe to
+          # ship: "islamic_star" fails in at least one mode at 3, 4, 5, 7, 11,
+          # 12 (6 and 9 are raised-only, 7 is etched-only); 8 and 10 are the
+          # only values clean in both, so this uses the smaller, 8.
+          # "tumbling_cubes" fails in at least one mode everywhere from 3
+          # through 8, at 11, and at 12 (12 is raised-only -- it aborts in
+          # etched); only 9 and 10 are clean in both, so this uses the
+          # smaller, 9. "intertwine" fails in both modes at 4 and 6, and in
+          # etched only at 7; 3, 5 and 8 are clean in both, so this uses the
+          # smallest, 3, same rule as the other two. None of this is a clean
+          # cutoff in either parameter or predictable from a single relief
+          # mode, so these are the specific values measured clean in both
+          # relief modes, not values believed safe by rule. README.md
           # documents the limitation; the defaults are covered separately
           # after this loop.
           run_assembly_combo() {
@@ -221,7 +228,7 @@ jobs:
           }
           for combo in "ridges 4" "diamonds 4" "hex_grid 4" "pyramids 4" "bricks 4" \
                        "checkers 4" "dots 4" "cubes 4" "tri_grid 4" "teardrop 4" \
-                       "islamic_star 8" "tumbling_cubes 9" "intertwine 8"; do
+                       "islamic_star 8" "tumbling_cubes 9" "intertwine 3"; do
             set -- $combo
             for relief in raised etched; do
               run_assembly_combo "$1" "$relief" "$2"
