@@ -208,13 +208,26 @@ jobs:
           # through 8, at 11, and at 12 (12 is raised-only -- it aborts in
           # etched); only 9 and 10 are clean in both, so this uses the
           # smaller, 9. "intertwine" fails in both modes at 4 and 6, and in
-          # etched only at 7; 3, 5 and 8 are clean in both, so this uses the
-          # smallest, 3, same rule as the other two. None of this is a clean
+          # etched only at 7; 3, 5, 8, 12 and 15 are all clean in both modes
+          # locally -- see the note below on why this uses 12, not the
+          # smallest. None of this is a clean
           # cutoff in either parameter or predictable from a single relief
           # mode, so these are the specific values measured clean in both
           # relief modes, not values believed safe by rule. README.md
           # documents the limitation; the defaults are covered separately
           # after this loop.
+          #
+          # "intertwine"'s value is 12, not the smallest locally-clean value
+          # (3): 3 passed on a local macOS OpenSCAD build but CGAL-aborted on
+          # this workflow's Ubuntu build, both reporting OpenSCAD 2021.01 --
+          # the same known CGAL floating-point sensitivity this whole
+          # fragility problem stems from also varies by platform, not just by
+          # pattern_repeat/smoothness. 12 was chosen with a tested safety
+          # margin either side (10 aborts in etched mode; 15 is also clean in
+          # both) rather than picking the next-smallest value and repeating
+          # the same mistake. If this ever aborts on CI again, re-measure
+          # directly against a CI run, not just a local build -- local-clean
+          # is necessary but not sufficient here.
           run_assembly_combo() {
             pt="$1"; relief="$2"; reps="$3"; smooth="${4:-24}"
             echo "=== tests/test_planter_integration.scad (pattern_type=$pt, relief_mode=$relief, pattern_repeat=$reps, smoothness=$smooth, expect real evaluation to succeed) ==="
@@ -228,7 +241,7 @@ jobs:
           }
           for combo in "ridges 4" "diamonds 4" "hex_grid 4" "pyramids 4" "bricks 4" \
                        "checkers 4" "dots 4" "cubes 4" "tri_grid 4" "teardrop 4" \
-                       "islamic_star 8" "tumbling_cubes 9" "intertwine 3"; do
+                       "islamic_star 8" "tumbling_cubes 9" "intertwine 12"; do
             set -- $combo
             for relief in raised etched; do
               run_assembly_combo "$1" "$relief" "$2"
