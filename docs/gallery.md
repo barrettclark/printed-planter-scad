@@ -271,7 +271,11 @@ raised bumps.
 
 Kis applied to a triangular tiling: the unit tile's diagonal splits it into
 two triangles, and each of those is fanned into three sub-triangles from its
-center. Three distinct heights per fan (not two, unlike `tetrakis_square`'s
+center. These two base triangles are right triangles from the square split,
+not true equilateral ones — a deliberate simplification, the same trade-off
+`kisrhombille` makes by reusing `tumbling_cubes`' already-unit-square-normalized
+hexagons, prioritizing an exact unit-square tiling over strict equilateral
+regularity. Three distinct heights per fan (not two, unlike `tetrakis_square`'s
 alternation) — the same reasoning `tumbling_cubes` uses for its three rhombi,
 that three different heights read better than two repeated.
 

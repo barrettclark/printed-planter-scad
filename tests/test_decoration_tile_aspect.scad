@@ -59,9 +59,11 @@ v_bricks = _square_tile_vertical_reps("bricks", "vertical", pattern_repeat, r1, 
 assert(v_ridges == pattern_repeat, str("expected ridges vertical_reps ", pattern_repeat, ", got ", v_ridges));
 assert(v_bricks == pattern_repeat, str("expected bricks vertical_reps ", pattern_repeat, ", got ", v_bricks));
 
-// The four custom VNF tiles (built on _UNIT_TILE, confirmed unit-square, no
+// The custom VNF tiles (built on _UNIT_TILE, confirmed unit-square, no
 // intrinsic correction) use the plain formula, same as "dots".
-for (pt = ["teardrop", "tumbling_cubes", "intertwine", "islamic_star", "diamonds", "pyramids", "checkers"]) {
+for (pt = ["teardrop", "tumbling_cubes", "intertwine", "islamic_star",
+           "tetrakis_square", "kisrhombille", "triakis_triangular",
+           "diamonds", "pyramids", "checkers"]) {
     v = _square_tile_vertical_reps(pt, "vertical", pattern_repeat, r1, r2, height);
     assert(v == expected_dots,
         str("expected ", pt, " vertical_reps ", expected_dots, ", got ", v));

@@ -57,27 +57,33 @@ for (relief = ["raised", "etched"]) {
         hi = _tile_edge_profile(_tex, axis, 1);
         name = (axis == 0) ? "x" : "y";
         // The two axes are NOT symmetric here, per the existing _TC_V/
-        // _tc_rhombus() comment in modules/decoration.scad: "the tile edges
-        // x=0/x=1 run through the corner hexagons' centres and cut exactly
-        // one rhombus each, along that rhombus's own short diagonal" -- and
-        // that diagonal is itself one edge of a kis-fan triangle, so
-        // _kis_shrunk_fan()'s inward shrink pulls that triangle off of x=0/
-        // x=1 entirely (the same failure mode as tetrakis_square's
-        // whole-tile-cell case: a fan triangle is shrunk away from every one
-        // of its own edges, including one that happens to sit on the tile
-        // seam). Only the flat z=0 ground's own 2 corners land on x=0/x=1, so
-        // `>= 2` is the right bound there -- a coplanar, seam-identical
-        // ground needs no mid-edge crossing vertex to stitch correctly.
-        // y=0/y=1, by contrast, "cut the vertical hexagon edges at exactly
-        // x=+-1/2" -- a transversal cut through a fan triangle's *interior*,
-        // which _tile_from_islands()'s clipping genuinely fragments, leaving
-        // real crossing vertices the shrink doesn't remove. So `> 4` still
-        // applies there: multiple rhombi (not just one shape) cross that
-        // seam, same reasoning as tumbling_cubes' own edge-count-of-more-
-        // than-4 check -- a weaker `> 2` threshold would be vacuous there.
-        assert(axis == 0 ? len(lo) >= 2 : len(lo) > 4,
-            str("kisrhombille tile has only ", len(lo), " vertices on its ", name,
-                "=0 edge -- no rhombus fan spans the seam"));
+        // _tc_rhombus() comment in modules/decoration.scad: x=0/x=1 run
+        // through the corner hexagons' centres and cut exactly one rhombus
+        // each, along that rhombus's own short diagonal -- itself one edge
+        // of a kis-fan triangle, so _kis_shrunk_fan()'s inward shrink pulls
+        // that triangle off x=0/x=1 entirely; only the flat z=0 ground's own
+        // 2 corners land there, making a `len(lo)` count trivially always 2
+        // and unable to catch a construction regression. y=0/y=1, by
+        // contrast, cut the vertical hexagon edges at x=+-1/2, a transversal
+        // cut through a fan triangle's interior that genuinely fragments
+        // and leaves real crossing vertices, so `> 4` there still works.
+        // For axis=0, check the real invariant instead: the closest raised
+        // fan vertex to each edge sits exactly _KIS_GAP/2 away, the groove
+        // half-width every internal fan line uses.
+        if (axis == 0) {
+            _raised_near_lo = min([for (p = _tex[0]) if (p[2] > EPSILON) abs(p[axis] - 0)]);
+            _raised_near_hi = min([for (p = _tex[0]) if (p[2] > EPSILON) abs(p[axis] - 1)]);
+            assert(approx(_raised_near_lo, _KIS_GAP / 2),
+                str("kisrhombille (", relief, ") closest fan vertex to ", name, "=0 is ",
+                    _raised_near_lo, " away, expected _KIS_GAP/2 (", _KIS_GAP / 2, ")"));
+            assert(approx(_raised_near_hi, _KIS_GAP / 2),
+                str("kisrhombille (", relief, ") closest fan vertex to ", name, "=1 is ",
+                    _raised_near_hi, " away, expected _KIS_GAP/2 (", _KIS_GAP / 2, ")"));
+        } else {
+            assert(len(lo) > 4,
+                str("kisrhombille tile has only ", len(lo), " vertices on its ", name,
+                    "=0 edge -- no rhombus fan spans the seam"));
+        }
         assert(len(lo) == len(hi),
             str("kisrhombille tile has ", len(lo), " vertices on ", name, "=0 but ",
                 len(hi), " on ", name, "=1 -- tiles cannot stitch"));

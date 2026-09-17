@@ -35,8 +35,9 @@ assert(PATTERN_TYPES == EXPECTED_PATTERN_TYPES,
 // Rendering without error only proves each name produces *some* geometry --
 // it wouldn't catch _decoration_texture() accidentally mapping one pattern
 // to a different (but still valid) BOSL2 texture. In raised mode "ridges" is
-// the sole alias (-> "ribs") and the four interlocking patterns are the VNF
-// tiles (each checked in detail by its own test_decoration_<name>.scad); every
+// the sole alias (-> "ribs") and the interlocking and "kis" family patterns
+// are the VNF tiles (each checked in detail by its own
+// test_decoration_<name>.scad); every
 // other pattern_type must map to itself. Etched mode's flat-top/V-groove
 // routing has its own file, test_decoration_etched_groove.scad.
 for (pt = PATTERN_TYPES) {

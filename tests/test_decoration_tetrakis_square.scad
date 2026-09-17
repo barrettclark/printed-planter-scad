@@ -61,16 +61,20 @@ for (relief = ["raised", "etched"]) {
         // tetrakis_square's kis-cell IS the whole unit tile: every fan
         // triangle is shrunk by _KIS_GAP away from all four of its own edges,
         // including the ones that sit on the tile boundary, so no fan
-        // triangle ever touches or crosses the seam. Only the flat z=0 ground
-        // plane's own corners land on each edge -- exactly 2 vertices, not
-        // more. That's still sufficient for correct stitching: the ground is
-        // coplanar and identical on both sides of the seam by construction,
-        // so there is nothing for a mid-edge vertex to line up. A `> N`
-        // minimum only matters for patterns where real clipped fragments
-        // cross the seam.
-        assert(len(lo) >= 2,
-            str("tetrakis_square (", relief, ") tile has only ", len(lo), " vertices on its ", name,
-                "=0 edge -- expected at least the tile's own two corners"));
+        // triangle ever touches or crosses the seam -- only the flat z=0
+        // ground plane's own corners land exactly on each edge. A `len(lo)`
+        // count is trivially always 2 here and can't catch a construction
+        // regression, so instead check the real invariant: the closest raised
+        // fan vertex to each edge sits exactly _KIS_GAP/2 away from it, which
+        // is the groove half-width every internal fan line also uses.
+        _raised_near_lo = min([for (p = _tex[0]) if (p[2] > EPSILON) abs(p[axis] - 0)]);
+        _raised_near_hi = min([for (p = _tex[0]) if (p[2] > EPSILON) abs(p[axis] - 1)]);
+        assert(approx(_raised_near_lo, _KIS_GAP / 2),
+            str("tetrakis_square (", relief, ") closest fan vertex to ", name, "=0 is ",
+                _raised_near_lo, " away, expected _KIS_GAP/2 (", _KIS_GAP / 2, ")"));
+        assert(approx(_raised_near_hi, _KIS_GAP / 2),
+            str("tetrakis_square (", relief, ") closest fan vertex to ", name, "=1 is ",
+                _raised_near_hi, " away, expected _KIS_GAP/2 (", _KIS_GAP / 2, ")"));
         assert(len(lo) == len(hi),
             str("tetrakis_square (", relief, ") tile has ", len(lo), " vertices on ", name, "=0 but ",
                 len(hi), " on ", name, "=1 -- tiles cannot stitch"));

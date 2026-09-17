@@ -5,9 +5,11 @@ include <../lib/BOSL2/std.scad>
 // table for _decoration_texture(). Most entries are literal BOSL2 texture
 // names (see the texture() catalog in lib/BOSL2/skin.scad) and map to
 // themselves; the exceptions are "none" (no texture at all), "ridges" (an
-// alias for BOSL2's "ribs"), and the four interlocking patterns --
-// "teardrop", "tumbling_cubes", "intertwine", "islamic_star" -- which are not
-// BOSL2 textures at all but custom VNF tiles built below. So
+// alias for BOSL2's "ribs"), and the seven custom VNF tiles built below --
+// the four interlocking patterns ("teardrop", "tumbling_cubes",
+// "intertwine", "islamic_star") and the three "kis" family patterns
+// ("tetrakis_square", "kisrhombille", "triakis_triangular") -- which are not
+// BOSL2 textures at all. So
 // _decoration_texture() returns
 // either a string or a VNF, and callers must not assume a string. The mapping
 // is also relief-mode dependent -- see _decoration_etched_texture().
@@ -38,11 +40,11 @@ _ASPECT_SQRT3_PATTERNS = ["cubes", "hex_grid", "tri_grid"];
 // one radius -- see README.md's "Decoration" section for the residual
 // taper effect this leaves).
 //
-// The four custom VNF tiles (teardrop, tumbling_cubes, intertwine,
-// islamic_star) are built on _UNIT_TILE, confirmed elsewhere in this file
-// to be exactly the unit square with no intrinsic distortion, so they use
-// the plain formula like every BOSL2 catalog texture without a documented
-// sqrt(3) requirement.
+// The custom VNF tiles (teardrop, tumbling_cubes, intertwine, islamic_star,
+// tetrakis_square, kisrhombille, triakis_triangular) are built on
+// _UNIT_TILE, confirmed elsewhere in this file to be exactly the unit
+// square with no intrinsic distortion, so they use the plain formula like
+// every BOSL2 catalog texture without a documented sqrt(3) requirement.
 function _square_tile_vertical_reps(pattern_type, pattern_orientation, pattern_repeat, r1, r2, height) =
     in_list(pattern_type, _ASPECT_EXCLUDED_PATTERNS) ? pattern_repeat :
     let(
@@ -496,7 +498,7 @@ function _decoration_texture(pattern_type, relief_mode) =
 // relief-mode-specific table to keep in step with the texture table.
 //
 // Split in two so decorated_solid() can resolve the texture once and style it
-// from the result: with four custom VNF tiles now, having _decoration_style()
+// from the result: with several custom VNF tiles now, having _decoration_style()
 // rebuild the tile just to compare it against string literals would double the
 // tile-construction cost of every render.
 function _decoration_style_for(tex) =
@@ -519,18 +521,30 @@ module decorated_solid(pattern_type, pattern_orientation, relief_mode, pattern_d
             str("pattern_depth (", pattern_depth, ") must be < 70% of wall_thickness (", wall_thickness, ")"));
         assert(is_int(pattern_repeat) && pattern_repeat > 0,
             str("pattern_repeat must be a positive whole number, got ", pattern_repeat));
-        // These three tile large flat plateaus, whose single flat facet can cut
-        // back inside the wall and abort the cavity subtraction in CGAL. Which
-        // values trip it depends on pattern_repeat and smoothness jointly (see
-        // README). OpenSCAD still exits 0 and still writes an STL when it
-        // happens, so warn up front rather than let a silently-truncated export
-        // look successful.
-        if (in_list(pattern_type, ["tumbling_cubes", "intertwine", "islamic_star", "tetrakis_square", "kisrhombille", "triakis_triangular"]))
+        // "tumbling_cubes"/"intertwine"/"islamic_star" tile large flat plateaus,
+        // whose single flat facet can cut back inside the wall and abort the
+        // cavity subtraction in CGAL. Which values trip it depends on
+        // pattern_repeat and smoothness jointly (see README). OpenSCAD still
+        // exits 0 and still writes an STL when it happens, so warn up front
+        // rather than let a silently-truncated export look successful.
+        // The three "kis" family patterns share the same small-triangular-facet
+        // tile construction and get the same defensive warning as a precaution,
+        // but every tested pattern_repeat/smoothness/relief_mode combination for
+        // them has measured CGAL-clean, so their message doesn't claim a known
+        // failure -- see README.md's CGAL section.
+        if (in_list(pattern_type, ["tumbling_cubes", "intertwine", "islamic_star"]))
             echo(str("WARNING: pattern_type \"", pattern_type, "\" is known to abort CGAL ",
                      "for some pattern_repeat/smoothness combinations, and OpenSCAD still ",
                      "exits 0 and writes a truncated STL when it does. Scan this console for ",
                      "a CGAL assertion before trusting the export; if you see one, nudge ",
                      "pattern_repeat or smoothness. See README.md."));
+        else if (in_list(pattern_type, ["tetrakis_square", "kisrhombille", "triakis_triangular"]))
+            echo(str("WARNING: pattern_type \"", pattern_type, "\" carries the same precautionary ",
+                     "CGAL warning as the other custom VNF tile patterns (small triangular facets, ",
+                     "same general class of tile construction), but has measured CGAL-clean at ",
+                     "every tested pattern_repeat/smoothness/relief_mode combination. Scan this ",
+                     "console for a CGAL assertion anyway before trusting the export -- if you see ",
+                     "one, nudge pattern_repeat or smoothness. See README.md."));
         tex = _decoration_texture(pattern_type, relief_mode);
         rot = (pattern_orientation == "horizontal") ? 90 : 0;
         is_etched = (relief_mode == "etched");

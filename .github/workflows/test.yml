@@ -29,10 +29,11 @@ jobs:
 
           # Tests expected to succeed cleanly (exit 0, no ERROR in output).
           # These are compile checks only -- .csg does not evaluate geometry.
-          # For test_decoration_pattern_types.scad (fourteen side-by-side solids)
-          # .csg is not a preference, it is required: exporting that file to
-          # .stl would union all fourteen through CGAL, and unioning the
-          # "teardrop" solid with another textured solid aborts CGAL outright
+          # For test_decoration_pattern_types.scad (one side-by-side solid per
+          # pattern_type, 17 of them) .csg is not a preference, it is
+          # required: exporting that file to .stl would union all of them
+          # through CGAL, and unioning the "teardrop" solid with another
+          # textured solid aborts CGAL outright
           # on OpenSCAD 2021.01 (see modules/decoration.scad). Even before
           # "teardrop" existed the union measured 5+ minutes because of
           # "bricks". Real manifold validation for every pattern lives in the

@@ -59,26 +59,26 @@ for (relief = ["raised", "etched"]) {
         lo = _tile_edge_profile(_tex, axis, 0);
         hi = _tile_edge_profile(_tex, axis, 1);
         name = (axis == 0) ? "x" : "y";
-        // Confirmed against the actual built VNF (see task-3-report.md):
-        // every tile-boundary edge here is an own edge of exactly one of
-        // _TT_A/_TT_B (y=0 and x=1 belong to _TT_A; x=0 and y=1 belong to
-        // _TT_B -- the diagonal is internal and shared by neither
-        // boundary), never a diagonal and never shared/crossed
-        // transversally. _kis_shrunk_fan() builds one sub-triangle per
-        // base-triangle edge and shrinks it inward on all three of its OWN
-        // edges -- including whichever one is the tile-boundary edge it
-        // inherited -- so that sub-triangle pulls off the seam on all four
-        // boundary lines, symmetric across both axes. Same failure mode
-        // (and same fix) as Task 1's tetrakis_square: the shrink doesn't
-        // distinguish "this edge happens to sit on the tile seam" from any
-        // other edge of its own triangle, so no fan triangle ever touches
-        // or crosses the seam -- only the flat z=0 ground's own 2 corners
-        // land on each edge. That coplanar, seam-identical ground needs no
-        // mid-edge crossing vertex to stitch correctly, so `>= 2` is the
-        // right bound here, not `> 2`.
-        assert(len(lo) >= 2,
-            str("triakis_triangular (", relief, ") tile has only ", len(lo), " vertices on its ", name,
-                "=0 edge -- expected at least the tile's own two corners"));
+        // Verified directly against the built VNF: every tile-boundary edge
+        // here is an own edge of exactly one of _TT_A/_TT_B (y=0 and x=1
+        // belong to _TT_A; x=0 and y=1 belong to _TT_B -- the diagonal is
+        // internal and shared by neither boundary), never crossed
+        // transversally. _kis_shrunk_fan() shrinks each sub-triangle inward
+        // on all three of its own edges, including whichever one inherits
+        // the tile boundary, so no fan triangle ever touches or crosses the
+        // seam -- only the flat z=0 ground's own 2 corners land on each edge.
+        // A `len(lo)` count is trivially always 2 here and can't catch a
+        // construction regression, so instead check the real invariant: the
+        // closest raised fan vertex to each edge sits exactly _KIS_GAP/2
+        // away from it, the groove half-width every internal fan line uses.
+        _raised_near_lo = min([for (p = _tex[0]) if (p[2] > EPSILON) abs(p[axis] - 0)]);
+        _raised_near_hi = min([for (p = _tex[0]) if (p[2] > EPSILON) abs(p[axis] - 1)]);
+        assert(approx(_raised_near_lo, _KIS_GAP / 2),
+            str("triakis_triangular (", relief, ") closest fan vertex to ", name, "=0 is ",
+                _raised_near_lo, " away, expected _KIS_GAP/2 (", _KIS_GAP / 2, ")"));
+        assert(approx(_raised_near_hi, _KIS_GAP / 2),
+            str("triakis_triangular (", relief, ") closest fan vertex to ", name, "=1 is ",
+                _raised_near_hi, " away, expected _KIS_GAP/2 (", _KIS_GAP / 2, ")"));
         assert(len(lo) == len(hi),
             str("triakis_triangular (", relief, ") tile has ", len(lo), " vertices on ", name, "=0 but ",
                 len(hi), " on ", name, "=1 -- tiles cannot stitch"));
