@@ -43,7 +43,7 @@ to them, and why these close-ups lead the page instead.
 
 Settings shared by every image in this section: `r1 = r2 = 90mm`,
 `height = 565.5mm` (= 2πr), `pattern_repeat = 32` (so tiles are ~17.7mm square),
-`pattern_depth = 1.5` and `smoothness = 80` (both the shipped defaults),
+`pattern_depth = 1.5` and `smoothness = 80` (both the shipped defaults when these images were rendered; `smoothness`'s default has since been lowered to 60, see README's CGAL note),
 `pattern_orientation = "vertical"`. Uniform across all of them, so the images
 are comparable with each other.
 
@@ -218,8 +218,9 @@ them is a uniform incised line.
 ## Full-Pot Examples
 
 The real assembled planter, rendered from `planter.scad` at its shipped
-defaults (`pattern_repeat = 16`, `smoothness = 80`) with only `pattern_type`
-and `relief_mode` overridden.
+defaults at the time (`pattern_repeat = 16`, `smoothness = 80`) with only
+`pattern_type` and `relief_mode` overridden. `smoothness`'s shipped default
+has since been lowered to 60, see README's CGAL note.
 
 | `hex_grid`, raised | `hex_grid`, etched |
 |---|---|

@@ -52,7 +52,7 @@ drainage_hole_count = 6;
 drainage_hole_diameter = 4;
 
 /* [Quality] */
-smoothness = 80; // $fn used for all revolved geometry
+smoothness = 60; // $fn used for all revolved geometry -- 80 CGAL-aborts "tumbling_cubes" after the square-tile fix; see README.md
 
 assert(in_list(insert_preset, concat(["custom"], INSERT_PRESET_NAMES)),
     str("insert_preset must be \"custom\" or one of ", INSERT_PRESET_NAMES, ", got \"", insert_preset, "\""));

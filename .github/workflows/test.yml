@@ -180,9 +180,9 @@ jobs:
           # Render each new pattern_type through the real assembly too, with
           # real .stl evaluation.
           #
-          # Reduced pattern_repeat (4 or 6, not the default 16) and smoothness
-          # (24, not 80) specifically for this check: at default settings,
-          # "bricks" alone measured 2-3+ minutes PER combination for a full
+          # Reduced pattern_repeat (4, 8, or 9, not the default 16) and
+          # smoothness (24, not 60) specifically for this check: at default
+          # settings, "bricks" alone measured 2-3+ minutes PER combination for a full
           # difference() against the cavity (its randomized per-facet
           # roughness multiplies out badly), which made real evaluation of
           # all 26 combinations impractically slow. At these reduced
@@ -191,17 +191,23 @@ jobs:
           # exercised, so this still catches a self-intersecting or
           # degenerate result from any texture/relief combination.
           #
-          # "tumbling_cubes" and "intertwine" run at 6 rather than 4. Both
-          # build their motif from a few large flat plateaus, and BOSL2 lays a
-          # single FLAT facet across each one: with only a handful of tiles
-          # round the pot a plateau spans a wide arc, so its chord cuts back
-          # inside the wall and CGAL aborts the cavity subtraction. The
-          # threshold is not a clean cutoff, and it depends on pattern_repeat
-          # and smoothness jointly -- "islamic_star" is fine at 4 but fails at
-          # 6 and 8 at this smoothness -- so these are the values measured
-          # clean in both relief modes, not values believed safe by rule.
-          # README.md documents the limitation; the defaults are covered
-          # separately after this loop.
+          # "islamic_star", "tumbling_cubes" and "intertwine" don't get the
+          # shared reps=4 value: all three build their motif from a few large
+          # flat plateaus, and BOSL2 lays a single FLAT facet across each one,
+          # so a plateau spanning a wide arc has a chord that cuts back inside
+          # the wall and aborts the cavity subtraction in CGAL. The square-tile
+          # fix (deriving vertical_reps from real geometry instead of reusing
+          # pattern_repeat) changed each pattern's tile shape enough to move
+          # these thresholds: re-measured at smoothness=24, "islamic_star"
+          # fails at 3, 4, 5, 7, 11, 12 but is clean at 6, 8, 9, 10 in at least
+          # one relief mode -- 8 is the smallest value clean in BOTH relief
+          # modes; "tumbling_cubes" fails everywhere from 3 through 8 and
+          # again at 11, but is clean at 9, 10, 12; "intertwine" fails at 4 and
+          # 6 but is clean at 3, 5, 7, 8. None of this is a clean cutoff in
+          # either parameter, so these are the specific values measured clean
+          # in both relief modes, not values believed safe by rule. README.md
+          # documents the limitation; the defaults are covered separately
+          # after this loop.
           run_assembly_combo() {
             pt="$1"; relief="$2"; reps="$3"; smooth="${4:-24}"
             echo "=== tests/test_planter_integration.scad (pattern_type=$pt, relief_mode=$relief, pattern_repeat=$reps, smoothness=$smooth, expect real evaluation to succeed) ==="
@@ -215,7 +221,7 @@ jobs:
           }
           for combo in "ridges 4" "diamonds 4" "hex_grid 4" "pyramids 4" "bricks 4" \
                        "checkers 4" "dots 4" "cubes 4" "tri_grid 4" "teardrop 4" \
-                       "islamic_star 4" "tumbling_cubes 6" "intertwine 6"; do
+                       "islamic_star 8" "tumbling_cubes 9" "intertwine 8"; do
             set -- $combo
             for relief in raised etched; do
               run_assembly_combo "$1" "$relief" "$2"
@@ -225,20 +231,26 @@ jobs:
           # The loop above dodges the CGAL fragility with measured-safe reduced
           # values, which means it never covers what a Customizer user actually
           # gets. The fragility depends on pattern_repeat and smoothness
-          # JOINTLY -- islamic_star etched at pattern_repeat=16 is clean at
-          # smoothness 40 and 80 but aborts at 24 and 60 -- so "clean at the
-          # reduced values" says nothing about the defaults. Pin the real
-          # defaults for islamic_star and tumbling_cubes (measured ~1-2 min per
-          # relief mode each). "intertwine" is deliberately NOT pinned here --
-          # it measured ~7 minutes PER relief mode at these defaults, which
-          # would roughly double this job's runtime for one combination.
-          # README's "clean for all three" claim covers intertwine based on
-          # that manual measurement, not CI; if intertwine's tile construction
-          # ever changes, re-verify it manually rather than assuming CI would
-          # catch a regression there.
+          # JOINTLY -- tumbling_cubes at pattern_repeat=16 is clean at
+          # smoothness 24, 40 and 60 but aborts at 80 and 100 -- so "clean at
+          # the reduced values" says nothing about the defaults. This is also
+          # why planter.scad's shipped smoothness default was lowered from 80
+          # to 60 after the square-tile fix changed vertical_reps: 80 now
+          # aborts CGAL for tumbling_cubes at the shipped pattern_repeat=16 in
+          # both relief modes, and 60 is the highest smoothness confirmed
+          # clean there. Pin the real defaults for islamic_star and
+          # tumbling_cubes (measured ~1-2 min per relief mode each).
+          # "intertwine" is deliberately NOT pinned here -- even though it now
+          # renders faster at smoothness=60 (~2-3 minutes per relief mode,
+          # versus ~7 minutes at the old smoothness=80 default) it would still
+          # roughly double this job's runtime for one combination. README's
+          # "clean for all three" claim covers intertwine based on manual
+          # measurement, not CI; if intertwine's tile construction ever
+          # changes, re-verify it manually rather than assuming CI would catch
+          # a regression there.
           for relief in raised etched; do
-            run_assembly_combo "islamic_star" "$relief" 16 80
-            run_assembly_combo "tumbling_cubes" "$relief" 16 80
+            run_assembly_combo "islamic_star" "$relief" 16 60
+            run_assembly_combo "tumbling_cubes" "$relief" 16 60
           done
 
           # README documents that "tumbling_cubes" and "islamic_star" union
@@ -248,10 +260,13 @@ jobs:
           # pattern but exports .csg, which never invokes CGAL. That gap is how
           # the claim came to be documented (wrongly) for "intertwine" in the
           # first place. Union with a "dots" solid, difference against a
-          # disjoint cube to force real evaluation, ~100s each.
+          # disjoint cube to force real evaluation, ~100s each. pattern_repeat
+          # is 9, not 8: the square-tile fix moved islamic_star's fragile
+          # values on this geometry (r1=75, r2=60, height=100, fn=50) to 6-8,
+          # so 9 is the smallest value re-measured clean for both patterns.
           for pt in tumbling_cubes islamic_star; do
             echo "=== union($pt, dots) differenced (expect clean CGAL union) ==="
-            printf 'include <%s/modules/decoration.scad>\ndifference() {\n  union() {\n    decorated_solid("%s", "vertical", "raised", 1.5, 8, 75, 60, 100, 4);\n    translate([200, 0, 0]) decorated_solid("dots", "vertical", "raised", 1.5, 8, 75, 60, 100, 4);\n  }\n  translate([600, 0, 0]) cube(10, center = true);\n}\n' "$(pwd)" "$pt" > /tmp/ci_union_${pt}.scad
+            printf 'include <%s/modules/decoration.scad>\ndifference() {\n  union() {\n    decorated_solid("%s", "vertical", "raised", 1.5, 9, 75, 60, 100, 4);\n    translate([200, 0, 0]) decorated_solid("dots", "vertical", "raised", 1.5, 9, 75, 60, 100, 4);\n  }\n  translate([600, 0, 0]) cube(10, center = true);\n}\n' "$(pwd)" "$pt" > /tmp/ci_union_${pt}.scad
             out=$(openscad -o /tmp/ci_union_${pt}.stl /tmp/ci_union_${pt}.scad 2>&1)
             code=$?
             echo "$out"
