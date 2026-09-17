@@ -1,5 +1,5 @@
 * [x] Preset insert sizes: 100x85 (75mm bottom); 130x120 (100mm bottom); 180x160 (125mm bottom)
-* [x] Add interlocking teardrop (from BOLS2)
+* [x] Add interlocking teardrop (from BOSL2)
 * [x] I like the way shapes are raised. I don't know what etched does. I wanted it to have an engraved look - like it was etched into stone or glass.
 * [x] I would love to include interlocking geometric patterns. I saved some examples to the Desktop. More: https://www.magnific.com/free-photos-vectors/geometric-interlocking-pattern
 * [x] Include example images in the README
