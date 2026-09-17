@@ -14,7 +14,7 @@ include <../lib/BOSL2/std.scad>
 PATTERN_TYPES = ["none", "ridges", "diamonds", "hex_grid", "pyramids",
                  "bricks", "checkers", "dots", "cubes", "tri_grid",
                  "teardrop", "tumbling_cubes", "intertwine", "islamic_star",
-                 "tetrakis_square"];
+                 "tetrakis_square", "kisrhombille"];
 
 // Excluded from the square-tile correction: "none" has no texture at all;
 // "ridges" is a directional stripe pattern with no discrete shape to square;
@@ -299,6 +299,28 @@ function _tumbling_cubes_tile() =
             let (r = offset(_tc_rhombus(c, k), delta = -_TC_GAP / 2, closed = true))
             if (len(r) >= 3) [[r], _TC_Z[k]]]);
 
+// --- Kisrhombille (kis of the rhombille tiling) ------------------------------
+//
+// Wikipedia: kis applied to the rhombille tiling's rhombi ("each rhombus
+// divided into" triangles from its own center), equivalently described as
+// "an equilateral hexagonal tiling with each hexagon divided into 12
+// triangles from the center point" (3 rhombi x 4 triangles each = 12).
+// Reuses tumbling_cubes' own hexagon/rhombus geometry directly (_TC_V,
+// _tc_rhombus(), _TC_CENTERS) rather than re-deriving it -- same tiling,
+// just kis-fanned instead of raised as three flat plateaus.
+//
+// Each rhombus's own 4-triangle fan alternates heights the same way
+// tetrakis_square's does. Flattened with `each` since _kis_shrunk_fan()
+// already returns a list of [region, height] islands per rhombus, and we
+// need all of them (5 centers x 3 rhombi x up to 4 triangles) concatenated
+// into one islands list before clipping to the unit tile.
+function _kisrhombille_tile(relief_mode) =
+    _tile_from_islands([
+        for (c = _TC_CENTERS) for (k = [0:2])
+            each _kis_shrunk_fan(_tc_rhombus(c, k), _KIS_GAP,
+                relief_mode == "etched" ? 1.0 : [1.0, 0.4, 1.0, 0.4])
+    ]);
+
 // --- Interlocking rings -----------------------------------------------------
 //
 // Rings on a checkerboard lattice (tile centres and tile corners), sized so
@@ -433,6 +455,7 @@ function _decoration_texture(pattern_type, relief_mode) =
     pattern_type == "intertwine"     ? _intertwine_tile() :
     pattern_type == "islamic_star"   ? _islamic_star_tile() :
     pattern_type == "tetrakis_square" ? _tetrakis_square_tile(relief_mode) :
+    pattern_type == "kisrhombille"    ? _kisrhombille_tile(relief_mode) :
     pattern_type;
 
 // Heightfield textures have their grid samples triangulated according to a
@@ -478,7 +501,7 @@ module decorated_solid(pattern_type, pattern_orientation, relief_mode, pattern_d
         // README). OpenSCAD still exits 0 and still writes an STL when it
         // happens, so warn up front rather than let a silently-truncated export
         // look successful.
-        if (in_list(pattern_type, ["tumbling_cubes", "intertwine", "islamic_star", "tetrakis_square"]))
+        if (in_list(pattern_type, ["tumbling_cubes", "intertwine", "islamic_star", "tetrakis_square", "kisrhombille"]))
             echo(str("WARNING: pattern_type \"", pattern_type, "\" is known to abort CGAL ",
                      "for some pattern_repeat/smoothness combinations, and OpenSCAD still ",
                      "exits 0 and writes a truncated STL when it does. Scan this console for ",
