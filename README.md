@@ -74,7 +74,7 @@ The 3 named presets:
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `pattern_type` | Decoration style: `"none"`, `"ridges"`, or a geometric tile pattern — `"diamonds"`, `"hex_grid"`, `"pyramids"`, `"bricks"`, `"checkers"`, `"dots"`, `"cubes"`, `"tri_grid"`, `"teardrop"`, `"tumbling_cubes"`, `"intertwine"`, `"islamic_star"` | `"ridges"` |
+| `pattern_type` | Decoration style: `"none"`, `"ridges"`, or a geometric tile pattern — `"diamonds"`, `"hex_grid"`, `"pyramids"`, `"bricks"`, `"checkers"`, `"dots"`, `"cubes"`, `"tri_grid"`, `"teardrop"`, `"tumbling_cubes"`, `"intertwine"`, `"islamic_star"`, `"tetrakis_square"`, `"kisrhombille"`, `"triakis_triangular"` | `"ridges"` |
 | `pattern_orientation` | Direction: `"vertical"` or `"horizontal"` | `"vertical"` |
 | `relief_mode` | Relief type: `"raised"` (pattern stands proud of the wall) or `"etched"` (pattern is cut into the wall) | `"raised"` |
 | `pattern_depth` | Depth of pattern relief (mm) | 1.5 |
