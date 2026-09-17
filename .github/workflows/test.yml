@@ -180,7 +180,7 @@ jobs:
           # Render each new pattern_type through the real assembly too, with
           # real .stl evaluation.
           #
-          # Reduced pattern_repeat (4, 8, or 9, not the default 16) and
+          # Reduced pattern_repeat (3, 4, 8, or 9, not the default 16) and
           # smoothness (24, not 60) specifically for this check: at default
           # settings, "bricks" alone measured 2-3+ minutes PER combination for a full
           # difference() against the cavity (its randomized per-facet

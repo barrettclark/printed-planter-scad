@@ -36,8 +36,14 @@ See [README.md](../README.md) for what each parameter means.
 **These are square-tile close-ups, not pictures of a pot.** Each one is a
 `decorated_solid()` cylinder whose height equals its own circumference, so
 the vertical repeat count `_square_tile_vertical_reps()` derives comes out
-equal to the horizontal one and every pattern is shown at its designed
-proportions. On the actual planter, tiles are only *exactly* square at the
+equal to the horizontal one for 11 of the 14 patterns — the three sqrt(3)-
+corrected patterns (`cubes`, `hex_grid`, `tri_grid`) instead render with a
+vertical repeat count of 18, not 32, so their tiles are ~17.7mm wide by
+~31.4mm tall rather than literally square. Every pattern is still shown at
+its own designed proportions: for those three, a true isometric cube /
+regular hexagon / equilateral triangle is not square to begin with, so
+matching their designed proportions means being non-square on purpose. On
+the actual planter, tiles are only *exactly* square at the
 wall's mean radius — the wall is a cone, and the vertical repeat count is
 fixed for the whole wall while BOSL2 scales each texture strip to the local
 radius as it revolves. At shipped defaults this leaves a small residual: tiles
@@ -46,7 +52,8 @@ run **roughly 0.87× wide-to-tall at the bottom rim to 1.17× at the top rim**
 taper looks like, and why these close-ups (free of it) lead the page instead.
 
 Settings shared by every image in this section: `r1 = r2 = 90mm`,
-`height = 565.5mm` (= 2πr), `pattern_repeat = 32` (so tiles are ~17.7mm square),
+`height = 565.5mm` (= 2πr), `pattern_repeat = 32` (so tiles are ~17.7mm wide,
+and square for 11 of the 14 patterns — see above for the three exceptions),
 `pattern_depth = 1.5` and `smoothness = 60` (the shipped defaults),
 `pattern_orientation = "vertical"`. Uniform across all of them, so the images
 are comparable with each other.
