@@ -39,7 +39,6 @@ assert(_decoration_style("rhombille", "etched") == undef,
 // Unlike tumbling_cubes, every rhombus in rhombille sits at the SAME height,
 // and it's the tile's full height: this pattern is a plain rhombus grid, not
 // an isometric-cube illusion, and pattern_depth should be fully used.
-assert(len(unique(_TC_Z)) > 1 || true, "sanity: _TC_Z (tumbling_cubes) unaffected by this file");
 assert(_RH_Z == 1, str("rhombille's uniform rhombus height must be 1, got ", _RH_Z));
 
 // raised and etched must resolve to the exact same VNF -- rhombille's
