@@ -113,6 +113,21 @@ for (bp = _custom_breakpoints) {
             "): has radius ", _outer_r_at(_z_outer), ", needs >= ", _r_cavity + wall_thickness));
 }
 
+// Initial Customizer/GUI preview camera. OpenSCAD only applies $vpt/$vpr/
+// $vpd the first time a file is opened (or after "View > Reset View"), so
+// this doesn't fight a user's own framing once they've adjusted it -- it
+// only fixes the *first* view, which otherwise crops the pot for anything
+// but the smallest insert sizes. The diameter estimate is deliberately
+// generous rather than the exact peak radius planter() computes below
+// (which depends on pattern_type): a bit of extra headroom around the pot
+// is harmless, a clipped one isn't.
+_preview_height = (outer_mode == "custom") ? outer_height : pot_height;
+_preview_diameter = (outer_mode == "custom") ? max(outer_top_d, outer_bottom_d)
+    : (_resolved_insert_top_d + 2 * (wall_thickness + body_clearance + 5));
+$vpt = [0, 0, _preview_height / 2];
+$vpr = [55, 0, 25];
+$vpd = max(_preview_diameter, _preview_height) * 4;
+
 module planter() {
     difference() {
         // outer body (plain or decorated) --------------------------------
