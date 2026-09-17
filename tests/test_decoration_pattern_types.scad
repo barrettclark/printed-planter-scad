@@ -15,14 +15,19 @@ include <../modules/decoration.scad>
 EXPECTED_PATTERN_TYPES = ["none", "ridges", "diamonds", "hex_grid", "pyramids",
                           "bricks", "checkers", "dots", "cubes", "tri_grid",
                           "teardrop", "tumbling_cubes", "intertwine",
-                          "islamic_star"];
+                          "islamic_star", "tetrakis_square", "kisrhombille",
+                          "triakis_triangular"];
 
 // The pattern_types that resolve to a hand-rolled VNF tile instead of a BOSL2
 // texture name. Listed explicitly (and pinned below) rather than derived, so a
 // pattern that silently stopped being a VNF -- or a new BOSL2 texture name that
-// accidentally resolved to one -- fails here.
+// accidentally resolved to one -- fails here. The three "kis"-family patterns
+// belong here too in raised mode: they resolve to a hand-rolled VNF just like
+// the other four (their etched-vs-raised distinction is checked separately in
+// test_decoration_etched_groove.scad).
 EXPECTED_VNF_PATTERN_TYPES = ["teardrop", "tumbling_cubes", "intertwine",
-                              "islamic_star"];
+                              "islamic_star", "tetrakis_square", "kisrhombille",
+                              "triakis_triangular"];
 
 assert(PATTERN_TYPES == EXPECTED_PATTERN_TYPES,
     str("PATTERN_TYPES changed -- expected ", EXPECTED_PATTERN_TYPES, ", got ", PATTERN_TYPES));
@@ -30,8 +35,9 @@ assert(PATTERN_TYPES == EXPECTED_PATTERN_TYPES,
 // Rendering without error only proves each name produces *some* geometry --
 // it wouldn't catch _decoration_texture() accidentally mapping one pattern
 // to a different (but still valid) BOSL2 texture. In raised mode "ridges" is
-// the sole alias (-> "ribs") and the four interlocking patterns are the VNF
-// tiles (each checked in detail by its own test_decoration_<name>.scad); every
+// the sole alias (-> "ribs") and the interlocking and "kis" family patterns
+// are the VNF tiles (each checked in detail by its own
+// test_decoration_<name>.scad); every
 // other pattern_type must map to itself. Etched mode's flat-top/V-groove
 // routing has its own file, test_decoration_etched_groove.scad.
 for (pt = PATTERN_TYPES) {

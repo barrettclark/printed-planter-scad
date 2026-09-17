@@ -5,15 +5,18 @@ include <../lib/BOSL2/std.scad>
 // table for _decoration_texture(). Most entries are literal BOSL2 texture
 // names (see the texture() catalog in lib/BOSL2/skin.scad) and map to
 // themselves; the exceptions are "none" (no texture at all), "ridges" (an
-// alias for BOSL2's "ribs"), and the four interlocking patterns --
-// "teardrop", "tumbling_cubes", "intertwine", "islamic_star" -- which are not
-// BOSL2 textures at all but custom VNF tiles built below. So
+// alias for BOSL2's "ribs"), and the seven custom VNF tiles built below --
+// the four interlocking patterns ("teardrop", "tumbling_cubes",
+// "intertwine", "islamic_star") and the three "kis" family patterns
+// ("tetrakis_square", "kisrhombille", "triakis_triangular") -- which are not
+// BOSL2 textures at all. So
 // _decoration_texture() returns
 // either a string or a VNF, and callers must not assume a string. The mapping
 // is also relief-mode dependent -- see _decoration_etched_texture().
 PATTERN_TYPES = ["none", "ridges", "diamonds", "hex_grid", "pyramids",
                  "bricks", "checkers", "dots", "cubes", "tri_grid",
-                 "teardrop", "tumbling_cubes", "intertwine", "islamic_star"];
+                 "teardrop", "tumbling_cubes", "intertwine", "islamic_star",
+                 "tetrakis_square", "kisrhombille", "triakis_triangular"];
 
 // Excluded from the square-tile correction: "none" has no texture at all;
 // "ridges" is a directional stripe pattern with no discrete shape to square;
@@ -37,11 +40,11 @@ _ASPECT_SQRT3_PATTERNS = ["cubes", "hex_grid", "tri_grid"];
 // one radius -- see README.md's "Decoration" section for the residual
 // taper effect this leaves).
 //
-// The four custom VNF tiles (teardrop, tumbling_cubes, intertwine,
-// islamic_star) are built on _UNIT_TILE, confirmed elsewhere in this file
-// to be exactly the unit square with no intrinsic distortion, so they use
-// the plain formula like every BOSL2 catalog texture without a documented
-// sqrt(3) requirement.
+// The custom VNF tiles (teardrop, tumbling_cubes, intertwine, islamic_star,
+// tetrakis_square, kisrhombille, triakis_triangular) are built on
+// _UNIT_TILE, confirmed elsewhere in this file to be exactly the unit
+// square with no intrinsic distortion, so they use the plain formula like
+// every BOSL2 catalog texture without a documented sqrt(3) requirement.
 function _square_tile_vertical_reps(pattern_type, pattern_orientation, pattern_repeat, r1, r2, height) =
     in_list(pattern_type, _ASPECT_EXCLUDED_PATTERNS) ? pattern_repeat :
     let(
@@ -223,6 +226,49 @@ function _tile_from_islands(islands) =
         [for (c = clipped) for (part = region_parts(c[0])) for (p = part)
             each _tile_walls(reverse(p), c[1])]))));
 
+// --- Shared kis-operation geometry -------------------------------------------
+//
+// Conway's "kis" operation: fan a convex polygon into one triangle per
+// edge, from its centroid, each triangle independently shrunk inward by
+// gap/2 (matching tumbling_cubes' own per-facet offset() idiom) so a
+// narrow engraved groove separates every fan triangle from its neighbours
+// -- including at the tile's own boundary, where the shrink is what lets
+// the groove continue seamlessly into the next tile's matching shrink.
+// heights: a single value (every triangle in this fan the same height) or
+// one value per edge/triangle, in the same edge order as `poly`.
+//
+// Returns an "islands" list ([region, height] pairs) directly consumable
+// by _tile_from_islands() -- callers concat/flatten multiple calls together
+// for tilings with more than one cell per unit tile (see kisrhombille).
+function _kis_centroid(poly) =
+    [for (i = [0:1]) sum([for (p = poly) p[i]]) / len(poly)];
+
+function _kis_shrunk_fan(poly, gap, heights) =
+    let (c = _kis_centroid(poly), n = len(poly))
+    [for (i = [0:n-1])
+        let (tri = [c, poly[i], poly[(i+1) % n]],
+             r = offset(tri, delta = -gap/2, closed = true))
+        if (len(r) >= 3) [[r], is_list(heights) ? heights[i] : heights]];
+
+_KIS_GAP = 0.05; // engraved groove width, in tile fractions -- same scale as _TC_GAP/_IS_GAP
+
+// --- Tetrakis square (kis of the square tiling) -----------------------------
+//
+// Wikipedia: "a square tiling with each square divided into four isosceles
+// right triangles from the center point." The whole unit tile IS the one
+// square cell here -- kis-fan it directly, no separate base-tiling geometry
+// needed (unlike kisrhombille/triakis_triangular below, which kis multiple
+// cells per unit tile).
+//
+// Raised heights alternate around the fan for a pinwheel look (0 and 2 are
+// opposite triangles, as are 1 and 3, so this alternates rather than mirrors).
+// Etched is one flat height -- see the relief_mode note in this plan's
+// Architecture section for why these two modes are genuinely different VNFs
+// for this pattern, not one shape read two ways via tex_inset.
+function _tetrakis_square_tile(relief_mode) =
+    _tile_from_islands(_kis_shrunk_fan(_UNIT_TILE, _KIS_GAP,
+        relief_mode == "etched" ? 1.0 : [1.0, 0.45, 1.0, 0.45]));
+
 // --- Tumbling blocks (rhombille) --------------------------------------------
 //
 // The isometric stacked-cube illusion: a hexagon split into three rhombi by
@@ -254,6 +300,51 @@ function _tumbling_cubes_tile() =
         for (c = _TC_CENTERS) for (k = [0:2])
             let (r = offset(_tc_rhombus(c, k), delta = -_TC_GAP / 2, closed = true))
             if (len(r) >= 3) [[r], _TC_Z[k]]]);
+
+// --- Kisrhombille (kis of the rhombille tiling) ------------------------------
+//
+// Wikipedia: kis applied to the rhombille tiling's rhombi ("each rhombus
+// divided into" triangles from its own center), equivalently described as
+// "an equilateral hexagonal tiling with each hexagon divided into 12
+// triangles from the center point" (3 rhombi x 4 triangles each = 12).
+// Reuses tumbling_cubes' own hexagon/rhombus geometry directly (_TC_V,
+// _tc_rhombus(), _TC_CENTERS) rather than re-deriving it -- same tiling,
+// just kis-fanned instead of raised as three flat plateaus.
+//
+// Each rhombus's own 4-triangle fan alternates heights the same way
+// tetrakis_square's does. Flattened with `each` since _kis_shrunk_fan()
+// already returns a list of [region, height] islands per rhombus, and we
+// need all of them (5 centers x 3 rhombi x up to 4 triangles) concatenated
+// into one islands list before clipping to the unit tile.
+function _kisrhombille_tile(relief_mode) =
+    _tile_from_islands([
+        for (c = _TC_CENTERS) for (k = [0:2])
+            each _kis_shrunk_fan(_tc_rhombus(c, k), _KIS_GAP,
+                relief_mode == "etched" ? 1.0 : [1.0, 0.4, 1.0, 0.4])
+    ]);
+
+// --- Triakis triangular (kis of the triangular tiling) ----------------------
+//
+// Wikipedia: "an equilateral triangular tiling with each triangle divided
+// into three ... triangles from the center point." The simplest triangular
+// tiling that fits the unit tile exactly is the unit square split by one
+// diagonal into two right triangles -- like kisrhombille's reuse of
+// tumbling_cubes' already-unit-square-normalized hexagons, this trades
+// perfect equilateral regularity for an exact, simple unit-square tiling
+// (the same precedent _UNIT_TILE's own convention already sets). Each half
+// is then kis-fanned into 3 sub-triangles.
+//
+// Three distinct heights per fan (not just two, unlike tetrakis_square's
+// 4-triangle alternation) -- matching tumbling_cubes' own reasoning that
+// three DIFFERENT heights read better than any two repeated.
+_TT_A = [[0, 0], [1, 0], [1, 1]];
+_TT_B = [[0, 0], [1, 1], [0, 1]];
+
+function _triakis_triangular_tile(relief_mode) =
+    _tile_from_islands(concat(
+        _kis_shrunk_fan(_TT_A, _KIS_GAP, relief_mode == "etched" ? 1.0 : [1.0, 0.4, 0.7]),
+        _kis_shrunk_fan(_TT_B, _KIS_GAP, relief_mode == "etched" ? 1.0 : [1.0, 0.4, 0.7])
+    ));
 
 // --- Interlocking rings -----------------------------------------------------
 //
@@ -388,6 +479,9 @@ function _decoration_texture(pattern_type, relief_mode) =
     pattern_type == "tumbling_cubes" ? _tumbling_cubes_tile() :
     pattern_type == "intertwine"     ? _intertwine_tile() :
     pattern_type == "islamic_star"   ? _islamic_star_tile() :
+    pattern_type == "tetrakis_square" ? _tetrakis_square_tile(relief_mode) :
+    pattern_type == "kisrhombille"    ? _kisrhombille_tile(relief_mode) :
+    pattern_type == "triakis_triangular" ? _triakis_triangular_tile(relief_mode) :
     pattern_type;
 
 // Heightfield textures have their grid samples triangulated according to a
@@ -404,7 +498,7 @@ function _decoration_texture(pattern_type, relief_mode) =
 // relief-mode-specific table to keep in step with the texture table.
 //
 // Split in two so decorated_solid() can resolve the texture once and style it
-// from the result: with four custom VNF tiles now, having _decoration_style()
+// from the result: with several custom VNF tiles now, having _decoration_style()
 // rebuild the tile just to compare it against string literals would double the
 // tile-construction cost of every render.
 function _decoration_style_for(tex) =
@@ -427,18 +521,30 @@ module decorated_solid(pattern_type, pattern_orientation, relief_mode, pattern_d
             str("pattern_depth (", pattern_depth, ") must be < 70% of wall_thickness (", wall_thickness, ")"));
         assert(is_int(pattern_repeat) && pattern_repeat > 0,
             str("pattern_repeat must be a positive whole number, got ", pattern_repeat));
-        // These three tile large flat plateaus, whose single flat facet can cut
-        // back inside the wall and abort the cavity subtraction in CGAL. Which
-        // values trip it depends on pattern_repeat and smoothness jointly (see
-        // README). OpenSCAD still exits 0 and still writes an STL when it
-        // happens, so warn up front rather than let a silently-truncated export
-        // look successful.
+        // "tumbling_cubes"/"intertwine"/"islamic_star" tile large flat plateaus,
+        // whose single flat facet can cut back inside the wall and abort the
+        // cavity subtraction in CGAL. Which values trip it depends on
+        // pattern_repeat and smoothness jointly (see README). OpenSCAD still
+        // exits 0 and still writes an STL when it happens, so warn up front
+        // rather than let a silently-truncated export look successful.
+        // The three "kis" family patterns share the same small-triangular-facet
+        // tile construction and get the same defensive warning as a precaution,
+        // but every tested pattern_repeat/smoothness/relief_mode combination for
+        // them has measured CGAL-clean, so their message doesn't claim a known
+        // failure -- see README.md's CGAL section.
         if (in_list(pattern_type, ["tumbling_cubes", "intertwine", "islamic_star"]))
             echo(str("WARNING: pattern_type \"", pattern_type, "\" is known to abort CGAL ",
                      "for some pattern_repeat/smoothness combinations, and OpenSCAD still ",
                      "exits 0 and writes a truncated STL when it does. Scan this console for ",
                      "a CGAL assertion before trusting the export; if you see one, nudge ",
                      "pattern_repeat or smoothness. See README.md."));
+        else if (in_list(pattern_type, ["tetrakis_square", "kisrhombille", "triakis_triangular"]))
+            echo(str("WARNING: pattern_type \"", pattern_type, "\" carries the same precautionary ",
+                     "CGAL warning as the other custom VNF tile patterns (small triangular facets, ",
+                     "same general class of tile construction), but has measured CGAL-clean at ",
+                     "every tested pattern_repeat/smoothness/relief_mode combination. Scan this ",
+                     "console for a CGAL assertion anyway before trusting the export -- if you see ",
+                     "one, nudge pattern_repeat or smoothness. See README.md."));
         tex = _decoration_texture(pattern_type, relief_mode);
         rot = (pattern_orientation == "horizontal") ? 90 : 0;
         is_etched = (relief_mode == "etched");

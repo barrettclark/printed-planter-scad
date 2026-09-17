@@ -26,6 +26,9 @@ See [README.md](../README.md) for what each parameter means.
   - [tumbling_cubes](#tumbling_cubes)
   - [intertwine](#intertwine)
   - [islamic_star](#islamic_star)
+  - [tetrakis_square](#tetrakis_square)
+  - [kisrhombille](#kisrhombille)
+  - [triakis_triangular](#triakis_triangular)
 - [Full-Pot Examples](#full-pot-examples)
 - [Insert Presets](#insert-presets)
 - [Outer Shape Modes](#outer-shape-modes)
@@ -36,7 +39,7 @@ See [README.md](../README.md) for what each parameter means.
 **These are square-tile close-ups, not pictures of a pot.** Each one is a
 `decorated_solid()` cylinder whose height equals its own circumference, so
 the vertical repeat count `_square_tile_vertical_reps()` derives comes out
-equal to the horizontal one for 11 of the 14 patterns — the three sqrt(3)-
+equal to the horizontal one for 14 of the 17 patterns — the three sqrt(3)-
 corrected patterns (`cubes`, `hex_grid`, `tri_grid`) instead render with a
 vertical repeat count of 18, not 32, so their tiles are ~17.7mm wide by
 ~31.4mm tall rather than literally square. Every pattern is still shown at
@@ -53,7 +56,7 @@ taper looks like, and why these close-ups (free of it) lead the page instead.
 
 Settings shared by every image in this section: `r1 = r2 = 90mm`,
 `height = 565.5mm` (= 2πr), `pattern_repeat = 32` (so tiles are ~17.7mm wide,
-and square for 11 of the 14 patterns — see above for the three exceptions),
+and square for 14 of the 17 patterns — see above for the three exceptions),
 `pattern_depth = 1.5` and `smoothness = 60` (the shipped defaults),
 `pattern_orientation = "vertical"`. Uniform across all of them, so the images
 are comparable with each other.
@@ -221,6 +224,65 @@ minutes per image here, the largest single chunk of the script's runtime.
 Interlocking. Eight-point stars with a four-point cross filling each gap; the
 two shapes tile the plane exactly and share whole edges, so the groove between
 them is a uniform incised line.
+
+### tetrakis_square
+
+| Raised | Etched |
+|---|---|
+| ![tetrakis_square, raised](images/pattern-tetrakis_square-raised.png) | ![tetrakis_square, etched](images/pattern-tetrakis_square-etched.png) |
+
+Conway's "kis" operation applied to the square tiling: each unit tile is fanned
+into four isosceles right triangles from its own center point, like a
+pinwheel. Not interlocking in the sense the four patterns above are — the
+kis-cell here is the whole unit tile, so the fan never crosses a tile
+boundary; adjacent tiles simply repeat, they don't join into one continuous
+motif.
+
+Relief works differently here than for any of the fourteen patterns above:
+raised gives the four triangles alternating heights (a genuine pinwheel, not a
+flat panel), while etched is a single flat height across all four with only a
+thin engraved groove marking the fan lines — a flat panel with a scribed
+pattern, not an inverted copy of the raised relief. All three "kis"-family
+patterns below share this same raised/etched behavior.
+
+### kisrhombille
+
+| Raised | Etched |
+|---|---|
+| ![kisrhombille, raised](images/pattern-kisrhombille-raised.png) | ![kisrhombille, etched](images/pattern-kisrhombille-etched.png) |
+
+Kis applied to `tumbling_cubes`'s own rhombille tiling: each of its three
+rhombi per hexagon is itself fanned into four triangles from its center,
+instead of being left as one flat plateau — twelve facets per hexagon in
+total. Reuses `tumbling_cubes`'s exact hexagon/rhombus geometry, so the two
+patterns' motifs line up cell-for-cell; this one is just fanned rather than
+raised as flat plateaus.
+
+Same relief behavior as `tetrakis_square`: raised alternates two heights
+across each rhombus's four-triangle fan; etched flattens every triangle to one
+height and leaves only the engraved fan lines, rather than inverting the
+raised bumps.
+
+### triakis_triangular
+
+| Raised | Etched |
+|---|---|
+| ![triakis_triangular, raised](images/pattern-triakis_triangular-raised.png) | ![triakis_triangular, etched](images/pattern-triakis_triangular-etched.png) |
+
+Kis applied to a triangular tiling: the unit tile's diagonal splits it into
+two triangles, and each of those is fanned into three sub-triangles from its
+center. These two base triangles are right triangles from the square split,
+not true equilateral ones — a deliberate simplification, the same trade-off
+`kisrhombille` makes by reusing `tumbling_cubes`' already-unit-square-normalized
+hexagons, prioritizing an exact unit-square tiling over strict equilateral
+regularity. Three distinct heights per fan (not two, unlike `tetrakis_square`'s
+alternation) — the same reasoning `tumbling_cubes` uses for its three rhombi,
+that three different heights read better than two repeated.
+
+Same relief behavior as the other two "kis"-family patterns above: raised
+gives three real heights per fan; etched flattens every triangle to one height
+with only the engraved fan lines, a flat scribed panel rather than an inverted
+raised bump.
 
 ## Full-Pot Examples
 

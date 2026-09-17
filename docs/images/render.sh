@@ -19,8 +19,11 @@
 # mesh in the docs under the name of a working pattern.
 #
 # Do NOT widen that grep to "WARNING": decorated_solid() echoes a WARNING line
-# on every single render of those three patterns as a proactive notice. It is
-# normal and means nothing went wrong.
+# on every single render of those three patterns (plus a milder variant for
+# the "kis" family -- tetrakis_square/kisrhombille/triakis_triangular -- which
+# share the same defensive warning but have measured CGAL-clean everywhere
+# tested) as a proactive notice. Either warning is normal and means nothing
+# went wrong on its own.
 
 set -euo pipefail
 

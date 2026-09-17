@@ -29,10 +29,11 @@ jobs:
 
           # Tests expected to succeed cleanly (exit 0, no ERROR in output).
           # These are compile checks only -- .csg does not evaluate geometry.
-          # For test_decoration_pattern_types.scad (fourteen side-by-side solids)
-          # .csg is not a preference, it is required: exporting that file to
-          # .stl would union all fourteen through CGAL, and unioning the
-          # "teardrop" solid with another textured solid aborts CGAL outright
+          # For test_decoration_pattern_types.scad (one side-by-side solid per
+          # pattern_type, 17 of them) .csg is not a preference, it is
+          # required: exporting that file to .stl would union all of them
+          # through CGAL, and unioning the "teardrop" solid with another
+          # textured solid aborts CGAL outright
           # on OpenSCAD 2021.01 (see modules/decoration.scad). Even before
           # "teardrop" existed the union measured 5+ minutes because of
           # "bricks". Real manifold validation for every pattern lives in the
@@ -58,15 +59,20 @@ jobs:
             fi
           done
 
-          # The four interlocking pattern_types are built from hand-rolled VNF
-          # tiles rather than BOSL2 texture names, so each gets its own .stl
+          # These seven pattern_types are built from hand-rolled VNF tiles
+          # rather than BOSL2 texture names, so each gets its own .stl
           # (CGAL-forcing) check on top of the loops below -- those files also
           # assert the tile shape invariants (unit cube footprint, VNF not
           # string, no style override, and the twin-vertex rule that makes the
           # tile stitch to its own repeats). One file per tile, not one shared
           # file: "teardrop" cannot be union()ed with any other textured solid
-          # without aborting CGAL on OpenSCAD 2021.01.
-          for f in teardrop tumbling_cubes intertwine islamic_star; do
+          # without aborting CGAL on OpenSCAD 2021.01. The three "kis"-family
+          # patterns (tetrakis_square/kisrhombille/triakis_triangular) share
+          # that same one-file-per-tile structure even though they measured
+          # CGAL-safe -- consistency with the other hand-rolled tiles, not a
+          # sign of fragility.
+          for f in teardrop tumbling_cubes intertwine islamic_star \
+                   tetrakis_square kisrhombille triakis_triangular; do
             echo "=== tests/test_decoration_$f.scad (expect clean) ==="
             out=$(openscad -o /tmp/ci_test_decoration_$f.stl tests/test_decoration_$f.scad 2>&1)
             code=$?
@@ -87,7 +93,7 @@ jobs:
           # it through CGAL in OpenSCAD 2021.01, so this loop proves the VNF
           # builds, not that it is manifold; the full-assembly loop further
           # down (a real difference()) is what validates the mesh.
-          for pt in none ridges diamonds hex_grid pyramids bricks checkers dots cubes tri_grid teardrop tumbling_cubes intertwine islamic_star; do
+          for pt in none ridges diamonds hex_grid pyramids bricks checkers dots cubes tri_grid teardrop tumbling_cubes intertwine islamic_star tetrakis_square kisrhombille triakis_triangular; do
             for relief in raised etched; do
               echo "=== decorated_solid pattern_type=$pt relief_mode=$relief (expect texture build to succeed) ==="
               printf 'include <%s/modules/decoration.scad>\ndecorated_solid("%s", "vertical", "%s", 1.5, 12, 75, 60, 100, 4);\n' "$(pwd)" "$pt" "$relief" > /tmp/ci_single_pattern.scad
@@ -243,6 +249,18 @@ jobs:
           # the same mistake. If this ever aborts on CI again, re-measure
           # directly against a CI run, not just a local build -- local-clean
           # is necessary but not sufficient here.
+          #
+          # "tetrakis_square", "kisrhombille" and "triakis_triangular" (the
+          # "kis"-family patterns) DO get the shared reps=4 value: unlike the
+          # three plateau patterns above, they're built from many small
+          # triangular fan facets (via _kis_shrunk_fan()), not a few large
+          # flat islands, so there's no wide-arc chord to cut back inside the
+          # wall. Measured clean in both relief modes at pattern_repeat=4 AND
+          # at the shipped defaults (pattern_repeat=16, smoothness=60) during
+          # each pattern's own implementation task, then re-verified directly
+          # against this workflow's actual GitHub Actions run (not just
+          # locally) -- see the intertwine note above for why that
+          # distinction matters on this runner.
           run_assembly_combo() {
             pt="$1"; relief="$2"; reps="$3"; smooth="${4:-24}"
             echo "=== tests/test_planter_integration.scad (pattern_type=$pt, relief_mode=$relief, pattern_repeat=$reps, smoothness=$smooth, expect real evaluation to succeed) ==="
@@ -256,7 +274,8 @@ jobs:
           }
           for combo in "ridges 4" "diamonds 4" "hex_grid 4" "pyramids 4" "bricks 4" \
                        "checkers 4" "dots 4" "cubes 4" "tri_grid 4" "teardrop 4" \
-                       "islamic_star 8" "tumbling_cubes 9" "intertwine 12"; do
+                       "islamic_star 8" "tumbling_cubes 9" "intertwine 12" \
+                       "tetrakis_square 4" "kisrhombille 4" "triakis_triangular 4"; do
             set -- $combo
             for relief in raised etched; do
               run_assembly_combo "$1" "$relief" "$2"
@@ -397,7 +416,7 @@ jobs:
             echo "FAIL: invalid pattern_type assertion is missing the expected message prefix"
             fail=1
           fi
-          for pt in none ridges diamonds hex_grid pyramids bricks checkers dots cubes tri_grid teardrop tumbling_cubes intertwine islamic_star; do
+          for pt in none ridges diamonds hex_grid pyramids bricks checkers dots cubes tri_grid teardrop tumbling_cubes intertwine islamic_star tetrakis_square kisrhombille triakis_triangular; do
             if ! echo "$out" | grep -q "\"$pt\""; then
               echo "FAIL: invalid pattern_type assertion message is missing \"$pt\""
               fail=1
