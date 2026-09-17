@@ -1,0 +1,9 @@
+* [ ] Preset insert sizes: 100x85 (75mm bottom); 130x120 (100mm bottom); 180x160 (125mm bottom)
+* [ ] Add interlocking teardrop (from BOLS2)
+* [ ] I like the way shapes are raised. I don't know what etched does. I wanted it to have an engraved look - like it was etched into stone or glass.
+* [ ] I would love to include interlocking geometric patterns. I saved some examples to the Desktop. More: https://www.magnific.com/free-photos-vectors/geometric-interlocking-pattern
+* [ ] Include example images in the README
+* [ ] More interlocking geometric pattern ideas for later (planar Euclidean uniform tilings, not spherical/hyperbolic) -- see https://en.wikipedia.org/wiki/List_of_Euclidean_uniform_tilings, https://en.wikipedia.org/wiki/Uniform_tiling, https://en.wikipedia.org/wiki/List_of_tessellations.
+  - The 11 Euclidean uniform tilings exhaust the edge-to-edge regular/semiregular options: triangular, square, hexagonal, truncated square, snub square, trihexagonal, truncated hexagonal, rhombitrihexagonal, truncated trihexagonal, snub trihexagonal, elongated triangular.
+  - Their duals add visually distinct candidates, especially good fits for the Islamic/Escher interlocking aesthetic: Cairo pentagonal tiling ("V3^2.4.3.4", distinctive interlocking pentagons -- probably the most visually striking one), Rhombille tiling ("V3.6.3.6", diamond/rhombus motif), Tetrakis square tiling ("V4.8^2"), Kisrhombille tiling ("V4.6.12"), Prismatic pentagonal tiling ("V3^3.4^2"), Floret pentagonal tiling ("V3^4.6", pinwheel-like pentagon clusters), Deltoidal trihexagonal tiling ("V3.4.6.4", kite-shaped motif), Triakis triangular tiling ("V3.12^2").
+  - (Excluded on purpose: the apeirogonal hosohedron/order-2 apeirogonal tiling and their prism/antiprism/dual variants from the same Wikipedia list -- these involve infinite-sided polygons and aren't practical decorative motifs for a finite tile.)
