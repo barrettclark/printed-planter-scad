@@ -128,15 +128,16 @@ cp -a "$OUT"/. "$STAGE"/
 #
 # A straight cylinder whose height is exactly its own circumference, so
 # tex_reps=[n,n] lays down SQUARE tiles -- the flat-tile shot the gallery leads
-# with, free of the ~2.8-3.75x horizontal stretch (it varies along the real
-# pot's taper) that the real pot applies (see docs/gallery.md, "Full-Pot
-# Examples").
+# with, free of even the small residual cone-taper effect (tiles are only
+# exactly square at the pot's mean radius; roughly 0.87x-1.17x at its actual
+# top/bottom radii at shipped defaults) that the real (conical) pot applies
+# (see docs/gallery.md, "Full-Pot Examples").
 CU_R=90
 CU_H=565.4867        # 2 * pi * 90
 CU_REPS=32           # 32 tiles around 565mm of circumference -> ~17.7mm tiles
 CU_DEPTH=1.5         # planter.scad's shipped pattern_depth default
 CU_WALL=10           # only feeds decorated_solid()'s depth < 0.7*wall assert
-CU_FN=80             # planter.scad's shipped smoothness default
+CU_FN=60             # planter.scad's shipped smoothness default
 # Orthographic, so there is no perspective taper across the frame, and off-axis
 # by ~25 degrees in both azimuth and elevation. Dead-on, OpenSCAD's
 # camera-mounted light hits every flat plateau at the same angle and patterns
@@ -306,7 +307,7 @@ done
 
 # --- full-assembly shots -----------------------------------------------------
 #
-# Shipped defaults for pattern_repeat (16) and smoothness (80): the combination
+# Shipped defaults for pattern_repeat (16) and smoothness (60): the combination
 # README documents as clean for all three fragile patterns, and the one a
 # Customizer user actually gets.
 POT_CAMERA="0,0,75,62,0,25,620"

@@ -15,6 +15,56 @@ PATTERN_TYPES = ["none", "ridges", "diamonds", "hex_grid", "pyramids",
                  "bricks", "checkers", "dots", "cubes", "tri_grid",
                  "teardrop", "tumbling_cubes", "intertwine", "islamic_star"];
 
+// Excluded from the square-tile correction: "none" has no texture at all;
+// "ridges" is a directional stripe pattern with no discrete shape to square;
+// "bricks" is intentionally rectangular, like real bricks.
+_ASPECT_EXCLUDED_PATTERNS = ["none", "ridges", "bricks"];
+
+// BOSL2's own documentation (lib/BOSL2/skin.scad texture catalog comments)
+// says these three need an additional sqrt(3) Y-scale for correct aspect:
+// "cubes" for a true isometric-cube look, "hex_grid"/"tri_grid" so their
+// V-groove border width is uniform on every side of the hexagon/triangle
+// (regular hexagons/triangles, not stretched ones).
+_ASPECT_SQRT3_PATTERNS = ["cubes", "hex_grid", "tri_grid"];
+
+// decorated_solid() used to pass the same pattern_repeat for both the horizontal
+// (circumferential) and vertical tex_reps, which only produces square tiles
+// by coincidence: the wall's average circumference (~440mm at defaults) is
+// nothing like its height (~138mm). This derives the vertical repeat count
+// from the real geometry instead, so tiles come out approximately square
+// (only approximately, since the wall is a cone: BOSL2 scales each texture
+// strip to the LOCAL radius, so a single vertical_reps can only be exact at
+// one radius -- see README.md's "Decoration" section for the residual
+// taper effect this leaves).
+//
+// The four custom VNF tiles (teardrop, tumbling_cubes, intertwine,
+// islamic_star) are built on _UNIT_TILE, confirmed elsewhere in this file
+// to be exactly the unit square with no intrinsic distortion, so they use
+// the plain formula like every BOSL2 catalog texture without a documented
+// sqrt(3) requirement.
+function _square_tile_vertical_reps(pattern_type, pattern_orientation, pattern_repeat, r1, r2, height) =
+    in_list(pattern_type, _ASPECT_EXCLUDED_PATTERNS) ? pattern_repeat :
+    let(
+        avg_circumference = PI * (r1 + r2),
+        is_sqrt3 = in_list(pattern_type, _ASPECT_SQRT3_PATTERNS),
+        // BOSL2 rotates the TILE'S OWN CONTENT by 90 degrees for tex_rot=90
+        // (this project's "horizontal" pattern_orientation) -- see
+        // lib/BOSL2/skin.scad's _get_texture(), which applies zrot(90,...)
+        // for VNF textures (cubes/hex_grid/tri_grid all return VNF data) or
+        // an equivalent transpose for heightfields. tex_reps' own axes stay
+        // tied to the SURFACE (circumferential, vertical) regardless of
+        // tex_rot -- BOSL2 does not swap tex_reps' meaning. So a texture
+        // whose intrinsic Y needs to be sqrt(3) times its intrinsic X has
+        // that requirement land on the surface's vertical axis normally,
+        // but on the surface's circumferential axis once rotated -- and
+        // since tex_reps[0] (circumferential) stays pinned to the
+        // user-facing pattern_repeat either way, the correction flips from
+        // dividing vertical_reps by sqrt(3) to multiplying it.
+        aspect_correction = !is_sqrt3 ? 1
+            : (pattern_orientation == "horizontal") ? (1 / sqrt(3)) : sqrt(3)
+    )
+    max(1, round(pattern_repeat * height / (avg_circumference * aspect_correction)));
+
 // --- Interlocking teardrop VNF tile -----------------------------------------
 //
 // A BOSL2 VNF texture tile is a surface whose XY footprint fills the unit
@@ -400,7 +450,7 @@ module decorated_solid(pattern_type, pattern_orientation, relief_mode, pattern_d
         depth = (pattern_type == "dots" && is_etched) ? -pattern_depth : pattern_depth;
         cyl(h = height, r1 = r1, r2 = r2, anchor = BOTTOM, $fn = fn,
             texture = tex,
-            tex_reps = [pattern_repeat, pattern_repeat],
+            tex_reps = [pattern_repeat, _square_tile_vertical_reps(pattern_type, pattern_orientation, pattern_repeat, r1, r2, height)],
             tex_depth = depth,
             // BOSL2 normalises tex_inset=true to exactly 1 (skin.scad:5203),
             // so this is full inset: the texture's high points land on the

@@ -35,15 +35,26 @@ See [README.md](../README.md) for what each parameter means.
 
 **These are square-tile close-ups, not pictures of a pot.** Each one is a
 `decorated_solid()` cylinder whose height equals its own circumference, so
-`tex_reps = [n, n]` lays down **square** tiles and every pattern is shown at its
-designed proportions. On the actual planter the same tiles come out
-**roughly 2.8–3.75× wider than tall** (it varies along the wall's taper, see
-below) — see [Full-Pot Examples](#full-pot-examples) below for what that does
-to them, and why these close-ups lead the page instead.
+the vertical repeat count `_square_tile_vertical_reps()` derives comes out
+equal to the horizontal one for 11 of the 14 patterns — the three sqrt(3)-
+corrected patterns (`cubes`, `hex_grid`, `tri_grid`) instead render with a
+vertical repeat count of 18, not 32, so their tiles are ~17.7mm wide by
+~31.4mm tall rather than literally square. Every pattern is still shown at
+its own designed proportions: for those three, a true isometric cube /
+regular hexagon / equilateral triangle is not square to begin with, so
+matching their designed proportions means being non-square on purpose. On
+the actual planter, tiles are only *exactly* square at the
+wall's mean radius — the wall is a cone, and the vertical repeat count is
+fixed for the whole wall while BOSL2 scales each texture strip to the local
+radius as it revolves. At shipped defaults this leaves a small residual: tiles
+run **roughly 0.87× wide-to-tall at the bottom rim to 1.17× at the top rim**
+— see [Full-Pot Examples](#full-pot-examples) below for what that residual
+taper looks like, and why these close-ups (free of it) lead the page instead.
 
 Settings shared by every image in this section: `r1 = r2 = 90mm`,
-`height = 565.5mm` (= 2πr), `pattern_repeat = 32` (so tiles are ~17.7mm square),
-`pattern_depth = 1.5` and `smoothness = 80` (both the shipped defaults),
+`height = 565.5mm` (= 2πr), `pattern_repeat = 32` (so tiles are ~17.7mm wide,
+and square for 11 of the 14 patterns — see above for the three exceptions),
+`pattern_depth = 1.5` and `smoothness = 60` (the shipped defaults),
 `pattern_orientation = "vertical"`. Uniform across all of them, so the images
 are comparable with each other.
 
@@ -70,7 +81,7 @@ there is only one image.
 |---|
 | ![none](images/pattern-none-raised.png) |
 
-The faint vertical banding is the `smoothness = 80` facets of the cylinder
+The faint vertical banding is the `smoothness = 60` facets of the cylinder
 itself, not a pattern.
 
 ### ridges
@@ -95,11 +106,10 @@ grooves.
 
 Flat hexagonal panels (raised) divided by V-groove borders (recessed) — a
 honeycomb grid, same family as `diamonds` above. BOSL2's docs note the tile
-needs a `sqrt(3)`
-vertical scale for the V-groove width to be perfectly uniform on all six
-sides of each hexagon; `decorated_solid()` doesn't apply it, so the grooves
-here are slightly uneven (narrower on some sides than others) rather than
-outright wrong-shaped — a smaller version of the `cubes` gap below.
+needs a `sqrt(3)` vertical scale for the V-groove width to be uniform on all
+six sides of each hexagon; `_square_tile_vertical_reps()` applies it by
+folding the `sqrt(3)` factor into the vertical repeat count, so the hexagons
+here render regular rather than stretched.
 
 | Raised | Etched |
 |---|---|
@@ -155,20 +165,17 @@ the same bump pushed below the surface.
 
 **Aspect note:** BOSL2's own docs for the `"cubes"` texture say it needs an
 extra `sqrt(3)` vertical scale to render at its true isometric proportions
-(`lib/BOSL2/skin.scad`, the "cubes" texture example) — `decorated_solid()`
-doesn't apply that correction, so this close-up (like the actual pot) is
-slightly compressed vertically compared to a true cube. Everything above
-about this section's images being "at their designed proportions" is about
-the *pattern_repeat* aspect ratio (square vs. stretched tiles), not this
-per-texture correction, which is a separate, smaller, pre-existing gap.
+(`lib/BOSL2/skin.scad`, the "cubes" texture example). `_square_tile_vertical_reps()`
+applies that correction by folding the `sqrt(3)` factor into the vertical
+repeat count itself, so both the tile-squaring fix and this per-texture
+correction come from the same formula.
 
 ### tri_grid
 
 Flat triangular panels (raised) divided by V-groove borders (recessed) — the
 same groove-bordered-panel family as `diamonds`/`hex_grid`, just on a
-triangular grid instead of hexagonal. Same `sqrt(3)`-scale gap as `hex_grid`
-above:
-grooves are slightly uneven rather than perfectly uniform on all three sides.
+triangular grid instead of hexagonal. Same `sqrt(3)` correction as `hex_grid`
+and `cubes` above, applied the same way.
 
 | Raised | Etched |
 |---|---|
@@ -218,7 +225,7 @@ them is a uniform incised line.
 ## Full-Pot Examples
 
 The real assembled planter, rendered from `planter.scad` at its shipped
-defaults (`pattern_repeat = 16`, `smoothness = 80`) with only `pattern_type`
+defaults (`pattern_repeat = 16`, `smoothness = 60`) with only `pattern_type`
 and `relief_mode` overridden.
 
 | `hex_grid`, raised | `hex_grid`, etched |
@@ -229,40 +236,32 @@ and `relief_mode` overridden.
 |---|
 | ![pot, islamic_star raised](images/pot-islamic_star-raised.png) |
 
-**Known limitation — tiles are stretched roughly 2.8–3.75× wider than tall,
-and it's not even a fixed number.** `decorated_solid()` passes
-`tex_reps = [pattern_repeat, pattern_repeat]`, asking for the same number of
-repeats around the circumference as up the height regardless of the pot's
-proportions. Worse, the decorated wall is a cone, not a cylinder --
-`planter.scad`'s own peak-aware calculation puts its radius at ~61mm at the
-bottom growing to ~82.3mm at the top (not the insert's own radius) -- and
-BOSL2 scales each texture strip to the *local* radius as it revolves
-(`lib/BOSL2/skin.scad`'s `_textured_revolution()`), so the 16 tiles around
-the circumference are genuinely trapezoidal: about 24mm wide at the bottom,
-about 32mm wide at the top, against a fixed 8.6mm tile height (138mm wall /
-16 tiles) throughout. That's an aspect ratio of **2.8× at the bottom rim
-widening to 3.75× at the top rim**.
+**Fixed: tiles now come out approximately square.** `decorated_solid()` used
+to pass `tex_reps = [pattern_repeat, pattern_repeat]`, asking for the same
+number of repeats around the circumference as up the height regardless of the
+pot's proportions — on the default pot (~440mm circumference, ~138mm height)
+that made every tile ~3.2× wider than tall. `_square_tile_vertical_reps()`
+(`modules/decoration.scad`) now derives the vertical repeat count from the
+pot's real height and circumference instead, so tiles come out square at the
+wall's mean radius.
 
-This is visible, not theoretical. Compare the `hex_grid` pot above with
-[its close-up](#hex_grid) — the hexagons have flattened into wide ribbons. The
-`islamic_star` pot shows the worst case: the eight-point stars are smeared into
-horizontal bands and the motif is no longer recognisable at all. That is
-exactly why this page leads with the flat tile close-ups rather than full-pot
-renders.
+A small residual remains because the decorated wall is a cone, not a
+cylinder — `planter.scad`'s own peak-aware calculation puts its radius at
+~61mm at the bottom growing to ~82.3mm at the top, and BOSL2 scales each
+texture strip to the *local* radius as it revolves
+(`lib/BOSL2/skin.scad`'s `_textured_revolution()`), while a single vertical
+repeat count is fixed for the whole wall. At shipped defaults (`pattern_repeat
+= 16`) that leaves tiles running **roughly 0.87× wide-to-tall at the bottom
+rim to 1.17× at the top rim** — a small taper effect, not the ~2.8–3.75×
+distortion this page used to document here.
 
-How much it matters depends on the pattern. `ridges` is immune — vertical
-ribs have no vertical period to stretch. `bricks` barely notices, since bricks
-are meant to be wider than tall anyway. `hex_grid` above is clearly distorted
-but still legible as a hex grid. The large-motif interlocking patterns
-(`islamic_star`, `intertwine`, `teardrop`) are the ones that stop working.
-
-The only lever today is `pattern_repeat`: raising it shortens the tiles
-vertically, though it also multiplies them around the circumference, since one
-parameter drives both axes.
-
-This is pre-existing behaviour, not something this gallery changed, and it is
-not fixed: a proper fix means deriving the vertical repeat count from the pot's
-actual height-to-circumference ratio instead of reusing `pattern_repeat`.
+Compare the `hex_grid` pot above with [its close-up](#hex_grid) — the
+hexagons are recognizably regular now, not flattened into ribbons. The
+`islamic_star` pot likewise shows a clean, legible eight-point-star motif
+rather than a smeared band. That's also why this page can lead with the flat
+tile close-ups without them misrepresenting the full-pot look anymore — they
+were always the "designed proportions" reference, and the full pot is now
+close to matching them.
 
 ## Insert Presets
 
@@ -271,7 +270,7 @@ to a named size. All three renders use the same fixed camera (no `--viewall`),
 so the sizes are directly comparable rather than each normalised to fill the
 frame. Everything else is at defaults, including `pattern_type = "ridges"` --
 at pot scale, its 16 tiles are barely distinguishable from the cylinder's own
-80-facet smoothness, so these pots read as plain. These
+60-facet smoothness, so these pots read as plain. These
 sections are about silhouette and size, not decoration; see
 [Pattern Comparison](#pattern-comparison) for what the patterns themselves
 look like.
