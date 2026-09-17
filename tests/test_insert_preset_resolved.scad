@@ -33,6 +33,12 @@ _expected_by_preset = [
     ["medium", [130, 100, 120]],
     ["large",  [180, 125, 160]],
     ["custom", [insert_top_d, insert_bottom_d, insert_height]],
+    // Some OpenSCAD Customizer builds store the dropdown's whole
+    // "value:Label" string instead of just the value (real-world deviation
+    // from the documented behavior, not reproducible by editing this file --
+    // see planter.scad's _insert_preset_key comment). Covers that exact
+    // reported string resolving the same as plain "medium".
+    ["medium:Medium (130x120 / 100mm bottom)", [130, 100, 120]],
 ];
 _match = [for (e = _expected_by_preset) if (e[0] == insert_preset) e[1]];
 assert(len(_match) == 1,
