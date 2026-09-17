@@ -20,9 +20,15 @@ insert_height = 130;    // insert height (mm) -- used when insert_preset == "cus
 // (derived from insert_preset, not user-editable themselves) don't show up
 // as bogus extra widgets in the Customizer GUI.
 /* [Hidden] */
-_resolved_insert_top_d    = (insert_preset == "custom") ? insert_top_d    : _insert_preset_dims(insert_preset)[0];
-_resolved_insert_bottom_d = (insert_preset == "custom") ? insert_bottom_d : _insert_preset_dims(insert_preset)[1];
-_resolved_insert_height   = (insert_preset == "custom") ? insert_height   : _insert_preset_dims(insert_preset)[2];
+// Some OpenSCAD Customizer builds deviate from the documented "value:Label"
+// dropdown behavior and store the whole label string (e.g.
+// "medium:Medium (130x120 / 100mm bottom)") instead of just "medium" -- seen
+// in the wild, not reproducible by editing this file directly. Strip
+// anything from the first ":" onward so lookups below are robust to that.
+_insert_preset_key = str_split(insert_preset, ":")[0];
+_resolved_insert_top_d    = (_insert_preset_key == "custom") ? insert_top_d    : _insert_preset_dims(_insert_preset_key)[0];
+_resolved_insert_bottom_d = (_insert_preset_key == "custom") ? insert_bottom_d : _insert_preset_dims(_insert_preset_key)[1];
+_resolved_insert_height   = (_insert_preset_key == "custom") ? insert_height   : _insert_preset_dims(_insert_preset_key)[2];
 
 /* [Fit] */
 ledge_engagement_height = 8; // depth of the rim's tight-fit seat (mm)
@@ -54,8 +60,8 @@ drainage_hole_diameter = 4;
 /* [Quality] */
 smoothness = 60; // $fn used for all revolved geometry -- 80 CGAL-aborts "tumbling_cubes" after the square-tile fix; see README.md
 
-assert(in_list(insert_preset, concat(["custom"], INSERT_PRESET_NAMES)),
-    str("insert_preset must be \"custom\" or one of ", INSERT_PRESET_NAMES, ", got \"", insert_preset, "\""));
+assert(in_list(_insert_preset_key, concat(["custom"], INSERT_PRESET_NAMES)),
+    str("insert_preset must be \"custom\" or one of ", INSERT_PRESET_NAMES, ", got \"", _insert_preset_key, "\""));
 assert(_resolved_insert_bottom_d < _resolved_insert_top_d,
     "insert_bottom_d must be smaller than insert_top_d (insert tapers inward)");
 assert(wall_thickness > 0, "wall_thickness must be > 0");

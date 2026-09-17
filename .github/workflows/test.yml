@@ -173,6 +173,20 @@ jobs:
             fail=1
           fi
 
+          # Regression: some OpenSCAD Customizer builds store the dropdown's
+          # whole "value:Label" string in insert_preset instead of just the
+          # value (real-world deviation from documented Customizer behavior,
+          # reported against this project). Confirms planter.scad's
+          # _insert_preset_key normalization strips it back to "medium".
+          echo "=== tests/test_insert_preset_resolved.scad (insert_preset with Customizer label suffix, expect clean) ==="
+          out=$(openscad -D 'insert_preset="medium:Medium (130x120 / 100mm bottom)"' -o /tmp/ci_resolved_medium_labeled.csg tests/test_insert_preset_resolved.scad 2>&1)
+          code=$?
+          echo "$out"
+          if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
+            echo "FAIL: insert_preset resolution check for insert_preset with Customizer label suffix (exit $code, or ERROR in output)"
+            fail=1
+          fi
+
           # test_decoration_pattern_types.scad only calls decorated_solid()
           # directly -- it never exercises the full planter() assembly, so a
           # texture that breaks only in that context (e.g. via the peak-aware
