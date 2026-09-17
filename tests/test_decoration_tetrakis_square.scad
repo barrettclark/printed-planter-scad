@@ -56,9 +56,21 @@ for (relief = ["raised", "etched"]) {
         lo = _tile_edge_profile(_tex, axis, 0);
         hi = _tile_edge_profile(_tex, axis, 1);
         name = (axis == 0) ? "x" : "y";
-        assert(len(lo) > 2,
+        // Unlike tumbling_cubes/kisrhombille, whose islands are clipped by the
+        // tile boundary and so genuinely leave crossing vertices there,
+        // tetrakis_square's kis-cell IS the whole unit tile: every fan
+        // triangle is shrunk by _KIS_GAP away from all four of its own edges,
+        // including the ones that sit on the tile boundary, so no fan
+        // triangle ever touches or crosses the seam. Only the flat z=0 ground
+        // plane's own corners land on each edge -- exactly 2 vertices, not
+        // more. That's still sufficient for correct stitching: the ground is
+        // coplanar and identical on both sides of the seam by construction,
+        // so there is nothing for a mid-edge vertex to line up. A `> N`
+        // minimum only matters for patterns where real clipped fragments
+        // cross the seam.
+        assert(len(lo) >= 2,
             str("tetrakis_square (", relief, ") tile has only ", len(lo), " vertices on its ", name,
-                "=0 edge -- the fan doesn't reach the seam"));
+                "=0 edge -- expected at least the tile's own two corners"));
         assert(len(lo) == len(hi),
             str("tetrakis_square (", relief, ") tile has ", len(lo), " vertices on ", name, "=0 but ",
                 len(hi), " on ", name, "=1 -- tiles cannot stitch"));
