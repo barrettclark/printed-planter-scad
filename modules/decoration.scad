@@ -13,7 +13,8 @@ include <../lib/BOSL2/std.scad>
 // is also relief-mode dependent -- see _decoration_etched_texture().
 PATTERN_TYPES = ["none", "ridges", "diamonds", "hex_grid", "pyramids",
                  "bricks", "checkers", "dots", "cubes", "tri_grid",
-                 "teardrop", "tumbling_cubes", "intertwine", "islamic_star"];
+                 "teardrop", "tumbling_cubes", "intertwine", "islamic_star",
+                 "tetrakis_square"];
 
 // Excluded from the square-tile correction: "none" has no texture at all;
 // "ridges" is a directional stripe pattern with no discrete shape to square;
@@ -223,6 +224,49 @@ function _tile_from_islands(islands) =
         [for (c = clipped) for (part = region_parts(c[0])) for (p = part)
             each _tile_walls(reverse(p), c[1])]))));
 
+// --- Shared kis-operation geometry -------------------------------------------
+//
+// Conway's "kis" operation: fan a convex polygon into one triangle per
+// edge, from its centroid, each triangle independently shrunk inward by
+// gap/2 (matching tumbling_cubes' own per-facet offset() idiom) so a
+// narrow engraved groove separates every fan triangle from its neighbours
+// -- including at the tile's own boundary, where the shrink is what lets
+// the groove continue seamlessly into the next tile's matching shrink.
+// heights: a single value (every triangle in this fan the same height) or
+// one value per edge/triangle, in the same edge order as `poly`.
+//
+// Returns an "islands" list ([region, height] pairs) directly consumable
+// by _tile_from_islands() -- callers concat/flatten multiple calls together
+// for tilings with more than one cell per unit tile (see kisrhombille).
+function _kis_centroid(poly) =
+    [for (i = [0:1]) sum([for (p = poly) p[i]]) / len(poly)];
+
+function _kis_shrunk_fan(poly, gap, heights) =
+    let (c = _kis_centroid(poly), n = len(poly))
+    [for (i = [0:n-1])
+        let (tri = [c, poly[i], poly[(i+1) % n]],
+             r = offset(tri, delta = -gap/2, closed = true))
+        if (len(r) >= 3) [[r], is_list(heights) ? heights[i] : heights]];
+
+_KIS_GAP = 0.05; // engraved groove width, in tile fractions -- same scale as _TC_GAP/_IS_GAP
+
+// --- Tetrakis square (kis of the square tiling) -----------------------------
+//
+// Wikipedia: "a square tiling with each square divided into four isosceles
+// right triangles from the center point." The whole unit tile IS the one
+// square cell here -- kis-fan it directly, no separate base-tiling geometry
+// needed (unlike kisrhombille/triakis_triangular below, which kis multiple
+// cells per unit tile).
+//
+// Raised heights alternate around the fan for a pinwheel look (0 and 2 are
+// opposite triangles, as are 1 and 3, so this alternates rather than mirrors).
+// Etched is one flat height -- see the relief_mode note in this plan's
+// Architecture section for why these two modes are genuinely different VNFs
+// for this pattern, not one shape read two ways via tex_inset.
+function _tetrakis_square_tile(relief_mode) =
+    _tile_from_islands(_kis_shrunk_fan(_UNIT_TILE, _KIS_GAP,
+        relief_mode == "etched" ? 1.0 : [1.0, 0.45, 1.0, 0.45]));
+
 // --- Tumbling blocks (rhombille) --------------------------------------------
 //
 // The isometric stacked-cube illusion: a hexagon split into three rhombi by
@@ -388,6 +432,7 @@ function _decoration_texture(pattern_type, relief_mode) =
     pattern_type == "tumbling_cubes" ? _tumbling_cubes_tile() :
     pattern_type == "intertwine"     ? _intertwine_tile() :
     pattern_type == "islamic_star"   ? _islamic_star_tile() :
+    pattern_type == "tetrakis_square" ? _tetrakis_square_tile(relief_mode) :
     pattern_type;
 
 // Heightfield textures have their grid samples triangulated according to a
@@ -433,7 +478,7 @@ module decorated_solid(pattern_type, pattern_orientation, relief_mode, pattern_d
         // README). OpenSCAD still exits 0 and still writes an STL when it
         // happens, so warn up front rather than let a silently-truncated export
         // look successful.
-        if (in_list(pattern_type, ["tumbling_cubes", "intertwine", "islamic_star"]))
+        if (in_list(pattern_type, ["tumbling_cubes", "intertwine", "islamic_star", "tetrakis_square"]))
             echo(str("WARNING: pattern_type \"", pattern_type, "\" is known to abort CGAL ",
                      "for some pattern_repeat/smoothness combinations, and OpenSCAD still ",
                      "exits 0 and writes a truncated STL when it does. Scan this console for ",
