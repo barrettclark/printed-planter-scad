@@ -56,17 +56,26 @@ for (relief = ["raised", "etched"]) {
         lo = _tile_edge_profile(_tex, axis, 0);
         hi = _tile_edge_profile(_tex, axis, 1);
         name = (axis == 0) ? "x" : "y";
-        // Unlike tetrakis_square, whose kis-cell IS the whole unit tile (so no
-        // fan triangle ever crosses the boundary), kisrhombille reuses
-        // tumbling_cubes' own hexagon/rhombus placement, which is deliberately
-        // sized so real rhombi -- now kis-fanned into triangles -- genuinely
-        // straddle each tile edge and get clipped by _tile_from_islands().
-        // More than the four tile corners: multiple rhombi (not just one
-        // shape) cross each seam here, same reasoning as tumbling_cubes' own
-        // edge-count-of-more-than-4 check -- a weaker `> 2` threshold would be
-        // vacuous, satisfied even if only one lone triangle vertex reached the
-        // seam.
-        assert(len(lo) > 4,
+        // The two axes are NOT symmetric here, per the existing _TC_V/
+        // _tc_rhombus() comment in modules/decoration.scad: "the tile edges
+        // x=0/x=1 run through the corner hexagons' centres and cut exactly
+        // one rhombus each, along that rhombus's own short diagonal" -- and
+        // that diagonal is itself one edge of a kis-fan triangle, so
+        // _kis_shrunk_fan()'s inward shrink pulls that triangle off of x=0/
+        // x=1 entirely (the same failure mode as tetrakis_square's
+        // whole-tile-cell case: a fan triangle is shrunk away from every one
+        // of its own edges, including one that happens to sit on the tile
+        // seam). Only the flat z=0 ground's own 2 corners land on x=0/x=1, so
+        // `>= 2` is the right bound there -- a coplanar, seam-identical
+        // ground needs no mid-edge crossing vertex to stitch correctly.
+        // y=0/y=1, by contrast, "cut the vertical hexagon edges at exactly
+        // x=+-1/2" -- a transversal cut through a fan triangle's *interior*,
+        // which _tile_from_islands()'s clipping genuinely fragments, leaving
+        // real crossing vertices the shrink doesn't remove. So `> 4` still
+        // applies there: multiple rhombi (not just one shape) cross that
+        // seam, same reasoning as tumbling_cubes' own edge-count-of-more-
+        // than-4 check -- a weaker `> 2` threshold would be vacuous there.
+        assert(axis == 0 ? len(lo) >= 2 : len(lo) > 4,
             str("kisrhombille tile has only ", len(lo), " vertices on its ", name,
                 "=0 edge -- no rhombus fan spans the seam"));
         assert(len(lo) == len(hi),
