@@ -6,11 +6,12 @@ include <../lib/BOSL2/std.scad>
 // names (see the texture() catalog in lib/BOSL2/skin.scad) and map to
 // themselves; the exceptions are "none" (no texture at all), "ridges" (an
 // alias for BOSL2's "ribs"), and the eight custom VNF tiles built below --
-// the four interlocking patterns ("teardrop", "tumbling_cubes",
-// "intertwine", "islamic_star"), the three "kis" family patterns
-// ("tetrakis_square", "kisrhombille", "triakis_triangular"), and "rhombille"
-// (the plain rhombille tiling tumbling_cubes' own isometric illusion is
-// built from) -- which are not BOSL2 textures at all. So
+// the five interlocking patterns ("teardrop", "tumbling_cubes",
+// "intertwine", "islamic_star", "rhombille" -- rhombille is the plain
+// rhombille tiling tumbling_cubes' own isometric illusion is built from,
+// and genuinely crosses the tile boundary like the other four) and the
+// three "kis" family patterns ("tetrakis_square", "kisrhombille",
+// "triakis_triangular") -- which are not BOSL2 textures at all. So
 // _decoration_texture() returns
 // either a string or a VNF, and callers must not assume a string. The mapping
 // is also relief-mode dependent -- see _decoration_etched_texture().
