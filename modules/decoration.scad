@@ -170,11 +170,12 @@ function _teardrop_tile() =
 
 // --- Shared plateau-tile builder --------------------------------------------
 //
-// The three interlocking patterns below (tumbling_cubes, intertwine,
-// islamic_star) all have the same shape: flat-topped "islands" of various
-// heights standing on a flat z=0 ground, separated by a narrow groove. Rather
-// than hand-rolling each outline the way _teardrop_tile() does, they are
-// described as 2D regions plus a height and assembled here.
+// The interlocking patterns below (tumbling_cubes, rhombille, intertwine,
+// islamic_star, and the "kis" family: tetrakis_square, kisrhombille,
+// triakis_triangular) all have the same shape: flat-topped "islands" of
+// various heights standing on a flat z=0 ground, separated by a narrow
+// groove. Rather than hand-rolling each outline the way _teardrop_tile()
+// does, they are described as 2D regions plus a height and assembled here.
 //
 // Every island is defined over the *infinite* tiling and then clipped to the
 // unit square, so an island that straddles a tile edge stays straddling and its

@@ -67,7 +67,7 @@ Two rendering caveats worth knowing before you read the pictures:
 - **The camera is ~25° off-axis** in both azimuth and elevation, not dead-on.
   OpenSCAD's light is mounted on the camera, so a straight-on shot hits every
   flat plateau at the same angle and the patterns built from flat islands
-  (`tumbling_cubes`, `intertwine`, `islamic_star`) wash out to almost nothing.
+  (`tumbling_cubes`, `intertwine`, `islamic_star`, `rhombille`) wash out to almost nothing.
   25° rakes the light across the relief. It compresses both axes by about the
   same `cos(25°) = 0.91`, so tile aspect is essentially preserved.
 - **The relief reads slightly deeper here than it will on a printed pot.** The
@@ -392,8 +392,8 @@ indistinguishable from `"follow"` and the pair would show nothing.
 ```
 
 The script hard-fails if any render's console output contains `CGAL error`.
-That check is load-bearing: `tumbling_cubes`, `intertwine` and `islamic_star`
-abort CGAL at some `pattern_repeat`/`smoothness` combinations, and when they do
-OpenSCAD still exits 0 and still writes a plausible-looking PNG. See README.md,
-"Note on the interlocking patterns and CGAL". The `WARNING:` line those three
-print on every render is a proactive notice, not a failure.
+That check is load-bearing: `tumbling_cubes`, `intertwine`, `islamic_star` and
+`rhombille` abort CGAL at some `pattern_repeat`/`smoothness` combinations, and
+when they do OpenSCAD still exits 0 and still writes a plausible-looking PNG.
+See README.md, "Note on the interlocking patterns and CGAL". The `WARNING:`
+line those four print on every render is a proactive notice, not a failure.
