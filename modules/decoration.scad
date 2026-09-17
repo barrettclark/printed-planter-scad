@@ -14,7 +14,7 @@ include <../lib/BOSL2/std.scad>
 PATTERN_TYPES = ["none", "ridges", "diamonds", "hex_grid", "pyramids",
                  "bricks", "checkers", "dots", "cubes", "tri_grid",
                  "teardrop", "tumbling_cubes", "intertwine", "islamic_star",
-                 "tetrakis_square", "kisrhombille"];
+                 "tetrakis_square", "kisrhombille", "triakis_triangular"];
 
 // Excluded from the square-tile correction: "none" has no texture at all;
 // "ridges" is a directional stripe pattern with no discrete shape to square;
@@ -321,6 +321,29 @@ function _kisrhombille_tile(relief_mode) =
                 relief_mode == "etched" ? 1.0 : [1.0, 0.4, 1.0, 0.4])
     ]);
 
+// --- Triakis triangular (kis of the triangular tiling) ----------------------
+//
+// Wikipedia: "an equilateral triangular tiling with each triangle divided
+// into three ... triangles from the center point." The simplest triangular
+// tiling that fits the unit tile exactly is the unit square split by one
+// diagonal into two right triangles -- like kisrhombille's reuse of
+// tumbling_cubes' already-unit-square-normalized hexagons, this trades
+// perfect equilateral regularity for an exact, simple unit-square tiling
+// (the same precedent _UNIT_TILE's own convention already sets). Each half
+// is then kis-fanned into 3 sub-triangles.
+//
+// Three distinct heights per fan (not just two, unlike tetrakis_square's
+// 4-triangle alternation) -- matching tumbling_cubes' own reasoning that
+// three DIFFERENT heights read better than any two repeated.
+_TT_A = [[0, 0], [1, 0], [1, 1]];
+_TT_B = [[0, 0], [1, 1], [0, 1]];
+
+function _triakis_triangular_tile(relief_mode) =
+    _tile_from_islands(concat(
+        _kis_shrunk_fan(_TT_A, _KIS_GAP, relief_mode == "etched" ? 1.0 : [1.0, 0.4, 0.7]),
+        _kis_shrunk_fan(_TT_B, _KIS_GAP, relief_mode == "etched" ? 1.0 : [1.0, 0.4, 0.7])
+    ));
+
 // --- Interlocking rings -----------------------------------------------------
 //
 // Rings on a checkerboard lattice (tile centres and tile corners), sized so
@@ -456,6 +479,7 @@ function _decoration_texture(pattern_type, relief_mode) =
     pattern_type == "islamic_star"   ? _islamic_star_tile() :
     pattern_type == "tetrakis_square" ? _tetrakis_square_tile(relief_mode) :
     pattern_type == "kisrhombille"    ? _kisrhombille_tile(relief_mode) :
+    pattern_type == "triakis_triangular" ? _triakis_triangular_tile(relief_mode) :
     pattern_type;
 
 // Heightfield textures have their grid samples triangulated according to a
@@ -501,7 +525,7 @@ module decorated_solid(pattern_type, pattern_orientation, relief_mode, pattern_d
         // README). OpenSCAD still exits 0 and still writes an STL when it
         // happens, so warn up front rather than let a silently-truncated export
         // look successful.
-        if (in_list(pattern_type, ["tumbling_cubes", "intertwine", "islamic_star", "tetrakis_square", "kisrhombille"]))
+        if (in_list(pattern_type, ["tumbling_cubes", "intertwine", "islamic_star", "tetrakis_square", "kisrhombille", "triakis_triangular"]))
             echo(str("WARNING: pattern_type \"", pattern_type, "\" is known to abort CGAL ",
                      "for some pattern_repeat/smoothness combinations, and OpenSCAD still ",
                      "exits 0 and writes a truncated STL when it does. Scan this console for ",
