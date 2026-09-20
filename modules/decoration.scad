@@ -841,9 +841,10 @@ module decorated_solid(pattern_type, pattern_orientation, relief_mode, pattern_d
         else if (in_list(pattern_type, ["tetrakis_square", "kisrhombille", "triakis_triangular",
                                         "deltoidal_trihexagonal"]))
             echo(str("WARNING: pattern_type \"", pattern_type, "\" carries the same precautionary ",
-                     "CGAL warning as the other custom VNF tile patterns (large flat plateau facets, ",
-                     "same general class of tile construction), but has measured CGAL-clean at ",
-                     "every tested pattern_repeat/smoothness/relief_mode combination. Scan this ",
+                     "CGAL warning as the other custom VNF tile patterns (small triangular fans or ",
+                     "large flat plateau facets, same general class of tile construction), but has ",
+                     "measured CGAL-clean at every tested pattern_repeat/smoothness/relief_mode ",
+                     "combination. Scan this ",
                      "console for a CGAL assertion anyway before trusting the export -- if you see ",
                      "one, nudge pattern_repeat or smoothness. See README.md."));
         tex = _decoration_texture(pattern_type, relief_mode);
