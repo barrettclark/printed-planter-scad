@@ -268,10 +268,13 @@ jobs:
           # large flat plateaus, just one uniform height instead of three),
           # so it has the exact same wide-arc-chord failure mode as
           # tumbling_cubes/islamic_star/intertwine, not the kis family's
-          # small-triangle-facet safety. Measured (locally only, NOT yet
-          # re-verified against this workflow's real GitHub Actions run --
-          # see the intertwine note above for why that distinction matters):
-          # at smoothness=24, aborts in at least one relief mode at
+          # small-triangle-facet safety. Measured locally first, then
+          # re-verified directly against this workflow's real GitHub Actions
+          # run (Ubuntu run 35477972837: both relief modes at
+          # pattern_repeat=13/smoothness=24 rendered a clean 2-volume STL,
+          # under the "CGAL error" check this workflow now also greps for) --
+          # see the intertwine note above for why that distinction matters.
+          # At smoothness=24, aborts in at least one relief mode at
           # pattern_repeat 4, 6, 8, 9 (etched only), 11 and 14 (raised only);
           # 7, 10, 12, 13 and 15 are clean in both modes. 13 is used rather
           # than the smallest (7): 7 is a single clean value sandwiched
