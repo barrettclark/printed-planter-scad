@@ -193,7 +193,7 @@ Note on the `>4` seam-crossing assertion: this is carried over from `test_decora
 
 ```bash
 openscad -o /tmp/test_rhombille.csg tests/test_decoration_rhombille.scad
-openscad -o /tmp/test_rhombille.stl tests/test_decoration_rhombille.stl 2>&1 | tee /tmp/rhombille_render.log
+openscad -o /tmp/test_rhombille.stl tests/test_decoration_rhombille.scad 2>&1 | tee /tmp/rhombille_render.log
 ```
 
 (Use whatever this repo's actual test-running convention is -- check `.github/workflows/test.yml` and any local test-runner script for the exact invocation other pattern tests use, and match it. The key check beyond "no assertion failure": scan the render log for the literal string "CGAL error" -- if present, the tile aborted CGAL and Step 3's "measured clean" placement is wrong for at least the default `pattern_repeat`/`smoothness` used in the test file's `decorated_solid()` call.)
