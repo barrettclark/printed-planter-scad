@@ -16,7 +16,7 @@ EXPECTED_PATTERN_TYPES = ["none", "ridges", "diamonds", "hex_grid", "pyramids",
                           "bricks", "checkers", "dots", "cubes", "tri_grid",
                           "teardrop", "tumbling_cubes", "intertwine",
                           "islamic_star", "tetrakis_square", "kisrhombille",
-                          "triakis_triangular", "rhombille"];
+                          "triakis_triangular", "rhombille", "cairo_pentagonal"];
 
 // The pattern_types that resolve to a hand-rolled VNF tile instead of a BOSL2
 // texture name. Listed explicitly (and pinned below) rather than derived, so a
@@ -28,10 +28,15 @@ EXPECTED_PATTERN_TYPES = ["none", "ridges", "diamonds", "hex_grid", "pyramids",
 // pattern, but unlike the "kis" family its geometry does NOT branch on
 // relief_mode at all -- it resolves to the exact same VNF whether raised or
 // etched (see test_decoration_rhombille.scad), so it needs no etched-specific
-// carve-out anywhere in this file.
+// carve-out anywhere in this file. "cairo_pentagonal" joins the list as a
+// ninth VNF pattern on exactly the same terms as "rhombille": it resolves to
+// the exact same VNF in both relief modes (see
+// test_decoration_cairo_pentagonal.scad), so it too needs no
+// etched-vs-raised carve-out here.
 EXPECTED_VNF_PATTERN_TYPES = ["teardrop", "tumbling_cubes", "intertwine",
                               "islamic_star", "tetrakis_square", "kisrhombille",
-                              "triakis_triangular", "rhombille"];
+                              "triakis_triangular", "rhombille",
+                              "cairo_pentagonal"];
 
 assert(PATTERN_TYPES == EXPECTED_PATTERN_TYPES,
     str("PATTERN_TYPES changed -- expected ", EXPECTED_PATTERN_TYPES, ", got ", PATTERN_TYPES));

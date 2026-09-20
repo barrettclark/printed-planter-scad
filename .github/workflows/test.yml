@@ -59,7 +59,7 @@ jobs:
             fi
           done
 
-          # These eight pattern_types are built from hand-rolled VNF tiles
+          # These nine pattern_types are built from hand-rolled VNF tiles
           # rather than BOSL2 texture names, so each gets its own .stl
           # (CGAL-forcing) check on top of the loops below -- those files also
           # assert the tile shape invariants (unit cube footprint, VNF not
@@ -72,7 +72,8 @@ jobs:
           # CGAL-safe -- consistency with the other hand-rolled tiles, not a
           # sign of fragility.
           for f in teardrop tumbling_cubes intertwine islamic_star \
-                   tetrakis_square kisrhombille triakis_triangular rhombille; do
+                   tetrakis_square kisrhombille triakis_triangular rhombille \
+                   cairo_pentagonal; do
             echo "=== tests/test_decoration_$f.scad (expect clean) ==="
             out=$(openscad -o /tmp/ci_test_decoration_$f.stl tests/test_decoration_$f.scad 2>&1)
             code=$?
@@ -93,7 +94,7 @@ jobs:
           # it through CGAL in OpenSCAD 2021.01, so this loop proves the VNF
           # builds, not that it is manifold; the full-assembly loop further
           # down (a real difference()) is what validates the mesh.
-          for pt in none ridges diamonds hex_grid pyramids bricks checkers dots cubes tri_grid teardrop tumbling_cubes intertwine islamic_star tetrakis_square kisrhombille triakis_triangular rhombille; do
+          for pt in none ridges diamonds hex_grid pyramids bricks checkers dots cubes tri_grid teardrop tumbling_cubes intertwine islamic_star tetrakis_square kisrhombille triakis_triangular rhombille cairo_pentagonal; do
             for relief in raised etched; do
               echo "=== decorated_solid pattern_type=$pt relief_mode=$relief (expect texture build to succeed) ==="
               printf 'include <%s/modules/decoration.scad>\ndecorated_solid("%s", "vertical", "%s", 1.5, 12, 75, 60, 100, 4);\n' "$(pwd)" "$pt" "$relief" > /tmp/ci_single_pattern.scad
@@ -283,6 +284,23 @@ jobs:
           # side (12) and only a partial failure on the other (14, raised-only
           # abort). If this check ever fails on the real CI run, re-measure
           # directly against it rather than trusting the local value further.
+          #
+          # "cairo_pentagonal" does NOT get the shared reps=4 value either --
+          # despite being built from small-ish pentagons, it tiles 8 flat
+          # plateau islands per unit tile and measured the same wide-arc-chord
+          # fragility as the plateau patterns above, not the kis family's
+          # safety. Measured locally (macOS OpenSCAD 2021.01) over
+          # pattern_repeat 3-16 at smoothness=24 in both relief modes: aborts
+          # in both modes at 3, 5, 10 and 11, and in "etched" only at 4;
+          # 6, 7, 8, 9, 12, 13, 14, 15 and 16 are clean in both modes.
+          # This uses 8, which is not an isolated clean value: it sits in the
+          # middle of a four-wide run (6, 7, 8, 9) all measured clean in BOTH
+          # relief modes, so it has a tested margin on each side -- the exact
+          # property "intertwine"'s 3 and "rhombille"'s 7 lacked. Not yet
+          # re-verified against this workflow's real Ubuntu run (local-clean
+          # is necessary but not sufficient here, per the intertwine note
+          # above); if this check fails on CI, re-measure against the CI run
+          # and pick another value from the clean run, not the next smallest.
           run_assembly_combo() {
             pt="$1"; relief="$2"; reps="$3"; smooth="${4:-24}"
             echo "=== tests/test_planter_integration.scad (pattern_type=$pt, relief_mode=$relief, pattern_repeat=$reps, smoothness=$smooth, expect real evaluation to succeed) ==="
@@ -298,7 +316,7 @@ jobs:
                        "checkers 4" "dots 4" "cubes 4" "tri_grid 4" "teardrop 4" \
                        "islamic_star 8" "tumbling_cubes 9" "intertwine 12" \
                        "tetrakis_square 4" "kisrhombille 4" "triakis_triangular 4" \
-                       "rhombille 13"; do
+                       "rhombille 13" "cairo_pentagonal 8"; do
             set -- $combo
             for relief in raised etched; do
               run_assembly_combo "$1" "$relief" "$2"
@@ -334,10 +352,20 @@ jobs:
           # modes during this task (see README.md's CGAL section) -- higher
           # smoothness values (80, 100) were not tested for "rhombille" and
           # are not claimed clean.
+          #
+          # "cairo_pentagonal" is pinned here for the same reason as
+          # "rhombille" -- it renders in well under a minute and its shipped
+          # defaults were directly measured clean in both relief modes. This
+          # pattern's smoothness axis WAS swept at pattern_repeat=16: clean in
+          # both relief modes at smoothness 24, 40, 60 and 80, and aborting at
+          # smoothness=100 in "etched" only (clean there in "raised"), which is
+          # comfortably above the shipped 60 but is exactly why the default is
+          # pinned rather than assumed.
           for relief in raised etched; do
             run_assembly_combo "islamic_star" "$relief" 16 60
             run_assembly_combo "tumbling_cubes" "$relief" 16 60
             run_assembly_combo "rhombille" "$relief" 16 60
+            run_assembly_combo "cairo_pentagonal" "$relief" 16 60
           done
 
           # README documents that "tumbling_cubes" and "islamic_star" union
@@ -449,7 +477,7 @@ jobs:
             echo "FAIL: invalid pattern_type assertion is missing the expected message prefix"
             fail=1
           fi
-          for pt in none ridges diamonds hex_grid pyramids bricks checkers dots cubes tri_grid teardrop tumbling_cubes intertwine islamic_star tetrakis_square kisrhombille triakis_triangular rhombille; do
+          for pt in none ridges diamonds hex_grid pyramids bricks checkers dots cubes tri_grid teardrop tumbling_cubes intertwine islamic_star tetrakis_square kisrhombille triakis_triangular rhombille cairo_pentagonal; do
             if ! echo "$out" | grep -q "\"$pt\""; then
               echo "FAIL: invalid pattern_type assertion message is missing \"$pt\""
               fail=1
