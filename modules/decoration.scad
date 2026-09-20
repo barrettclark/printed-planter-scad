@@ -5,19 +5,21 @@ include <../lib/BOSL2/std.scad>
 // table for _decoration_texture(). Most entries are literal BOSL2 texture
 // names (see the texture() catalog in lib/BOSL2/skin.scad) and map to
 // themselves; the exceptions are "none" (no texture at all), "ridges" (an
-// alias for BOSL2's "ribs"), and the ten custom VNF tiles built below --
-// the seven interlocking patterns ("teardrop", "tumbling_cubes",
+// alias for BOSL2's "ribs"), and the eleven custom VNF tiles built below --
+// the eight interlocking patterns ("teardrop", "tumbling_cubes",
 // "intertwine", "islamic_star", "rhombille", "cairo_pentagonal",
-// "floret_pentagonal" -- rhombille is the plain rhombille tiling
-// tumbling_cubes' own isometric illusion is built from, cairo_pentagonal is
-// the Cairo pentagonal tiling, and floret_pentagonal is the floret
-// pentagonal tiling; all genuinely cross the tile boundary like the other
-// six) and the three "kis" family patterns ("tetrakis_square",
-// "kisrhombille", "triakis_triangular") -- which are not BOSL2 textures at
-// all. "floret_pentagonal" straddles those two groups: it interlocks across
-// the seam like the first group, but its 6-pentagon rosette is a fan with
-// real sub-structure, so like the "kis" family (and unlike every other
-// interlocking pattern here) its tile geometry depends on relief_mode. So
+// "floret_pentagonal", "deltoidal_trihexagonal" -- rhombille is the plain
+// rhombille tiling tumbling_cubes' own isometric illusion is built from,
+// cairo_pentagonal is the Cairo pentagonal tiling, floret_pentagonal is the
+// floret pentagonal tiling, and deltoidal_trihexagonal is the deltoidal
+// trihexagonal tiling (kite motif); all genuinely cross the tile boundary
+// like the other seven) and the three "kis" family patterns
+// ("tetrakis_square", "kisrhombille", "triakis_triangular") -- which are not
+// BOSL2 textures at all. "floret_pentagonal" straddles those two groups: it
+// interlocks across the seam like the first group, but its 6-pentagon
+// rosette is a fan with real sub-structure, so like the "kis" family (and
+// unlike every other interlocking pattern here, including
+// "deltoidal_trihexagonal") its tile geometry depends on relief_mode. So
 // _decoration_texture() returns
 // either a string or a VNF, and callers must not assume a string. The mapping
 // is also relief-mode dependent -- see _decoration_etched_texture().
@@ -25,7 +27,8 @@ PATTERN_TYPES = ["none", "ridges", "diamonds", "hex_grid", "pyramids",
                  "bricks", "checkers", "dots", "cubes", "tri_grid",
                  "teardrop", "tumbling_cubes", "intertwine", "islamic_star",
                  "tetrakis_square", "kisrhombille", "triakis_triangular",
-                 "rhombille", "cairo_pentagonal", "floret_pentagonal"];
+                 "rhombille", "cairo_pentagonal", "floret_pentagonal",
+                 "deltoidal_trihexagonal"];
 
 // Excluded from the square-tile correction: "none" has no texture at all;
 // "ridges" is a directional stripe pattern with no discrete shape to square;
@@ -482,6 +485,92 @@ function _floret_pentagonal_tile(relief_mode) =
             if (len(r) >= 3) [[r], z]
     ]);
 
+// --- Deltoidal trihexagonal (dual of the rhombitrihexagonal tiling) --------
+//
+// Wikipedia "V3.4.6.4": a tessellation by congruent kite/deltoid
+// quadrilaterals -- 2 short edges and 2 long edges (verified: edge-length
+// ratio is not 1, so this is a genuine kite, not a rhombus), with a line of
+// symmetry through its two "pointy" vertices (the hexagon-centroid hub and
+// the triangle-centroid tip). See this pattern's plan document
+// (docs/superpowers/plans/2026-09-20-deltoidal-trihexagonal-pattern.md) for
+// the full derivation and the computational verification this construction
+// is based on (a from-scratch rhombitrihexagonal-tiling construction
+// verified over a 34-vertex core patch, its face-centroid dual verified via
+// exact-Fraction area/closure/overlap checks including a wider 4x4-tile-patch
+// confirmation, plus a live OpenSCAD/BOSL2 smoke test of this exact code
+// path) -- do not re-derive the lattice by hand; it was verified, not
+// guessed.
+//
+// The hexagon-vertex lattice underlying this tiling is a plain 60-degree
+// TRIANGULAR lattice (two generators, equal length 1+sqrt(3), 60 degrees
+// apart) -- the SAME shape of lattice tumbling_cubes/rhombille/kisrhombille/
+// floret_pentagonal already use for their own hexagon-related centers, which
+// is why this pattern needs no shear and no new aspect-correction mechanism:
+// like tumbling_cubes' _TC_V, the rotation (here, trivially 0 degrees --
+// this tiling's own G1 generator was chosen along the x-axis from the start)
+// + sqrt(3)-family anisotropic scale that normalizes this lattice to
+// _UNIT_TILE space is baked directly into the kite vertex coordinates below,
+// not applied at render time. NOTE: this is NOT the same primal tiling
+// tumbling_cubes/rhombille's own hexagon lattice (_TC_V/_TC_CENTERS) comes
+// from -- that lattice is a plain edge-to-edge hexagonal tiling with no
+// triangles or squares (checked directly and confirmed not reusable; see
+// this pattern's plan document's "What 'rectangular lattice' means here"
+// section), so _DT_K0.._DT_K5 below are this pattern's own independent
+// derivation, not a reuse of _TC_V.
+//
+// _DT_K0.._DT_K5 are the tiling's 6 kite orientations (the full rosette
+// around one hexagon-centroid hub), already normalized into unit-tile
+// space, each listed as [hub, side1, tip, side2] (hub = hexagon centroid,
+// shared by all 6; side1/side2 = two different square centroids; tip = a
+// triangle centroid). All 6 have area exactly 1/12, are convex, and wind
+// CCW.
+_DT_K0 = [[0,0], [1/4,1/4], [0,1/3], [-1/4,1/4]];
+_DT_K1 = [[0,0], [-1/4,1/4], [-1/2,1/6], [-1/2,0]];
+_DT_K2 = [[0,0], [-1/2,0], [-1/2,-1/6], [-1/4,-1/4]];
+_DT_K3 = [[0,0], [-1/4,-1/4], [0,-1/3], [1/4,-1/4]];
+_DT_K4 = [[0,0], [1/4,-1/4], [1/2,-1/6], [1/2,0]];
+_DT_K5 = [[0,0], [1/2,0], [1/2,1/6], [1/4,1/4]];
+_DT_KITES = [_DT_K0, _DT_K1, _DT_K2, _DT_K3, _DT_K4, _DT_K5];
+
+// Which (hub, orientation) copies have any overlap with the unit square --
+// exhaustively searched over the true hexagon-center lattice
+// {m*(1,0) + n*(1/2,1/2) : m,n integer} (NOT an independent-per-axis grid --
+// see the plan's Geometry Derivation, Step 5, for the wrong search that found
+// spurious extra placements at non-lattice points before this was fixed).
+// Each entry is [hub_x, hub_y, k]: kite _DT_KITES[k] translated so its hub
+// sits at (hub_x, hub_y). Exactly these 14 placements' clipped areas sum to
+// exactly 1 (verified with exact Fraction arithmetic), and their union was
+// verified to equal the unit square exactly, with zero overlap among them.
+_DT_PLACEMENTS = [
+    [0, 1, 3], [0, 1, 4],
+    [0, 0, 0], [0, 0, 5],
+    [1/2, 1/2, 0], [1/2, 1/2, 1], [1/2, 1/2, 2],
+    [1/2, 1/2, 3], [1/2, 1/2, 4], [1/2, 1/2, 5],
+    [1, 1, 2], [1, 1, 3],
+    [1, 0, 0], [1, 0, 1],
+];
+
+function _dt_kite(m, n, k) = [for (p = _DT_KITES[k]) [p[0] + m, p[1] + n]];
+
+_DT_GAP = 0.05; // engraved groove width, in tile fractions -- own constant,
+                // same scale as _KIS_GAP/_TC_GAP/_RH_GAP/_CP_GAP/_FP_GAP but
+                // never shared with them
+_DT_Z   = 1.0;  // every kite reaches the tile's full height (uniform, like
+                // rhombille/cairo_pentagonal -- see this pattern's plan
+                // document's "Relief Mode Decision" for why: unlike
+                // floret_pentagonal's single clean rosette fan, this
+                // tiling's kites belong to THREE competing fan types
+                // (6-fan/4-fan/3-fan) at once, so no single alternation
+                // scheme applies without an arbitrary choice)
+
+function _deltoidal_trihexagonal_tile() =
+    _tile_from_islands([
+        for (pl = _DT_PLACEMENTS)
+            let (poly = _dt_kite(pl[0], pl[1], pl[2]),
+                 r = offset(poly, delta = -_DT_GAP / 2, closed = true))
+            if (len(r) >= 3) [[r], _DT_Z]
+    ]);
+
 // --- Kisrhombille (kis of the rhombille tiling) ------------------------------
 //
 // Wikipedia: kis applied to the rhombille tiling's rhombi ("each rhombus
@@ -666,6 +755,7 @@ function _decoration_texture(pattern_type, relief_mode) =
     pattern_type == "rhombille"          ? _rhombille_tile() :
     pattern_type == "cairo_pentagonal"   ? _cairo_pentagonal_tile() :
     pattern_type == "floret_pentagonal"  ? _floret_pentagonal_tile(relief_mode) :
+    pattern_type == "deltoidal_trihexagonal" ? _deltoidal_trihexagonal_tile() :
     pattern_type;
 
 // Heightfield textures have their grid samples triangulated according to a
