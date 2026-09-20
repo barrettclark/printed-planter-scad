@@ -821,7 +821,15 @@ module decorated_solid(pattern_type, pattern_orientation, relief_mode, pattern_d
         // tile construction and get the same defensive warning as a precaution,
         // but every tested pattern_repeat/smoothness/relief_mode combination for
         // them has measured CGAL-clean, so their message doesn't claim a known
-        // failure -- see README.md's CGAL section.
+        // failure -- see README.md's CGAL section. "deltoidal_trihexagonal"
+        // shares this same mild bucket despite being built from the same class
+        // of large flat plateau construction as the "known to abort" patterns
+        // above (14 kite islands per unit tile) -- a full sweep of the real
+        // assembly across every pattern_repeat 3-16 and every smoothness
+        // 24/40/60/80/100 (both relief modes) found zero CGAL aborts anywhere,
+        // a genuinely different result from every other large-flat-plateau
+        // pattern in this file. See README.md's CGAL section for the full
+        // sweep table.
         if (in_list(pattern_type, ["tumbling_cubes", "intertwine", "islamic_star", "rhombille",
                                    "cairo_pentagonal", "floret_pentagonal"]))
             echo(str("WARNING: pattern_type \"", pattern_type, "\" is known to abort CGAL ",
