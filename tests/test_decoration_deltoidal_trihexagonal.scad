@@ -111,6 +111,10 @@ difference() {
     translate([300, 0, 0]) cube(10, center = true);
 }
 
+// Offset well clear of the raised solid above: OpenSCAD implicitly unions
+// top-level solids on STL export, and coincident solids would let one
+// mode's geometry mask a real CGAL failure in the other.
+translate([1000, 0, 0])
 difference() {
     decorated_solid("deltoidal_trihexagonal", "vertical", "etched", 1.5, 12, 75, 60, 100, 4);
     translate([300, 0, 0]) cube(10, center = true);
