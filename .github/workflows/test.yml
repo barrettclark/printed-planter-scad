@@ -30,7 +30,7 @@ jobs:
           # Tests expected to succeed cleanly (exit 0, no ERROR in output).
           # These are compile checks only -- .csg does not evaluate geometry.
           # For test_decoration_pattern_types.scad (one side-by-side solid per
-          # pattern_type, 20 of them) .csg is not a preference, it is
+          # pattern_type, 21 of them) .csg is not a preference, it is
           # required: exporting that file to .stl would union all of them
           # through CGAL, and unioning the "teardrop" solid with another
           # textured solid aborts CGAL outright
@@ -59,7 +59,7 @@ jobs:
             fi
           done
 
-          # These ten pattern_types are built from hand-rolled VNF tiles
+          # These eleven pattern_types are built from hand-rolled VNF tiles
           # rather than BOSL2 texture names, so each gets its own .stl
           # (CGAL-forcing) check on top of the loops below -- those files also
           # assert the tile shape invariants (unit cube footprint, VNF not
@@ -73,7 +73,7 @@ jobs:
           # sign of fragility.
           for f in teardrop tumbling_cubes intertwine islamic_star \
                    tetrakis_square kisrhombille triakis_triangular rhombille \
-                   cairo_pentagonal floret_pentagonal; do
+                   cairo_pentagonal floret_pentagonal deltoidal_trihexagonal; do
             echo "=== tests/test_decoration_$f.scad (expect clean) ==="
             out=$(openscad -o /tmp/ci_test_decoration_$f.stl tests/test_decoration_$f.scad 2>&1)
             code=$?
@@ -94,7 +94,7 @@ jobs:
           # it through CGAL in OpenSCAD 2021.01, so this loop proves the VNF
           # builds, not that it is manifold; the full-assembly loop further
           # down (a real difference()) is what validates the mesh.
-          for pt in none ridges diamonds hex_grid pyramids bricks checkers dots cubes tri_grid teardrop tumbling_cubes intertwine islamic_star tetrakis_square kisrhombille triakis_triangular rhombille cairo_pentagonal floret_pentagonal; do
+          for pt in none ridges diamonds hex_grid pyramids bricks checkers dots cubes tri_grid teardrop tumbling_cubes intertwine islamic_star tetrakis_square kisrhombille triakis_triangular rhombille cairo_pentagonal floret_pentagonal deltoidal_trihexagonal; do
             for relief in raised etched; do
               echo "=== decorated_solid pattern_type=$pt relief_mode=$relief (expect texture build to succeed) ==="
               printf 'include <%s/modules/decoration.scad>\ndecorated_solid("%s", "vertical", "%s", 1.5, 12, 75, 60, 100, 4);\n' "$(pwd)" "$pt" "$relief" > /tmp/ci_single_pattern.scad
@@ -202,12 +202,12 @@ jobs:
           # Render each new pattern_type through the real assembly too, with
           # real .stl evaluation.
           #
-          # Reduced pattern_repeat (4, 8, 9, 12, or 13, not the default 16) and
-          # smoothness (24, not 60) specifically for this check: at default
+          # Reduced pattern_repeat (4, 8, 9, 12, 13, or 15, not the default 16)
+          # and smoothness (24, not 60) specifically for this check: at default
           # settings, "bricks" alone measured 2-3+ minutes PER combination for a full
           # difference() against the cavity (its randomized per-facet
           # roughness multiplies out badly), which made real evaluation of
-          # all 36 combinations impractically slow. At these reduced
+          # all 40 combinations impractically slow. At these reduced
           # settings the same "bricks" check measured ~15s and everything
           # else under 5s -- fewer facets to evaluate, same code paths
           # exercised, so this still catches a self-intersecting or
@@ -326,11 +326,21 @@ jobs:
               fail=1
             fi
           }
+          # "deltoidal_trihexagonal" uses 4, the same cheap low value the
+          # "kis" family uses -- unlike every other custom-VNF-tile pattern
+          # in this loop, it measured CGAL-clean at EVERY pattern_repeat 3
+          # through 16 tested (both relief modes, smoothness=24), so there
+          # is no "isolated clean value between two aborts" trap to avoid
+          # here; any value in that range would do. Verified directly
+          # against the real full planter() assembly (not just a bare
+          # cylinder smoke test) -- see README.md's CGAL section for the
+          # full sweep table.
           for combo in "ridges 4" "diamonds 4" "hex_grid 4" "pyramids 4" "bricks 4" \
                        "checkers 4" "dots 4" "cubes 4" "tri_grid 4" "teardrop 4" \
                        "islamic_star 8" "tumbling_cubes 9" "intertwine 12" \
                        "tetrakis_square 4" "kisrhombille 4" "triakis_triangular 4" \
-                       "rhombille 13" "cairo_pentagonal 8" "floret_pentagonal 15"; do
+                       "rhombille 13" "cairo_pentagonal 8" "floret_pentagonal 15" \
+                       "deltoidal_trihexagonal 4"; do
             set -- $combo
             for relief in raised etched; do
               run_assembly_combo "$1" "$relief" "$2"
@@ -391,18 +401,33 @@ jobs:
           # pattern_repeat, locally, but likewise not yet CI-verified. This
           # pin is what turns "clean on the author's Mac" into a CI-enforced
           # claim.
+          # "deltoidal_trihexagonal" is pinned here too, even though it is
+          # in the milder "measured clean everywhere" bucket (not "known to
+          # abort") -- a full local sweep of the real assembly at every
+          # pattern_repeat 3-16 (smoothness=24) AND every smoothness 24/40/
+          # 60/80/100 (at the shipped pattern_repeat=16) found zero CGAL
+          # aborts anywhere, in both relief modes -- a genuinely different
+          # result from every other large-flat-plateau pattern in this
+          # file. This pin turns that clean sweep into a CI-enforced claim
+          # rather than resting on local measurement alone. Not yet
+          # re-verified against this workflow's real Ubuntu run.
           for relief in raised etched; do
             run_assembly_combo "islamic_star" "$relief" 16 60
             run_assembly_combo "tumbling_cubes" "$relief" 16 60
             run_assembly_combo "rhombille" "$relief" 16 60
             run_assembly_combo "cairo_pentagonal" "$relief" 16 60
             run_assembly_combo "floret_pentagonal" "$relief" 16 60
+            run_assembly_combo "deltoidal_trihexagonal" "$relief" 16 60
           done
 
-          # README documents that "tumbling_cubes" and "islamic_star" union
-          # cleanly with another textured solid, while "teardrop",
-          # "intertwine", "rhombille" and "cairo_pentagonal" abort CGAL in
-          # that case. Nothing enforced the clean
+          # README documents that "tumbling_cubes", "islamic_star" and
+          # "deltoidal_trihexagonal" union cleanly with another textured
+          # solid, while "teardrop", "intertwine", "rhombille",
+          # "cairo_pentagonal" and "floret_pentagonal" abort CGAL in that
+          # case (this comment previously omitted "floret_pentagonal" from
+          # that list -- a stale omission fixed alongside adding
+          # "deltoidal_trihexagonal" here, not a new finding on its own).
+          # Nothing enforced the clean
           # half of that claim: test_decoration_pattern_types.scad unions every
           # pattern but exports .csg, which never invokes CGAL. That gap is how
           # the claim came to be documented (wrongly) for "intertwine" in the
@@ -410,8 +435,10 @@ jobs:
           # disjoint cube to force real evaluation, ~100s each. pattern_repeat
           # is 9, not 8: the square-tile fix moved islamic_star's fragile
           # values on this geometry (r1=75, r2=60, height=100, fn=50) to 6-8,
-          # so 9 is the smallest value re-measured clean for both patterns.
-          for pt in tumbling_cubes islamic_star; do
+          # so 9 is the smallest value re-measured clean for both patterns;
+          # "deltoidal_trihexagonal" was directly re-verified clean at that
+          # same value 9 (and also at 12) before joining this loop.
+          for pt in tumbling_cubes islamic_star deltoidal_trihexagonal; do
             echo "=== union($pt, dots) differenced (expect clean CGAL union) ==="
             printf 'include <%s/modules/decoration.scad>\ndifference() {\n  union() {\n    decorated_solid("%s", "vertical", "raised", 1.5, 9, 75, 60, 100, 4);\n    translate([200, 0, 0]) decorated_solid("dots", "vertical", "raised", 1.5, 9, 75, 60, 100, 4);\n  }\n  translate([600, 0, 0]) cube(10, center = true);\n}\n' "$(pwd)" "$pt" > /tmp/ci_union_${pt}.scad
             out=$(openscad -o /tmp/ci_union_${pt}.stl /tmp/ci_union_${pt}.scad 2>&1)
@@ -509,7 +536,7 @@ jobs:
             echo "FAIL: invalid pattern_type assertion is missing the expected message prefix"
             fail=1
           fi
-          for pt in none ridges diamonds hex_grid pyramids bricks checkers dots cubes tri_grid teardrop tumbling_cubes intertwine islamic_star tetrakis_square kisrhombille triakis_triangular rhombille cairo_pentagonal floret_pentagonal; do
+          for pt in none ridges diamonds hex_grid pyramids bricks checkers dots cubes tri_grid teardrop tumbling_cubes intertwine islamic_star tetrakis_square kisrhombille triakis_triangular rhombille cairo_pentagonal floret_pentagonal deltoidal_trihexagonal; do
             if ! echo "$out" | grep -q "\"$pt\""; then
               echo "FAIL: invalid pattern_type assertion message is missing \"$pt\""
               fail=1

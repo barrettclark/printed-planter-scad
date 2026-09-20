@@ -17,7 +17,7 @@ EXPECTED_PATTERN_TYPES = ["none", "ridges", "diamonds", "hex_grid", "pyramids",
                           "teardrop", "tumbling_cubes", "intertwine",
                           "islamic_star", "tetrakis_square", "kisrhombille",
                           "triakis_triangular", "rhombille", "cairo_pentagonal",
-                          "floret_pentagonal"];
+                          "floret_pentagonal", "deltoidal_trihexagonal"];
 
 // The pattern_types that resolve to a hand-rolled VNF tile instead of a BOSL2
 // texture name. Listed explicitly (and pinned below) rather than derived, so a
@@ -40,11 +40,17 @@ EXPECTED_PATTERN_TYPES = ["none", "ridges", "diamonds", "hex_grid", "pyramids",
 // 6-pentagon rosette, etched flattens it) -- so its raised tile is what this
 // file pins, and the etched-vs-raised difference is checked in
 // test_decoration_etched_groove.scad's kis-style category and in
-// test_decoration_floret_pentagonal.scad.
+// test_decoration_floret_pentagonal.scad. "deltoidal_trihexagonal" joins as
+// an eleventh VNF pattern on "rhombille"/"cairo_pentagonal"'s terms, not
+// "floret_pentagonal"'s: its motif interlocks across the tile seam, but its
+// geometry does NOT branch on relief_mode (every kite is the same uniform
+// height regardless of relief_mode -- see
+// test_decoration_deltoidal_trihexagonal.scad).
 EXPECTED_VNF_PATTERN_TYPES = ["teardrop", "tumbling_cubes", "intertwine",
                               "islamic_star", "tetrakis_square", "kisrhombille",
                               "triakis_triangular", "rhombille",
-                              "cairo_pentagonal", "floret_pentagonal"];
+                              "cairo_pentagonal", "floret_pentagonal",
+                              "deltoidal_trihexagonal"];
 
 assert(PATTERN_TYPES == EXPECTED_PATTERN_TYPES,
     str("PATTERN_TYPES changed -- expected ", EXPECTED_PATTERN_TYPES, ", got ", PATTERN_TYPES));

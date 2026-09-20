@@ -45,7 +45,7 @@ outer_bottom_d = 130;   // used in custom mode (mm)
 outer_height = 145;     // used in custom mode (mm)
 
 /* [Decoration] */
-pattern_type = "ridges";           // ["none", "ridges", "diamonds", "hex_grid", "pyramids", "bricks", "checkers", "dots", "cubes", "tri_grid", "teardrop", "tumbling_cubes", "intertwine", "islamic_star", "tetrakis_square", "kisrhombille", "triakis_triangular", "rhombille", "cairo_pentagonal", "floret_pentagonal"]
+pattern_type = "ridges";           // ["none", "ridges", "diamonds", "hex_grid", "pyramids", "bricks", "checkers", "dots", "cubes", "tri_grid", "teardrop", "tumbling_cubes", "intertwine", "islamic_star", "tetrakis_square", "kisrhombille", "triakis_triangular", "rhombille", "cairo_pentagonal", "floret_pentagonal", "deltoidal_trihexagonal"]
 pattern_orientation = "vertical";  // ["vertical", "horizontal"]
 relief_mode = "raised";            // ["raised", "etched"]
 pattern_depth = 1.5;    // mm

@@ -48,7 +48,7 @@ assert(_ETCH_BORDER > 0 && _ETCH_BORDER <= 0.1,
 // patterns below they do not map to their own name -- they map to the tile --
 // so they are excluded here and checked on their own further down.
 VNF_PATTERN_TYPES = ["teardrop", "tumbling_cubes", "intertwine", "islamic_star",
-                     "rhombille", "cairo_pentagonal"];
+                     "rhombille", "cairo_pentagonal", "deltoidal_trihexagonal"];
 
 // The "kis"-family patterns are also hand-rolled VNF tiles with no flat-top
 // counterpart, but unlike VNF_PATTERN_TYPES above, their etched and raised
