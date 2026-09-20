@@ -101,6 +101,10 @@ _y_lo = _tile_edge_profile(_tex_raised, 1, 0);
 assert(len(_x_lo) > 2,
     str("deltoidal_trihexagonal tile has only ", len(_x_lo),
         " vertices on its x=0 edge -- no kite spans the seam"));
+assert(len(_y_lo) == 2,
+    str("deltoidal_trihexagonal tile has ", len(_y_lo),
+        " vertices on its y=0 edge, expected exactly 2 (tile corners only, ",
+        "no kite spans this seam) -- geometry may have changed"));
 
 difference() {
     decorated_solid("deltoidal_trihexagonal", "vertical", "raised", 1.5, 12, 75, 60, 100, 4);

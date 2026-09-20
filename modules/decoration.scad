@@ -54,7 +54,8 @@ _ASPECT_SQRT3_PATTERNS = ["cubes", "hex_grid", "tri_grid"];
 //
 // The custom VNF tiles (teardrop, tumbling_cubes, intertwine, islamic_star,
 // tetrakis_square, kisrhombille, triakis_triangular, rhombille,
-// cairo_pentagonal, floret_pentagonal) are built on _UNIT_TILE, confirmed
+// cairo_pentagonal, floret_pentagonal, deltoidal_trihexagonal) are built on
+// _UNIT_TILE, confirmed
 // elsewhere in this file to be exactly the unit square with no intrinsic
 // distortion, so they use the plain formula like every BOSL2 catalog texture
 // without a documented sqrt(3) requirement.
@@ -181,7 +182,7 @@ function _teardrop_tile() =
 // --- Shared plateau-tile builder --------------------------------------------
 //
 // The patterns below (tumbling_cubes, rhombille, cairo_pentagonal,
-// floret_pentagonal, intertwine, islamic_star,
+// floret_pentagonal, intertwine, islamic_star, deltoidal_trihexagonal,
 // and the "kis" family: tetrakis_square, kisrhombille,
 // triakis_triangular) all have the same shape: flat-topped "islands" of
 // various heights standing on a flat z=0 ground, separated by a narrow
@@ -840,7 +841,7 @@ module decorated_solid(pattern_type, pattern_orientation, relief_mode, pattern_d
         else if (in_list(pattern_type, ["tetrakis_square", "kisrhombille", "triakis_triangular",
                                         "deltoidal_trihexagonal"]))
             echo(str("WARNING: pattern_type \"", pattern_type, "\" carries the same precautionary ",
-                     "CGAL warning as the other custom VNF tile patterns (small triangular facets, ",
+                     "CGAL warning as the other custom VNF tile patterns (large flat plateau facets, ",
                      "same general class of tile construction), but has measured CGAL-clean at ",
                      "every tested pattern_repeat/smoothness/relief_mode combination. Scan this ",
                      "console for a CGAL assertion anyway before trusting the export -- if you see ",
