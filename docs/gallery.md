@@ -32,6 +32,7 @@ See [README.md](../README.md) for what each parameter means.
   - [rhombille](#rhombille)
   - [cairo_pentagonal](#cairo_pentagonal)
   - [floret_pentagonal](#floret_pentagonal)
+  - [deltoidal_trihexagonal](#deltoidal_trihexagonal)
 - [Full-Pot Examples](#full-pot-examples)
 - [Insert Presets](#insert-presets)
 - [Outer Shape Modes](#outer-shape-modes)
@@ -42,7 +43,7 @@ See [README.md](../README.md) for what each parameter means.
 **These are square-tile close-ups, not pictures of a pot.** Each one is a
 `decorated_solid()` cylinder whose height equals its own circumference, so
 the vertical repeat count `_square_tile_vertical_reps()` derives comes out
-equal to the horizontal one for 17 of the 20 patterns — the three sqrt(3)-
+equal to the horizontal one for 18 of the 21 patterns — the three sqrt(3)-
 corrected patterns (`cubes`, `hex_grid`, `tri_grid`) instead render with a
 vertical repeat count of 18, not 32, so their tiles are ~17.7mm wide by
 ~31.4mm tall rather than literally square. Every pattern is still shown at
@@ -59,7 +60,7 @@ taper looks like, and why these close-ups (free of it) lead the page instead.
 
 Settings shared by every image in this section: `r1 = r2 = 90mm`,
 `height = 565.5mm` (= 2πr), `pattern_repeat = 32` (so tiles are ~17.7mm wide,
-and square for 17 of the 20 patterns — see above for the three exceptions),
+and square for 18 of the 21 patterns — see above for the three exceptions),
 `pattern_depth = 1.5` and `smoothness = 60` (the shipped defaults),
 `pattern_orientation = "vertical"`. Uniform across all of them, so the images
 are comparable with each other.
@@ -70,7 +71,8 @@ Two rendering caveats worth knowing before you read the pictures:
   OpenSCAD's light is mounted on the camera, so a straight-on shot hits every
   flat plateau at the same angle and the patterns built from flat islands
   (`tumbling_cubes`, `intertwine`, `islamic_star`, `rhombille`,
-  `cairo_pentagonal`, `floret_pentagonal`) wash out to almost nothing.
+  `cairo_pentagonal`, `floret_pentagonal`, `deltoidal_trihexagonal`) wash out
+  to almost nothing.
   25° rakes the light across the relief. It compresses both axes by about the
   same `cos(25°) = 0.91`, so tile aspect is essentially preserved.
 - **The relief reads slightly deeper here than it will on a printed pot.** The
@@ -334,6 +336,25 @@ structure the "kis" family's own fans have -- so, like that family,
 the tile's full height, with only a thin engraved groove between them), not
 an inverted copy of the raised relief, which instead alternates heights
 around the rosette for a pinwheel-blade look.
+
+### deltoidal_trihexagonal
+
+| Raised | Etched |
+|---|---|
+| ![deltoidal_trihexagonal, raised](images/pattern-deltoidal_trihexagonal-raised.png) | ![deltoidal_trihexagonal, etched](images/pattern-deltoidal_trihexagonal-etched.png) |
+
+Interlocking. The deltoidal trihexagonal tiling (Wikipedia "V3.4.6.4", dual
+of the rhombitrihexagonal tiling): congruent kite/deltoid quadrilaterals --
+two short edges and two long edges, with a line of symmetry through the
+kite's two "pointy" vertices (a hexagon-centroid hub and a triangle-centroid
+tip). Every kite belongs to three different, simultaneously-competing fan
+types at once (a 6-fan around each hub, a 4-fan around each square-centroid
+vertex, and a 3-fan around each tip) -- since no single alternating-height
+scheme can respect all three, every kite is raised to the same uniform
+height instead, like `cairo_pentagonal`/`rhombille`. Because the geometry
+doesn't change between raised and etched, `"etched"` here is a true
+inverted copy of the raised relief, not a separate flat-panel construction
+like the "kis" family/`floret_pentagonal`.
 
 ## Full-Pot Examples
 
