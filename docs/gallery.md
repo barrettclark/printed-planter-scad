@@ -31,6 +31,7 @@ See [README.md](../README.md) for what each parameter means.
   - [triakis_triangular](#triakis_triangular)
   - [rhombille](#rhombille)
   - [cairo_pentagonal](#cairo_pentagonal)
+  - [floret_pentagonal](#floret_pentagonal)
 - [Full-Pot Examples](#full-pot-examples)
 - [Insert Presets](#insert-presets)
 - [Outer Shape Modes](#outer-shape-modes)
@@ -41,7 +42,7 @@ See [README.md](../README.md) for what each parameter means.
 **These are square-tile close-ups, not pictures of a pot.** Each one is a
 `decorated_solid()` cylinder whose height equals its own circumference, so
 the vertical repeat count `_square_tile_vertical_reps()` derives comes out
-equal to the horizontal one for 16 of the 19 patterns — the three sqrt(3)-
+equal to the horizontal one for 17 of the 20 patterns — the three sqrt(3)-
 corrected patterns (`cubes`, `hex_grid`, `tri_grid`) instead render with a
 vertical repeat count of 18, not 32, so their tiles are ~17.7mm wide by
 ~31.4mm tall rather than literally square. Every pattern is still shown at
@@ -58,7 +59,7 @@ taper looks like, and why these close-ups (free of it) lead the page instead.
 
 Settings shared by every image in this section: `r1 = r2 = 90mm`,
 `height = 565.5mm` (= 2πr), `pattern_repeat = 32` (so tiles are ~17.7mm wide,
-and square for 16 of the 19 patterns — see above for the three exceptions),
+and square for 17 of the 20 patterns — see above for the three exceptions),
 `pattern_depth = 1.5` and `smoothness = 60` (the shipped defaults),
 `pattern_orientation = "vertical"`. Uniform across all of them, so the images
 are comparable with each other.
@@ -69,7 +70,7 @@ Two rendering caveats worth knowing before you read the pictures:
   OpenSCAD's light is mounted on the camera, so a straight-on shot hits every
   flat plateau at the same angle and the patterns built from flat islands
   (`tumbling_cubes`, `intertwine`, `islamic_star`, `rhombille`,
-  `cairo_pentagonal`) wash out to almost nothing.
+  `cairo_pentagonal`, `floret_pentagonal`) wash out to almost nothing.
   25° rakes the light across the relief. It compresses both axes by about the
   same `cos(25°) = 0.91`, so tile aspect is essentially preserved.
 - **The relief reads slightly deeper here than it will on a printed pot.** The
@@ -246,7 +247,10 @@ raised gives the four triangles alternating heights (a genuine pinwheel, not a
 flat panel), while etched is a single flat height across all four with only a
 thin engraved groove marking the fan lines — a flat panel with a scribed
 pattern, not an inverted copy of the raised relief. All three "kis"-family
-patterns below share this same raised/etched behavior.
+patterns below share this same raised/etched behavior, and so does
+`floret_pentagonal` at the end of this section — it is not a kis-operation
+tiling, but its 6-pentagon rosette is the same kind of fan around a shared
+point, so its two relief modes are genuinely different VNFs too.
 
 ### kisrhombille
 
@@ -313,6 +317,23 @@ short edge, two non-adjacent right angles — every pentagon raised to the same
 height. Because the geometry doesn't change between raised and etched,
 `"etched"` here is a true inverted copy of the raised relief, like
 `rhombille`, not a separate flat-panel construction like the "kis" family.
+
+### floret_pentagonal
+
+| Raised | Etched |
+|---|---|
+| ![floret_pentagonal, raised](images/pattern-floret_pentagonal-raised.png) | ![floret_pentagonal, etched](images/pattern-floret_pentagonal-etched.png) |
+
+Interlocking. The floret pentagonal tiling (Wikipedia "V3^4.6", dual of the
+snub trihexagonal tiling): rosettes of 6 congruent, irregular pentagons
+pinwheel around a shared hub point (four 120-degree angles and one
+60-degree angle per pentagon). Unlike `cairo_pentagonal`/`rhombille`, each
+rosette is a multi-facet fan around a shared point, the same shape of
+structure the "kis" family's own fans have -- so, like that family,
+`"etched"` here is a genuinely different, flat-panel VNF (every pentagon at
+the tile's full height, with only a thin engraved groove between them), not
+an inverted copy of the raised relief, which instead alternates heights
+around the rosette for a pinwheel-blade look.
 
 ## Full-Pot Examples
 
@@ -408,8 +429,8 @@ indistinguishable from `"follow"` and the pair would show nothing.
 
 The script hard-fails if any render's console output contains `CGAL error`.
 That check is load-bearing: `tumbling_cubes`, `intertwine`, `islamic_star`,
-`rhombille` and `cairo_pentagonal` abort CGAL at some
+`rhombille`, `cairo_pentagonal` and `floret_pentagonal` abort CGAL at some
 `pattern_repeat`/`smoothness` combinations, and when they do OpenSCAD still
 exits 0 and still writes a plausible-looking PNG. See README.md, "Note on the
-interlocking patterns and CGAL". The `WARNING:` line those five print on every
+interlocking patterns and CGAL". The `WARNING:` line those six print on every
 render is a proactive notice, not a failure.
