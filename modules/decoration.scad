@@ -12,7 +12,7 @@ include <../lib/BOSL2/std.scad>
 // tumbling_cubes' own isometric illusion is built from, cairo_pentagonal is
 // the Cairo pentagonal tiling, and floret_pentagonal is the floret
 // pentagonal tiling; all genuinely cross the tile boundary like the other
-// four) and the three "kis" family patterns ("tetrakis_square",
+// six) and the three "kis" family patterns ("tetrakis_square",
 // "kisrhombille", "triakis_triangular") -- which are not BOSL2 textures at
 // all. "floret_pentagonal" straddles those two groups: it interlocks across
 // the seam like the first group, but its 6-pentagon rosette is a fan with
