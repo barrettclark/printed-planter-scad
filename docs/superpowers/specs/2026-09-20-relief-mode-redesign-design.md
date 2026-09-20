@@ -240,9 +240,10 @@ are new *assemblers* over the same islands data, not a new geometry pipeline.
 **Phase 1** (this plan) covers `"etched"` for 9 patterns (everything except
 `teardrop`, which has no islands list) and `"alternating"` for 8 of those 9
 (everything except `intertwine`, which cannot expose per-ring groups — see
-above) — plus wiring `"alternating"` into `PATTERN_TYPES` as a `relief_mode`
-value (not a `pattern_type`) with a clear assertion for patterns that don't
-support it.
+above) — plus adding `"alternating"` as a third valid `relief_mode` value
+(a separate concept from `PATTERN_TYPES`, which lists pattern *names*, not
+relief modes — see "`relief_mode` validation" below) with a clear assertion
+for patterns that don't support it.
 
 **Phase 2** (separate, future plan, not detailed here): convert `"dots"`,
 `"cubes"`, `"checkers"`, `"bricks"` from BOSL2-native heightfields into
@@ -259,12 +260,18 @@ if wanted later.
 ### `relief_mode` validation
 
 `decorated_solid()`'s existing `assert(in_list(pattern_type, PATTERN_TYPES), ...)`
-gets a sibling: `relief_mode` must be one of `["raised", "etched", "alternating"]`,
-and if `relief_mode == "alternating"`, `pattern_type` must be one of the 8
-patterns that support it (`teardrop` and `intertwine` both excluded, for
-different reasons — see "Per-pattern classification" above) or `"none"` is
-rejected too (no texture to alternate) — assert with a clear message naming
-which pattern_types currently support `"alternating"`, rather than silently
+gets a sibling — a **new, separate** `RELIEF_MODES = ["raised", "etched", "alternating"]`
+list (not an addition to `PATTERN_TYPES`, which is the pattern-*name* list;
+`_decoration_texture()` looks up a `pattern_type` string in that list to
+resolve a texture, and `"alternating"` is not a pattern name, adding it there
+would make `pattern_type = "alternating"` look like a valid selection and
+fall through to an unresolved texture). `decorated_solid()` asserts
+`in_list(relief_mode, RELIEF_MODES)` the same way it already asserts
+`pattern_type`, and if `relief_mode == "alternating"`, a second assertion
+checks `pattern_type` is one of the 8 patterns that support it (`teardrop`
+and `intertwine` both excluded, for different reasons — see "Per-pattern
+classification" above) — assert with a clear message naming which
+pattern_types currently support `"alternating"`, rather than silently
 falling back to `"raised"`.
 
 ### Per-pattern `high_group` choice for `"alternating"`
