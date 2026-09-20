@@ -13,7 +13,7 @@
     - [x] Cairo pentagonal tiling ("V3^2.4.3.4", distinctive interlocking pentagons -- probably the most visually striking one) -- batch 2
     - [ ] Prismatic pentagonal tiling ("V3^3.4^2") -- batch 3
     - [x] Floret pentagonal tiling ("V3^4.6", pinwheel-like pentagon clusters) -- batch 3
-    - [ ] Deltoidal trihexagonal tiling ("V3.4.6.4", kite-shaped motif) -- batch 3
+    - [x] Deltoidal trihexagonal tiling ("V3.4.6.4", kite-shaped motif) -- batch 3
   - (Excluded on purpose: the apeirogonal hosohedron/order-2 apeirogonal tiling and their prism/antiprism/dual variants from the same Wikipedia list -- these involve infinite-sided polygons and aren't practical decorative motifs for a finite tile.)
 * [ ] "etched" doesn't do what was originally wanted for most patterns -- the goal was
   the outline of each shape engraved into the planter (flat surface, thin incised line

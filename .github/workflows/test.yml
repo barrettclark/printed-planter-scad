@@ -30,7 +30,7 @@ jobs:
           # Tests expected to succeed cleanly (exit 0, no ERROR in output).
           # These are compile checks only -- .csg does not evaluate geometry.
           # For test_decoration_pattern_types.scad (one side-by-side solid per
-          # pattern_type, 20 of them) .csg is not a preference, it is
+          # pattern_type, 21 of them) .csg is not a preference, it is
           # required: exporting that file to .stl would union all of them
           # through CGAL, and unioning the "teardrop" solid with another
           # textured solid aborts CGAL outright
@@ -59,7 +59,7 @@ jobs:
             fi
           done
 
-          # These ten pattern_types are built from hand-rolled VNF tiles
+          # These eleven pattern_types are built from hand-rolled VNF tiles
           # rather than BOSL2 texture names, so each gets its own .stl
           # (CGAL-forcing) check on top of the loops below -- those files also
           # assert the tile shape invariants (unit cube footprint, VNF not
@@ -73,7 +73,7 @@ jobs:
           # sign of fragility.
           for f in teardrop tumbling_cubes intertwine islamic_star \
                    tetrakis_square kisrhombille triakis_triangular rhombille \
-                   cairo_pentagonal floret_pentagonal; do
+                   cairo_pentagonal floret_pentagonal deltoidal_trihexagonal; do
             echo "=== tests/test_decoration_$f.scad (expect clean) ==="
             out=$(openscad -o /tmp/ci_test_decoration_$f.stl tests/test_decoration_$f.scad 2>&1)
             code=$?
@@ -94,7 +94,7 @@ jobs:
           # it through CGAL in OpenSCAD 2021.01, so this loop proves the VNF
           # builds, not that it is manifold; the full-assembly loop further
           # down (a real difference()) is what validates the mesh.
-          for pt in none ridges diamonds hex_grid pyramids bricks checkers dots cubes tri_grid teardrop tumbling_cubes intertwine islamic_star tetrakis_square kisrhombille triakis_triangular rhombille cairo_pentagonal floret_pentagonal; do
+          for pt in none ridges diamonds hex_grid pyramids bricks checkers dots cubes tri_grid teardrop tumbling_cubes intertwine islamic_star tetrakis_square kisrhombille triakis_triangular rhombille cairo_pentagonal floret_pentagonal deltoidal_trihexagonal; do
             for relief in raised etched; do
               echo "=== decorated_solid pattern_type=$pt relief_mode=$relief (expect texture build to succeed) ==="
               printf 'include <%s/modules/decoration.scad>\ndecorated_solid("%s", "vertical", "%s", 1.5, 12, 75, 60, 100, 4);\n' "$(pwd)" "$pt" "$relief" > /tmp/ci_single_pattern.scad
@@ -509,7 +509,7 @@ jobs:
             echo "FAIL: invalid pattern_type assertion is missing the expected message prefix"
             fail=1
           fi
-          for pt in none ridges diamonds hex_grid pyramids bricks checkers dots cubes tri_grid teardrop tumbling_cubes intertwine islamic_star tetrakis_square kisrhombille triakis_triangular rhombille cairo_pentagonal floret_pentagonal; do
+          for pt in none ridges diamonds hex_grid pyramids bricks checkers dots cubes tri_grid teardrop tumbling_cubes intertwine islamic_star tetrakis_square kisrhombille triakis_triangular rhombille cairo_pentagonal floret_pentagonal deltoidal_trihexagonal; do
             if ! echo "$out" | grep -q "\"$pt\""; then
               echo "FAIL: invalid pattern_type assertion message is missing \"$pt\""
               fail=1
