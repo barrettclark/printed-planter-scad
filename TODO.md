@@ -11,10 +11,9 @@
     - [x] Triakis triangular tiling ("V3.12^2") -- batch 1
     - [x] Rhombille tiling ("V3.6.3.6", diamond/rhombus motif) -- batch 2, reuses tumbling_cubes' hexagon math directly
     - [x] Cairo pentagonal tiling ("V3^2.4.3.4", distinctive interlocking pentagons -- probably the most visually striking one) -- batch 2
-    - [ ] Prismatic pentagonal tiling ("V3^3.4^2") -- batch 3
     - [x] Floret pentagonal tiling ("V3^4.6", pinwheel-like pentagon clusters) -- batch 3
     - [ ] Deltoidal trihexagonal tiling ("V3.4.6.4", kite-shaped motif) -- batch 3
-  - (Excluded on purpose: the apeirogonal hosohedron/order-2 apeirogonal tiling and their prism/antiprism/dual variants from the same Wikipedia list -- these involve infinite-sided polygons and aren't practical decorative motifs for a finite tile.)
+  - (Excluded on purpose: the apeirogonal hosohedron/order-2 apeirogonal tiling and their prism/antiprism/dual variants from the same Wikipedia list -- these involve infinite-sided polygons and aren't practical decorative motifs for a finite tile. Also excluded: Prismatic pentagonal tiling ("V3^3.4^2") -- fully researched and computationally verified (see docs/superpowers/plans/2026-09-19-prismatic-pentagonal-pattern.md), but its natural translation lattice is oblique, requiring a shear to normalize to this project's unit-square tile convention. Since this codebase's only aspect-correction mechanism can adjust a repeat count but never a repeat angle, shipping it would bake a permanent, uncorrectable diagonal slant into the motif -- declined for that reason, not a math or implementation failure.)
 * [ ] "etched" doesn't do what was originally wanted for most patterns -- the goal was
   the outline of each shape engraved into the planter (flat surface, thin incised line
   tracing the motif), like it was etched into stone or glass. That's only actually true
