@@ -32,15 +32,22 @@ being added as a **third `relief_mode` value**, not folded into `"raised"` —
 ## Goals
 
 1. `"raised"` — **unchanged**. No pattern's raised geometry changes.
-2. `"etched"` — reworked so every pattern reads as a true engrave: flat wall,
-   a groove around each motif's *outer* silhouette, plus — where a motif has
-   real internal sub-facet structure (the "kis" family's fan triangles,
-   `floret_pentagonal`'s rosette blades, `tumbling_cubes`'/`rhombille`'s
-   multi-rhombus hexagons, `cairo_pentagonal`'s multi-pentagon placements) —
-   a second, visually secondary groove tracing those internal boundaries
-   too, thinner and/or shallower than the outer-silhouette groove so the two
-   read as a clear hierarchy (motif outline first, internal detail second),
-   not a wash of equally-weighted lines. No whole-shape inversion, ever.
+2. `"etched"` — reworked so each of the 8 Phase-1 patterns (`tumbling_cubes`,
+   `islamic_star`, `tetrakis_square`, `kisrhombille`, `triakis_triangular`,
+   `rhombille`, `cairo_pentagonal`, `floret_pentagonal`) reads as a true
+   engrave: flat wall, a groove around each motif's *outer* silhouette,
+   plus — where a motif has real internal sub-facet structure (the "kis"
+   family's fan triangles, `floret_pentagonal`'s rosette blades,
+   `tumbling_cubes`'/`rhombille`'s multi-rhombus hexagons,
+   `cairo_pentagonal`'s multi-pentagon placements) — a second, visually
+   secondary groove tracing those internal boundaries too, thinner and/or
+   shallower than the outer-silhouette groove so the two read as a clear
+   hierarchy (motif outline first, internal detail second), not a wash of
+   equally-weighted lines. No whole-shape inversion, ever. `intertwine`'s
+   existing etched behavior stays unchanged (see "Per-pattern
+   classification" below); `teardrop` is excluded from both new modes
+   entirely (no islands list); `dots`/`cubes`/`checkers`/`bricks` are
+   deferred to Phase 2.
 3. `"alternating"` (new) — bas-relief: within one tile, some copies of the
    motif sit above the nominal wall surface and others sit below it, in a
    single render (not achieved by unioning separate raised/etched passes).
@@ -422,6 +429,15 @@ branch now that `"etched"`'s geometry actually differs from `"raised"`'s).
   measured safety.
 
 ### Documentation impact
+
+`planter.scad`'s Customizer declaration for `relief_mode` (currently
+`relief_mode = "raised";            // ["raised", "etched"]`, line 50) also
+needs updating as part of Task 1, alongside the new `RELIEF_MODES` validation
+in `decorated_solid()`: its dropdown comment must be extended to
+`// ["raised", "etched", "alternating"]`, or the new mode is reachable only
+through programmatic overrides and never shows up in the documented UI — the
+same Customizer-comment update this project's prior pattern-addition PRs have
+each needed (and, at least once, missed on the first pass).
 
 README's whole "etched" discussion (the paragraph structure documented in
 "Problem" above) gets rewritten to describe the new, uniform outline-engrave
