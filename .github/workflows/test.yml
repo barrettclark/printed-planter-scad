@@ -30,7 +30,7 @@ jobs:
           # Tests expected to succeed cleanly (exit 0, no ERROR in output).
           # These are compile checks only -- .csg does not evaluate geometry.
           # For test_decoration_pattern_types.scad (one side-by-side solid per
-          # pattern_type, 17 of them) .csg is not a preference, it is
+          # pattern_type, 18 of them) .csg is not a preference, it is
           # required: exporting that file to .stl would union all of them
           # through CGAL, and unioning the "teardrop" solid with another
           # textured solid aborts CGAL outright
@@ -53,13 +53,13 @@ jobs:
             out=$(openscad -o /tmp/ci_$(basename "$f" .scad).csg "$f" 2>&1)
             code=$?
             echo "$out"
-            if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
-              echo "FAIL: $f (exit $code, or ERROR in output)"
+            if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR" || echo "$out" | grep -q "CGAL error"; then
+              echo "FAIL: $f (exit $code, or ERROR/CGAL error in output)"
               fail=1
             fi
           done
 
-          # These seven pattern_types are built from hand-rolled VNF tiles
+          # These eight pattern_types are built from hand-rolled VNF tiles
           # rather than BOSL2 texture names, so each gets its own .stl
           # (CGAL-forcing) check on top of the loops below -- those files also
           # assert the tile shape invariants (unit cube footprint, VNF not
@@ -72,13 +72,13 @@ jobs:
           # CGAL-safe -- consistency with the other hand-rolled tiles, not a
           # sign of fragility.
           for f in teardrop tumbling_cubes intertwine islamic_star \
-                   tetrakis_square kisrhombille triakis_triangular; do
+                   tetrakis_square kisrhombille triakis_triangular rhombille; do
             echo "=== tests/test_decoration_$f.scad (expect clean) ==="
             out=$(openscad -o /tmp/ci_test_decoration_$f.stl tests/test_decoration_$f.scad 2>&1)
             code=$?
             echo "$out"
-            if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
-              echo "FAIL: tests/test_decoration_$f.scad (exit $code, or ERROR in output)"
+            if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR" || echo "$out" | grep -q "CGAL error"; then
+              echo "FAIL: tests/test_decoration_$f.scad (exit $code, or ERROR/CGAL error in output)"
               fail=1
             fi
           done
@@ -93,15 +93,15 @@ jobs:
           # it through CGAL in OpenSCAD 2021.01, so this loop proves the VNF
           # builds, not that it is manifold; the full-assembly loop further
           # down (a real difference()) is what validates the mesh.
-          for pt in none ridges diamonds hex_grid pyramids bricks checkers dots cubes tri_grid teardrop tumbling_cubes intertwine islamic_star tetrakis_square kisrhombille triakis_triangular; do
+          for pt in none ridges diamonds hex_grid pyramids bricks checkers dots cubes tri_grid teardrop tumbling_cubes intertwine islamic_star tetrakis_square kisrhombille triakis_triangular rhombille; do
             for relief in raised etched; do
               echo "=== decorated_solid pattern_type=$pt relief_mode=$relief (expect texture build to succeed) ==="
               printf 'include <%s/modules/decoration.scad>\ndecorated_solid("%s", "vertical", "%s", 1.5, 12, 75, 60, 100, 4);\n' "$(pwd)" "$pt" "$relief" > /tmp/ci_single_pattern.scad
               out=$(openscad -o /tmp/ci_single_${pt}_${relief}.stl /tmp/ci_single_pattern.scad 2>&1)
               code=$?
               echo "$out"
-              if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
-                echo "FAIL: single-pattern texture build for pattern_type=$pt relief_mode=$relief (exit $code, or ERROR in output)"
+              if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR" || echo "$out" | grep -q "CGAL error"; then
+                echo "FAIL: single-pattern texture build for pattern_type=$pt relief_mode=$relief (exit $code, or ERROR/CGAL error in output)"
                 fail=1
               fi
             done
@@ -116,8 +116,8 @@ jobs:
           out=$(openscad -D 'outer_mode="custom"' -o /tmp/ci_variant_custom_outer_mode.stl tests/test_planter_integration.scad 2>&1)
           code=$?
           echo "$out"
-          if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
-            echo "FAIL: full-assembly variant custom_outer_mode (exit $code, or ERROR in output)"
+          if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR" || echo "$out" | grep -q "CGAL error"; then
+            echo "FAIL: full-assembly variant custom_outer_mode (exit $code, or ERROR/CGAL error in output)"
             fail=1
           fi
 
@@ -125,8 +125,8 @@ jobs:
           out=$(openscad -D 'drainage_holes_enabled=true' -o /tmp/ci_variant_drainage_enabled.stl tests/test_planter_integration.scad 2>&1)
           code=$?
           echo "$out"
-          if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
-            echo "FAIL: full-assembly variant drainage_enabled (exit $code, or ERROR in output)"
+          if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR" || echo "$out" | grep -q "CGAL error"; then
+            echo "FAIL: full-assembly variant drainage_enabled (exit $code, or ERROR/CGAL error in output)"
             fail=1
           fi
 
@@ -138,8 +138,8 @@ jobs:
             out=$(openscad -D "insert_preset=\"$preset\"" -o /tmp/ci_variant_preset_${preset}.stl tests/test_planter_integration.scad 2>&1)
             code=$?
             echo "$out"
-            if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
-              echo "FAIL: full-assembly variant insert_preset=$preset (exit $code, or ERROR in output)"
+            if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR" || echo "$out" | grep -q "CGAL error"; then
+              echo "FAIL: full-assembly variant insert_preset=$preset (exit $code, or ERROR/CGAL error in output)"
               fail=1
             fi
           done
@@ -156,8 +156,8 @@ jobs:
             out=$(openscad -D "insert_preset=\"$preset\"" -o /tmp/ci_resolved_${preset}.csg tests/test_insert_preset_resolved.scad 2>&1)
             code=$?
             echo "$out"
-            if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
-              echo "FAIL: insert_preset resolution check for insert_preset=$preset (exit $code, or ERROR in output)"
+            if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR" || echo "$out" | grep -q "CGAL error"; then
+              echo "FAIL: insert_preset resolution check for insert_preset=$preset (exit $code, or ERROR/CGAL error in output)"
               fail=1
             fi
           done
@@ -174,8 +174,8 @@ jobs:
           out=$(openscad -D 'insert_preset="custom"' -D 'insert_top_d=140' -D 'insert_bottom_d=90' -D 'insert_height=111' -o /tmp/ci_resolved_custom.csg tests/test_insert_preset_resolved.scad 2>&1)
           code=$?
           echo "$out"
-          if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
-            echo "FAIL: insert_preset resolution check for insert_preset=custom (exit $code, or ERROR in output)"
+          if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR" || echo "$out" | grep -q "CGAL error"; then
+            echo "FAIL: insert_preset resolution check for insert_preset=custom (exit $code, or ERROR/CGAL error in output)"
             fail=1
           fi
 
@@ -188,8 +188,8 @@ jobs:
           out=$(openscad -D 'insert_preset="medium:Medium (130x120 / 100mm bottom)"' -o /tmp/ci_resolved_medium_labeled.csg tests/test_insert_preset_resolved.scad 2>&1)
           code=$?
           echo "$out"
-          if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
-            echo "FAIL: insert_preset resolution check for insert_preset with Customizer label suffix (exit $code, or ERROR in output)"
+          if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR" || echo "$out" | grep -q "CGAL error"; then
+            echo "FAIL: insert_preset resolution check for insert_preset with Customizer label suffix (exit $code, or ERROR/CGAL error in output)"
             fail=1
           fi
 
@@ -261,21 +261,44 @@ jobs:
           # against this workflow's actual GitHub Actions run (not just
           # locally) -- see the intertwine note above for why that
           # distinction matters on this runner.
+          #
+          # "rhombille" does NOT get the shared reps=4 value either, and does
+          # NOT share the "kis" family's reasoning above: it reuses
+          # tumbling_cubes' own hexagon/rhombus geometry directly (the same
+          # large flat plateaus, just one uniform height instead of three),
+          # so it has the exact same wide-arc-chord failure mode as
+          # tumbling_cubes/islamic_star/intertwine, not the kis family's
+          # small-triangle-facet safety. Measured locally first, then
+          # re-verified directly against this workflow's real GitHub Actions
+          # run (Ubuntu run 35477972837: both relief modes at
+          # pattern_repeat=13/smoothness=24 rendered a clean 2-volume STL,
+          # under the "CGAL error" check this workflow now also greps for) --
+          # see the intertwine note above for why that distinction matters.
+          # At smoothness=24, aborts in at least one relief mode at
+          # pattern_repeat 4, 6, 8, 9 (etched only), 11 and 14 (raised only);
+          # 7, 10, 12, 13 and 15 are clean in both modes. 13 is used rather
+          # than the smallest (7): 7 is a single clean value sandwiched
+          # between two full aborts (6 and 8) with no tested margin, exactly
+          # what burned "intertwine" above; 13 has a clean neighbor on one
+          # side (12) and only a partial failure on the other (14, raised-only
+          # abort). If this check ever fails on the real CI run, re-measure
+          # directly against it rather than trusting the local value further.
           run_assembly_combo() {
             pt="$1"; relief="$2"; reps="$3"; smooth="${4:-24}"
             echo "=== tests/test_planter_integration.scad (pattern_type=$pt, relief_mode=$relief, pattern_repeat=$reps, smoothness=$smooth, expect real evaluation to succeed) ==="
             out=$(openscad -D "pattern_type=\"$pt\"" -D "relief_mode=\"$relief\"" -D "pattern_repeat=$reps" -D "smoothness=$smooth" -o /tmp/ci_variant_${pt}_${relief}_${reps}_${smooth}.stl tests/test_planter_integration.scad 2>&1)
             code=$?
             echo "$out"
-            if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
-              echo "FAIL: full-assembly STL evaluation for pattern_type=$pt relief_mode=$relief pattern_repeat=$reps smoothness=$smooth (exit $code, or ERROR in output)"
+            if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR" || echo "$out" | grep -q "CGAL error"; then
+              echo "FAIL: full-assembly STL evaluation for pattern_type=$pt relief_mode=$relief pattern_repeat=$reps smoothness=$smooth (exit $code, or ERROR/CGAL error in output)"
               fail=1
             fi
           }
           for combo in "ridges 4" "diamonds 4" "hex_grid 4" "pyramids 4" "bricks 4" \
                        "checkers 4" "dots 4" "cubes 4" "tri_grid 4" "teardrop 4" \
                        "islamic_star 8" "tumbling_cubes 9" "intertwine 12" \
-                       "tetrakis_square 4" "kisrhombille 4" "triakis_triangular 4"; do
+                       "tetrakis_square 4" "kisrhombille 4" "triakis_triangular 4" \
+                       "rhombille 13"; do
             set -- $combo
             for relief in raised etched; do
               run_assembly_combo "$1" "$relief" "$2"
@@ -302,9 +325,19 @@ jobs:
           # measurement, not CI; if intertwine's tile construction ever
           # changes, re-verify it manually rather than assuming CI would catch
           # a regression there.
+          #
+          # "rhombille" is pinned here too, unlike "intertwine": it renders
+          # fast (a few seconds, not minutes -- it's tumbling_cubes' own
+          # plateau geometry at one uniform height, with none of
+          # intertwine's per-crossing strand construction), and was directly
+          # measured clean at pattern_repeat=16/smoothness=60 in both relief
+          # modes during this task (see README.md's CGAL section) -- higher
+          # smoothness values (80, 100) were not tested for "rhombille" and
+          # are not claimed clean.
           for relief in raised etched; do
             run_assembly_combo "islamic_star" "$relief" 16 60
             run_assembly_combo "tumbling_cubes" "$relief" 16 60
+            run_assembly_combo "rhombille" "$relief" 16 60
           done
 
           # README documents that "tumbling_cubes" and "islamic_star" union
@@ -324,8 +357,8 @@ jobs:
             out=$(openscad -o /tmp/ci_union_${pt}.stl /tmp/ci_union_${pt}.scad 2>&1)
             code=$?
             echo "$out"
-            if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
-              echo "FAIL: textured-solid union check for pattern_type=$pt (exit $code, or ERROR in output)"
+            if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR" || echo "$out" | grep -q "CGAL error"; then
+              echo "FAIL: textured-solid union check for pattern_type=$pt (exit $code, or ERROR/CGAL error in output)"
               fail=1
             fi
           done
@@ -416,7 +449,7 @@ jobs:
             echo "FAIL: invalid pattern_type assertion is missing the expected message prefix"
             fail=1
           fi
-          for pt in none ridges diamonds hex_grid pyramids bricks checkers dots cubes tri_grid teardrop tumbling_cubes intertwine islamic_star tetrakis_square kisrhombille triakis_triangular; do
+          for pt in none ridges diamonds hex_grid pyramids bricks checkers dots cubes tri_grid teardrop tumbling_cubes intertwine islamic_star tetrakis_square kisrhombille triakis_triangular rhombille; do
             if ! echo "$out" | grep -q "\"$pt\""; then
               echo "FAIL: invalid pattern_type assertion message is missing \"$pt\""
               fail=1

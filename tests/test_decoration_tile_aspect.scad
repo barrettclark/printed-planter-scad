@@ -61,7 +61,7 @@ assert(v_bricks == pattern_repeat, str("expected bricks vertical_reps ", pattern
 
 // The custom VNF tiles (built on _UNIT_TILE, confirmed unit-square, no
 // intrinsic correction) use the plain formula, same as "dots".
-for (pt = ["teardrop", "tumbling_cubes", "intertwine", "islamic_star",
+for (pt = ["teardrop", "tumbling_cubes", "intertwine", "islamic_star", "rhombille",
            "tetrakis_square", "kisrhombille", "triakis_triangular",
            "diamonds", "pyramids", "checkers"]) {
     v = _square_tile_vertical_reps(pt, "vertical", pattern_repeat, r1, r2, height);
