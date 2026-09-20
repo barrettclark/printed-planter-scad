@@ -119,43 +119,67 @@ change to how several patterns build their islands, not just a new consumer
 of existing data — call it out as its own step in Task 1, per-pattern, not a
 one-line addition.
 
+**Correction 1b — "union one group's own sub-regions to find its outer
+silhouette" is itself broken for most patterns here, because most patterns
+have no background at all in their original (unshrunk) geometry.** Checked
+directly: `cairo_pentagonal`'s 8 placements, `floret_pentagonal`'s 18,
+`islamic_star`'s star+4 crosses, and `tumbling_cubes`/`rhombille`'s hexagon
+rosettes all sum to **exactly** the unit tile's own area before any
+gap-shrink is applied — these motifs tile the plane edge-to-edge with zero
+gap between one motif instance and its neighbours, not just zero gap within
+one motif's own sub-regions. So "union one group's original sub-regions" does
+find that group's true silhouette *in isolation*, but that silhouette's
+boundary against a *neighbouring* motif instance is not a real edge at all —
+it is shared, seamlessly, with the touching neighbour, the same way this
+project's own hexagon/pentagon motifs already tile without gaps today
+(before the deliberate `_TC_GAP`/`_CP_GAP`/etc. shrink is applied for the
+*current* raised-mode groove). Unioning ALL groups together, as the text
+below originally proposed, then just returns the *entire unit tile* (since
+there is no gap anywhere in the unshrunk data) — and that combined
+"silhouette"'s only boundary is the tile's own edge, which `_tile_on_edge()`
+correctly suppresses. The result: **no primary groove at all**, for almost
+every pattern in this file — not a rare edge case, the normal case.
+
+The actually-correct model is **not** "trace the outer boundary of a union" —
+it is **edge classification**: build the full planar arrangement of every
+original (pre-shrink) sub-region placed in the tile (across every motif
+group, not grouped away from each other), where each sub-region carries the
+`group_id` it belongs to (the same identity `_tile_alternating_from_islands()`
+already needs — see Correction 2/3 below; this is the same tagging
+requirement serving two different consumers). For every edge shared between
+two touching sub-regions anywhere in that arrangement:
+
+- If the two sides belong to **different** `group_id`s, it is a
+  motif-to-motif boundary — groove it at `outer_gap` (the primary tier).
+  This is what makes two adjacent Cairo pentagons, or `islamic_star`'s star
+  against its neighbouring crosses, actually show a line between them, which
+  the union-based approach could never produce for these patterns.
+- If the two sides belong to the **same** `group_id`, it is an internal
+  facet seam — groove it at `inner_gap` (the secondary tier). This is the
+  "kis" family's fan-triangle edges, `tumbling_cubes`'/`rhombille`'s
+  per-rhombus edges, etc.
+- If the edge lies on the tile's own boundary (`x` or `y` equal to `0` or
+  `1`), it is shared with the neighbouring tile repeat — no groove either
+  tier, per the existing `_tile_on_edge()` exception (this part of the
+  original design was correct and is unchanged).
+
+A group with only one sub-region contributes no same-group edges (nothing
+internal to trace) — that degrades gracefully, same as before. This is a
+genuinely bigger piece of geometry work than a boundary trace: it requires
+building real adjacency information over the whole placed tessellation (which
+sub-region touches which, and along which edge), not just a per-group union.
+Do not attempt to shortcut this back to a union-based approach — that is
+exactly the design this correction is replacing, for the reason explained
+above.
+
 **`_tile_outline_from_islands(motif_groups, outer_gap, inner_gap)`** (etched),
-with the corrected input above: for each group, union its own original
-sub-regions into the group's outer silhouette; union all groups' silhouettes
-together for the tile-wide "raised region" (used only to compute the
-ground/panel split, at `z = 1` everywhere inside it, `z = 1` minus a primary
-groove along the *outer* boundary of that combined silhouette); trace each
-group's own internal sub-region boundaries as the secondary groove. Two
-groove tiers, both edge-aware the same way:
-
-1. Primary groove (width `outer_gap`) along the combined outer silhouette —
-   **not** along any portion of that boundary that coincides with the
-   tile's own edge (`x` or `y` equal to `0` or `1`). `_tile_walls()` already
-   solves exactly this problem for vertical walls (an island that straddles
-   a tile edge continues into the neighbouring tile there, so there is no
-   wall — see `_tile_on_edge()`), and the outline groove needs the identical
-   exception: a naive whole-boundary offset would carve a groove along
-   every tile-repeat seam for any interlocking motif, which is wrong — one
-   continuous silhouette would look like a visible grid instead. Build the
-   thin band *per boundary segment* (the way `_tile_walls()` iterates
-   `path[i]`/`path[i+1]` pairs), omitting the groove on any segment
-   `_tile_on_edge()` already recognizes as shared with a neighbour.
-2. Secondary groove (width `inner_gap`, and/or a shallower depth than the
-   primary groove — an implementation-time call on which reads better,
-   width, depth, or both) along each group's own internal sub-region
-   boundaries — the edges that existed in the group's *original*,
-   pre-shrink geometry and are shared between two of that group's own
-   sub-regions. This is what keeps, for example, the "kis" family's
-   individual fan-triangle edges or `tumbling_cubes`'/`rhombille`'s
-   per-rhombus edges visible as a lighter secondary line, rather than
-   discarding them into one undifferentiated hexagon/rosette outline.
-   Groups with only one sub-region (nothing internal to trace) simply
-   produce an empty secondary-groove contribution — this degrades
-   gracefully, not as a special case to code around.
-
-Work out the exact per-segment construction for both tiers, and the exact
-shape each pattern's islands-building loop needs to also expose its
-pre-shrink motif groups, during implementation (Task 1's own job, not this
+with this corrected model: build the tile's flat panel at `z = 1` (with the
+usual `_tile_on_edge()`-aware exception for anything that continues past the
+tile boundary), then cut the two groove tiers by classifying every internal
+shared edge as above. Work out the exact per-segment/adjacency construction,
+and the exact shape each pattern's islands-building loop needs to also
+expose its pre-shrink motif groups and their `group_id` tags, during
+implementation (Task 1's own job, not this
 spec's) — this section is scoped to state the requirement correctly, not to
 hand over working code for it.
 
@@ -183,9 +207,9 @@ in front of them).
 
 **`_tile_alternating_from_islands(islands, high_group)`** (alternating),
 corrected: like `_tile_from_islands()` but with (a) every island's height
-forced to `1` (high) or `0` (low, but still above the `z = 0.5` ground —
-i.e. rendered as a real, if shallow, sunk facet, not flattened into the
-ground plane) according to group membership, and (b) the ground built at
+forced to `1` (high) or `0` (low, genuinely below the `z = 0.5` ground —
+i.e. rendered as a real sunk facet, not flattened onto the ground plane
+itself) according to group membership, and (b) the ground built at
 `z = 0.5` per Correction 2 above, with the caller using `tex_inset = 0.5`.
 **`high_group` is a per-island group id, not a flat list index into
 `islands`** — every pattern here packs more than one raw region per
