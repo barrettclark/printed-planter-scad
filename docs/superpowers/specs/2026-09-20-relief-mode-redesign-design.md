@@ -255,21 +255,21 @@ tag for `high_group`, and splitting the strands back apart to tag them would
 reintroduce the exact problem that union was written to avoid (overlapping
 strands producing an unclosed/invalid VNF at their crossings — see that
 function's own comment). `intertwine` therefore joins `teardrop` as a
-Phase-1 exception for `"alternating"` specifically. Its `"etched"` support
-is scoped down instead of excluded: `intertwine` gets the primary/outer_gap
-tier only, via the same union-based outer-silhouette trace
-`_intertwine_tile()` already performs (outline mode only needs the combined
-outer boundary, not a live per-ring tag, so the union is still valid there).
-The secondary/inner_gap tier is explicitly **not** implemented for
-`intertwine` in Phase 1: the edge-classification model that tier depends on
-assumes two sub-regions meet along a well-defined shared edge, but
-`intertwine`'s ring strands *overlap* at their crossings rather than share
-clean edges (the same overlap `_intertwine_tile()`'s own union was written
-to avoid) — there is no well-defined internal edge set to classify. Task 1
-implements `intertwine`'s `"etched"` mode as outer-boundary-only; the
-internal secondary groove for this one pattern is out of scope for Phase 1,
-tracked as a future item rather than left as an open implementation
-question.
+Phase-1 exception for `"alternating"` specifically. Its `"etched"` mode is
+**unchanged** by this correction, not migrated to `_tile_outline_from_islands()`
+at all: that builder needs a genuine planar arrangement of non-overlapping
+pre-shrink sub-regions to classify any edge, but `_intertwine_tile()`'s ring
+strands *overlap* at their crossings even before the union that merges them
+into one island (`modules/decoration.scad:677-678`) — there is no such
+arrangement to build, not even for a single group. `intertwine` already has
+only one island (the whole unioned ring set), so the existing generic
+`_tile_from_islands()` + `tex_inset` mechanism already grooves around that
+island's own outer boundary when etched — the whole-silhouette result this
+pattern needs is what it already gets today, because the motif-to-motif
+adjacency problem Correction 1 exists to fix (separate islands touching with
+zero gap) doesn't apply to a pattern with only one island in the first
+place. No `inner_gap` tier applies either, for the same overlap reason.
+Task 1 leaves `intertwine`'s `"etched"` code path untouched.
 
 Both builders live in `modules/decoration.scad` next to `_tile_from_islands()`
 and reuse its existing `_tile_quantize()`/clipping/winding machinery — they
@@ -283,18 +283,22 @@ are new *assemblers* over the same islands data, not a new geometry pipeline.
 | `ridges`, `pyramids`, `diamonds`, `hex_grid`, `tri_grid` | BOSL2 heightfield | **unchanged** — already a true outline/panel engrave | not supported yet (see Phase 2) |
 | `dots`, `cubes`, `checkers`, `bricks` | BOSL2 heightfield, unchanged | Phase 2 (see below) | Phase 2 |
 | `tumbling_cubes`, `islamic_star`, `tetrakis_square`, `kisrhombille`, `triakis_triangular`, `rhombille`, `cairo_pentagonal`, `floret_pentagonal` | unchanged | `_tile_outline_from_islands()` on the pattern's motif groups (edge-aware, see above) | `_tile_alternating_from_islands()` on the same islands, once each island carries its group id (see above) |
-| `intertwine` | unchanged | **outer_gap tier only** (not the full two-tier builder) — reuses `_intertwine_tile()`'s existing union-based outer-silhouette trace; no `inner_gap` tier, since overlapping strands have no well-defined internal edges to classify — see above | **not in Phase 1** — `_intertwine_tile()` unions every ring into one island before there's anything left to tag; see above |
+| `intertwine` | unchanged | **unchanged** — already a whole-silhouette groove via the existing `_tile_from_islands()`/`tex_inset` mechanism on its one pre-unioned island; not migrated to `_tile_outline_from_islands()`, which needs a non-overlapping sub-region arrangement this pattern's overlapping strands can't provide — see above | **not in Phase 1** — `_intertwine_tile()` unions every ring into one island before there's anything left to tag; see above |
 | `teardrop` | unchanged | not in Phase 1 — no islands list exists to feed the shared builder; needs its own hand-rolled outline construction (or explicit exclusion) as a separate, smaller task | not in Phase 1, same reason |
 
-**Phase 1** (this plan) covers `"etched"` for 9 patterns (everything except
-`teardrop`, which has no islands list) and `"alternating"` for 8 of those 9
-(everything except `intertwine`, which cannot expose per-ring groups — see
-above) — plus adding `"alternating"` as a third valid `relief_mode` value
+**Phase 1** (this plan) implements the new `_tile_outline_from_islands()`
+builder for `"etched"` on 8 patterns (`tumbling_cubes`, `islamic_star`,
+`tetrakis_square`, `kisrhombille`, `triakis_triangular`, `rhombille`,
+`cairo_pentagonal`, `floret_pentagonal`) and the new
+`_tile_alternating_from_islands()` builder for `"alternating"` on those same
+8 — plus adding `"alternating"` as a third valid `relief_mode` value
 (a separate concept from `PATTERN_TYPES`, which lists pattern *names*, not
 relief modes — see "`relief_mode` validation" below) with a clear assertion
-for patterns that don't support it. (One further scoping note: `intertwine`'s `"etched"` result within Phase 1
-is outer-boundary-only, not the full two-tier groove every other pattern in
-that row gets — see "Per-pattern classification" above.)
+for patterns that don't support it. `intertwine` and `teardrop` are both
+outside this count for different reasons: `intertwine`'s `"etched"` mode is
+already correct and stays on its existing mechanism unchanged (see above),
+and gets neither builder; `teardrop` has no islands list at all and gets
+neither mode in Phase 1.
 
 **Phase 2** (separate, future plan, not detailed here): convert `"dots"`,
 `"cubes"`, `"checkers"`, `"bricks"` from BOSL2-native heightfields into
@@ -379,8 +383,9 @@ branch now that `"etched"`'s geometry actually differs from `"raised"`'s).
 
 - Every Phase-1 pattern's existing `test_decoration_<name>.scad` gains an
   `"alternating"` block alongside its existing `"raised"`/`"etched"` checks:
-  assert the resolved VNF's Z levels are exactly `{0, 1}` (not the pattern's
-  own raised heights), assert it differs from both the raised and etched VNF,
+  assert the resolved VNF's Z levels are exactly `{0, 0.5, 1}` (the neutral
+  `z = 0.5` ground plus the `0`/`1` high/low facets — not the pattern's own
+  raised heights), assert it differs from both the raised and etched VNF,
   and render it through the same CGAL-forcing `difference()` every other mode
   already gets.
 - `test_decoration_pattern_types.scad`/`test_decoration_etched_groove.scad`
@@ -414,9 +419,9 @@ item is added for Phase 2 (the four BOSL2-native pattern conversions).
 
 ## Decisions (previously open questions)
 
-1. **Phase 1 scope**: confirmed — `"alternating"` only works for the 9
-   islands-based custom patterns at first (`teardrop` excluded, see above),
-   with a clear error for everything else. Converting `dots`/`cubes`/
+1. **Phase 1 scope**: confirmed — `"alternating"` only works for 8 of the
+   islands-based custom patterns at first (`teardrop` and `intertwine` both
+   excluded, see above), with a clear error for everything else. Converting `dots`/`cubes`/
    `checkers`/`bricks` (Phase 2) is not a blocker for this work. Barrett
    separately noted a raised/sunk checkerboard-style alternation would be a
    cool future direction but isn't required now if it doesn't fall out
