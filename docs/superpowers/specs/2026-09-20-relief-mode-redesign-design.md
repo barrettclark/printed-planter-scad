@@ -251,24 +251,31 @@ forced to `1` (high) or `0` (low, genuinely below the `z = 0.5` ground —
 i.e. rendered as a real sunk facet, not flattened onto the ground plane
 itself) according to group membership, and (b) the ground built at
 `z = 0.5` per Correction 2 above, with the caller using `tex_inset = 0.5`.
-**`high_group` is a per-island group id, not a flat list index into
-`islands`** — every pattern here packs more than one raw region per
-copy/center/placement before flattening (e.g. `tumbling_cubes` emits 3
-rhombus islands per hexagon center, so a flat index like `[0, 3]` does not
-mean "centers 0 and 3"; `cairo_pentagonal`/`floret_pentagonal`'s placement
-index `k` likewise does not line up with the flattened list position after
-clipping drops empty islands). The actual mechanism: each caller's
-islands-building loop must tag every island it emits with the copy/center/
-placement identity it came from (e.g. `c` for `tumbling_cubes`, `pl[2]` for
-`cairo_pentagonal`/`floret_pentagonal`) *before* flattening, and
-`_tile_alternating_from_islands()` takes a `high_group` predicate/set tested
-against that tag, not the island's position in the flattened list.
-Concretely, `islands` for this builder is `[[region, height, group_id], ...]`
-(one extra field versus `_tile_from_islands()`'s plain `[region, height]`),
-and `high_group` is the set of `group_id` values that render high. This
-needs a small signature change to how each pattern's islands-building loop
-is written, not just a new consumer — call this out explicitly in Task 1
-rather than discovering it mid-implementation.
+**`high_group` is tested against a per-island alternation key, `alt_key`,
+which is a separate field from the outline builder's `group_id` — not a
+flat list index into `islands`.** The two keys serve different purposes and
+are not always the same value: `group_id` identifies which physical motif
+an island belongs to (used by `_tile_outline_from_islands()` to classify
+same-motif vs. different-motif edges), while `alt_key` identifies which
+high/low bucket an island falls into for `"alternating"` mode. For most
+patterns these coincide — `tumbling_cubes`/`rhombille`'s corner-vs-center
+split, `cairo_pentagonal`/`floret_pentagonal`'s placement `k`,
+`islamic_star`'s star-vs-cross split are each both the natural motif
+identity *and* the natural alternation grouping, so those callers just set
+`alt_key = group_id`. The "kis" family is the one case where they must
+differ (see the "kis" family bullet below): `group_id` stays unique per fan
+(required for outline edge classification to work at all), while `alt_key`
+is the fan-triangle's own local index within its fan (for the pinwheel
+high/low split). Concretely, `islands` for this builder is
+`[[region, height, group_id, alt_key], ...]` (two extra fields versus
+`_tile_from_islands()`'s plain `[region, height]`), and `high_group` is the
+set of `alt_key` values that render high. `_tile_from_islands()` and
+`_tile_outline_from_islands()` only ever need `group_id` (or nothing at
+all) and are unaffected by this fourth field — it exists solely for the
+alternating builder's own consumption. This needs a small signature change
+to how each pattern's islands-building loop is written, not just a new
+consumer — call this out explicitly in Task 1 rather than discovering it
+mid-implementation.
 
 **`intertwine` cannot support `"alternating"` in Phase 1.**
 `_intertwine_tile()` deliberately unions every ring strand into a *single*
@@ -403,10 +410,11 @@ high/low assignment over those tags:
   boundaries between separate rhombi/cells, silently suppressing grooves
   that should exist. `group_id` must be a composite key unique per fan
   (e.g. `(c, k)` for `kisrhombille`, `A`/`B` for `triakis_triangular`,
-  trivially the single cell for `tetrakis_square`); the fan-triangle
-  index stays in use, but only as a *separate* key for the alternating
-  high/low choice (reusing the same 2-or-3-height pinwheel pattern raised
-  mode already uses, collapsed to high/low), not for edge classification.
+  trivially the single cell for `tetrakis_square`); `alt_key` is the
+  fan-triangle's local index within its fan (reusing the same 2-or-3-height
+  pinwheel pattern raised mode already uses, collapsed to high/low) — the
+  one case in this project where `group_id` and `alt_key` genuinely differ
+  per island.
 - `islamic_star`: star high, all 4 crosses low (or some other split — visual
   judgment call during implementation).
 
