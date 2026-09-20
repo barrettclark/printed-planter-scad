@@ -90,10 +90,17 @@ stays the architecture: only what a pattern's tile function returns, and what
 
 ### Shared infrastructure: two new tile builders alongside `_tile_from_islands()`
 
-9 of this project's 10 custom VNF tiles (`tumbling_cubes`, `intertwine`,
+10 of this project's 11 custom VNF tiles (`tumbling_cubes`, `intertwine`,
 `islamic_star`, `tetrakis_square`, `kisrhombille`, `triakis_triangular`,
-`rhombille`, `cairo_pentagonal`, `floret_pentagonal`) are already built as a
-list of `[region, height]` islands, fed to `_tile_from_islands()`. But that
+`rhombille`, `cairo_pentagonal`, `floret_pentagonal`, `deltoidal_trihexagonal`)
+are already built as a list of `[region, height]` islands, fed to
+`_tile_from_islands()`. (`deltoidal_trihexagonal` merged into `main` after
+this spec was first drafted — it's a Fable-researched kite tessellation with
+uniform height and no `relief_mode` distinction, so it's included in this
+infrastructure inventory but is out of scope for Phase 1's `"etched"`/
+`"alternating"` work the same way `intertwine` is, just for a different
+reason: it has no mode split to rework at all, not an unsupported geometry
+problem — Task 1 should leave it untouched, same as `intertwine`.) But that
 *already-built* islands list is **not** directly reusable as input to either
 new builder — see the two corrections below, both confirmed against the real
 code and both real enough to change the shape of this section:
@@ -315,6 +322,7 @@ are new *assemblers* over the same islands data, not a new geometry pipeline.
 | `tumbling_cubes`, `islamic_star`, `tetrakis_square`, `kisrhombille`, `triakis_triangular`, `rhombille`, `cairo_pentagonal`, `floret_pentagonal` | unchanged | `_tile_outline_from_islands()` on the pattern's motif groups (edge-aware, see above) | `_tile_alternating_from_islands()` on the same islands, once each island carries its group id (see above) |
 | `intertwine` | unchanged | **unchanged** — already a whole-silhouette groove via the existing `_tile_from_islands()`/`tex_inset` mechanism on its one pre-unioned island; not migrated to `_tile_outline_from_islands()`, which needs a non-overlapping sub-region arrangement this pattern's overlapping strands can't provide — see above | **not in Phase 1** — `_intertwine_tile()` unions every ring into one island before there's anything left to tag; see above |
 | `teardrop` | unchanged | not in Phase 1 — no islands list exists to feed the shared builder; needs its own hand-rolled outline construction (or explicit exclusion) as a separate, smaller task | not in Phase 1, same reason |
+| `deltoidal_trihexagonal` | unchanged | **not applicable** — `_deltoidal_trihexagonal_tile()` takes no `relief_mode` and builds every kite at one uniform height (`_DT_Z`); there is no existing mode split to preserve or migrate | **not in Phase 1**, same reason — no per-island height variation to alternate |
 
 **Phase 1** (this plan) implements the new `_tile_outline_from_islands()`
 builder for `"etched"` on 8 patterns (`tumbling_cubes`, `islamic_star`,
@@ -324,11 +332,13 @@ builder for `"etched"` on 8 patterns (`tumbling_cubes`, `islamic_star`,
 8 — plus adding `"alternating"` as a third valid `relief_mode` value
 (a separate concept from `PATTERN_TYPES`, which lists pattern *names*, not
 relief modes — see "`relief_mode` validation" below) with a clear assertion
-for patterns that don't support it. `intertwine` and `teardrop` are both
-outside this count for different reasons: `intertwine`'s `"etched"` mode is
-already correct and stays on its existing mechanism unchanged (see above),
-and gets neither builder; `teardrop` has no islands list at all and gets
-neither mode in Phase 1.
+for patterns that don't support it. `intertwine`, `teardrop`, and
+`deltoidal_trihexagonal` are all outside this count for different reasons:
+`intertwine`'s `"etched"` mode is already correct and stays on its existing
+mechanism unchanged (see above), and gets neither builder; `teardrop` has no
+islands list at all and gets neither mode in Phase 1; `deltoidal_trihexagonal`
+has an islands list but no `relief_mode` parameter or height variation to
+build either mode from, and gets neither builder either.
 
 **Phase 2** (separate, future plan, not detailed here): convert `"dots"`,
 `"cubes"`, `"checkers"`, `"bricks"` from BOSL2-native heightfields into
