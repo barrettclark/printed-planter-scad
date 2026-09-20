@@ -99,12 +99,18 @@ for (axis = [0, 1]) {
 // platform-divergence class already documented for "intertwine" in README.md
 // (identical reported OpenSCAD 2021.01, different CGAL floating-point
 // behavior). A local sweep of pattern_repeat 4 through 32 found every value
-// clean on macOS, so local testing alone can't discriminate a safer one here;
-// 32 is used instead of 12 as a hedge (a narrower per-island arc, which this
-// project's documented CGAL-fragility mechanism -- a flat plateau facet
-// chording back inside the wall -- generally makes safer), not a proven fix.
-// If this ever fails on CI again, re-measure directly against that run rather
-// than trusting another local value.
+// clean on macOS, so local testing alone couldn't discriminate a safer one;
+// 32 was chosen as a hedge (a narrower per-island arc, which this project's
+// documented CGAL-fragility mechanism -- a flat plateau facet chording back
+// inside the wall -- generally makes safer) and has since been CONFIRMED
+// clean on the real Ubuntu CI run (unlike 12). Deliberately not switched to
+// 8 -- the value CI already pins elsewhere for this pattern's reduced-value
+// sweep -- because that value has only been proven safe at a different r1/r2/
+// height/fn combination (via the full planter() assembly with smoothness=24);
+// reusing an unverified-for-THIS-exact-config value would trade a real,
+// CI-confirmed data point for a guess, for no benefit beyond fewer distinct
+// numbers in the file. If this ever fails on CI again, re-measure directly
+// against that run rather than trusting another local value.
 difference() {
     decorated_solid("cairo_pentagonal", "vertical", "raised", 1.5, 32, 75, 60, 100, 4);
     translate([300, 0, 0]) cube(10, center = true);

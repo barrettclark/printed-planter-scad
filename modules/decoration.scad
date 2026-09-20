@@ -172,18 +172,23 @@ function _teardrop_tile() =
 
 // --- Shared plateau-tile builder --------------------------------------------
 //
-// The interlocking patterns below (tumbling_cubes, rhombille,
-// cairo_pentagonal, intertwine, islamic_star, and the "kis" family:
-// tetrakis_square, kisrhombille, triakis_triangular) all have the same
-// shape: flat-topped "islands" of various heights standing on a flat
-// z=0 ground, separated by a narrow groove. Rather than hand-rolling
-// each outline the way _teardrop_tile() does, they are described as
-// 2D regions plus a height and assembled here.
+// The patterns below (tumbling_cubes, rhombille, cairo_pentagonal, intertwine,
+// islamic_star, and the "kis" family: tetrakis_square, kisrhombille,
+// triakis_triangular) all have the same shape: flat-topped "islands" of
+// various heights standing on a flat z=0 ground, separated by a narrow
+// groove. Rather than hand-rolling each outline the way _teardrop_tile()
+// does, they are described as 2D regions plus a height and assembled here.
 //
 // Every island is defined over the *infinite* tiling and then clipped to the
-// unit square, so an island that straddles a tile edge stays straddling and its
-// two halves meet up across the seam. That is what makes the patterns
-// interlock rather than sit in visible boxes.
+// unit square, so an island that straddles a tile edge stays straddling and
+// its two halves meet up across the seam. That is what makes tumbling_cubes/
+// rhombille/cairo_pentagonal/intertwine/islamic_star's motifs interlock
+// rather than sit in visible boxes -- see README.md for the definition this
+// project uses for "interlocking". The "kis" family does NOT rely on this:
+// _kis_shrunk_fan() shrinks every fan triangle away from all its own edges,
+// including ones that land on the tile boundary, so its islands never
+// straddle the seam at all; its own continuity across tiles comes from the
+// fan pattern repeating identically, not from a literal split island.
 _UNIT_TILE = [[0,0],[1,0],[1,1],[0,1]];
 
 // Region booleans and offset() compute intersections in floating point, so the
