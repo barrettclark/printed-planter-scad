@@ -399,10 +399,14 @@ jobs:
             run_assembly_combo "floret_pentagonal" "$relief" 16 60
           done
 
-          # README documents that "tumbling_cubes" and "islamic_star" union
-          # cleanly with another textured solid, while "teardrop",
-          # "intertwine", "rhombille" and "cairo_pentagonal" abort CGAL in
-          # that case. Nothing enforced the clean
+          # README documents that "tumbling_cubes", "islamic_star" and
+          # "deltoidal_trihexagonal" union cleanly with another textured
+          # solid, while "teardrop", "intertwine", "rhombille",
+          # "cairo_pentagonal" and "floret_pentagonal" abort CGAL in that
+          # case (this comment previously omitted "floret_pentagonal" from
+          # that list -- a stale omission fixed alongside adding
+          # "deltoidal_trihexagonal" here, not a new finding on its own).
+          # Nothing enforced the clean
           # half of that claim: test_decoration_pattern_types.scad unions every
           # pattern but exports .csg, which never invokes CGAL. That gap is how
           # the claim came to be documented (wrongly) for "intertwine" in the
@@ -410,8 +414,10 @@ jobs:
           # disjoint cube to force real evaluation, ~100s each. pattern_repeat
           # is 9, not 8: the square-tile fix moved islamic_star's fragile
           # values on this geometry (r1=75, r2=60, height=100, fn=50) to 6-8,
-          # so 9 is the smallest value re-measured clean for both patterns.
-          for pt in tumbling_cubes islamic_star; do
+          # so 9 is the smallest value re-measured clean for both patterns;
+          # "deltoidal_trihexagonal" was directly re-verified clean at that
+          # same value 9 (and also at 12) before joining this loop.
+          for pt in tumbling_cubes islamic_star deltoidal_trihexagonal; do
             echo "=== union($pt, dots) differenced (expect clean CGAL union) ==="
             printf 'include <%s/modules/decoration.scad>\ndifference() {\n  union() {\n    decorated_solid("%s", "vertical", "raised", 1.5, 9, 75, 60, 100, 4);\n    translate([200, 0, 0]) decorated_solid("dots", "vertical", "raised", 1.5, 9, 75, 60, 100, 4);\n  }\n  translate([600, 0, 0]) cube(10, center = true);\n}\n' "$(pwd)" "$pt" > /tmp/ci_union_${pt}.scad
             out=$(openscad -o /tmp/ci_union_${pt}.stl /tmp/ci_union_${pt}.scad 2>&1)
