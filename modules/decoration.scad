@@ -46,10 +46,10 @@ _ASPECT_SQRT3_PATTERNS = ["cubes", "hex_grid", "tri_grid"];
 //
 // The custom VNF tiles (teardrop, tumbling_cubes, intertwine, islamic_star,
 // tetrakis_square, kisrhombille, triakis_triangular, rhombille,
-// cairo_pentagonal) are built on
-// _UNIT_TILE, confirmed elsewhere in this file to be exactly the unit
-// square with no intrinsic distortion, so they use the plain formula like
-// every BOSL2 catalog texture without a documented sqrt(3) requirement.
+// cairo_pentagonal) are built on _UNIT_TILE, confirmed elsewhere in this
+// file to be exactly the unit square with no intrinsic distortion, so they
+// use the plain formula like every BOSL2 catalog texture without a
+// documented sqrt(3) requirement.
 function _square_tile_vertical_reps(pattern_type, pattern_orientation, pattern_repeat, r1, r2, height) =
     in_list(pattern_type, _ASPECT_EXCLUDED_PATTERNS) ? pattern_repeat :
     let(
@@ -174,10 +174,11 @@ function _teardrop_tile() =
 //
 // The interlocking patterns below (tumbling_cubes, rhombille,
 // cairo_pentagonal, intertwine, islamic_star, and the "kis" family:
-// tetrakis_square, kisrhombille, triakis_triangular) all have the same shape: flat-topped "islands" of
-// various heights standing on a flat z=0 ground, separated by a narrow
-// groove. Rather than hand-rolling each outline the way _teardrop_tile()
-// does, they are described as 2D regions plus a height and assembled here.
+// tetrakis_square, kisrhombille, triakis_triangular) all have the same
+// shape: flat-topped "islands" of various heights standing on a flat
+// z=0 ground, separated by a narrow groove. Rather than hand-rolling
+// each outline the way _teardrop_tile() does, they are described as
+// 2D regions plus a height and assembled here.
 //
 // Every island is defined over the *infinite* tiling and then clipped to the
 // unit square, so an island that straddles a tile edge stays straddling and its

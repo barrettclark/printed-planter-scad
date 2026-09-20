@@ -146,10 +146,9 @@ CU_FN=60             # planter.scad's shipped smoothness default
 # by ~25 degrees in both azimuth and elevation. Dead-on, OpenSCAD's
 # camera-mounted light hits every flat plateau at the same angle and patterns
 # built from flat islands (islamic_star, tumbling_cubes, intertwine, rhombille,
-# cairo_pentagonal) wash out to
-# near-invisible outlines. 25/25 rakes the light across the relief while
-# compressing both axes by about the same cos(25)=0.91, so tile aspect is
-# essentially preserved.
+# cairo_pentagonal) wash out to near-invisible outlines. 25/25 rakes the light
+# across the relief while compressing both axes by about the same
+# cos(25)=0.91, so tile aspect is essentially preserved.
 CU_CAMERA="53.6,-115.0,341.9,0,0,282.7"
 CU_IMG="800,800"
 

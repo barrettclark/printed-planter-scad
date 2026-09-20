@@ -30,7 +30,7 @@ jobs:
           # Tests expected to succeed cleanly (exit 0, no ERROR in output).
           # These are compile checks only -- .csg does not evaluate geometry.
           # For test_decoration_pattern_types.scad (one side-by-side solid per
-          # pattern_type, 18 of them) .csg is not a preference, it is
+          # pattern_type, 19 of them) .csg is not a preference, it is
           # required: exporting that file to .stl would union all of them
           # through CGAL, and unioning the "teardrop" solid with another
           # textured solid aborts CGAL outright
@@ -202,12 +202,12 @@ jobs:
           # Render each new pattern_type through the real assembly too, with
           # real .stl evaluation.
           #
-          # Reduced pattern_repeat (3, 4, 8, or 9, not the default 16) and
+          # Reduced pattern_repeat (4, 8, 9, 12, or 13, not the default 16) and
           # smoothness (24, not 60) specifically for this check: at default
           # settings, "bricks" alone measured 2-3+ minutes PER combination for a full
           # difference() against the cavity (its randomized per-facet
           # roughness multiplies out badly), which made real evaluation of
-          # all 26 combinations impractically slow. At these reduced
+          # all 36 combinations impractically slow. At these reduced
           # settings the same "bricks" check measured ~15s and everything
           # else under 5s -- fewer facets to evaluate, same code paths
           # exercised, so this still catches a self-intersecting or
@@ -369,8 +369,9 @@ jobs:
           done
 
           # README documents that "tumbling_cubes" and "islamic_star" union
-          # cleanly with another textured solid, while "teardrop" and
-          # "intertwine" abort CGAL in that case. Nothing enforced the clean
+          # cleanly with another textured solid, while "teardrop",
+          # "intertwine", "rhombille" and "cairo_pentagonal" abort CGAL in
+          # that case. Nothing enforced the clean
           # half of that claim: test_decoration_pattern_types.scad unions every
           # pattern but exports .csg, which never invokes CGAL. That gap is how
           # the claim came to be documented (wrongly) for "intertwine" in the
