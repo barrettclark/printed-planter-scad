@@ -38,8 +38,16 @@ assert(_decoration_style("rhombille", "etched") == undef,
 
 // Unlike tumbling_cubes, every rhombus in rhombille sits at the SAME height,
 // and it's the tile's full height: this pattern is a plain rhombus grid, not
-// an isometric-cube illusion, and pattern_depth should be fully used.
+// an isometric-cube illusion, and pattern_depth should be fully used. Check
+// the constant AND the actual VNF -- asserting _RH_Z alone would still pass
+// if _rhombille_tile() accidentally used tumbling_cubes' own _TC_Z per-rhombus
+// heights instead (a real, easy-to-make copy-paste mistake given how directly
+// this tile reuses tumbling_cubes' island-building loop).
 assert(_RH_Z == 1, str("rhombille's uniform rhombus height must be 1, got ", _RH_Z));
+_zs = unique([for (p = _tex[0]) p[2]]);
+assert(_zs == [0, 1],
+    str("rhombille's VNF must use exactly two Z levels -- ground (0) and every ",
+        "rhombus at the tile's full height (1) -- got ", _zs));
 
 // raised and etched must resolve to the exact same VNF -- rhombille's
 // geometry doesn't depend on relief_mode (decorated_solid()'s tex_inset

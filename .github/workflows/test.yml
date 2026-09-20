@@ -53,8 +53,8 @@ jobs:
             out=$(openscad -o /tmp/ci_$(basename "$f" .scad).csg "$f" 2>&1)
             code=$?
             echo "$out"
-            if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
-              echo "FAIL: $f (exit $code, or ERROR in output)"
+            if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR" || echo "$out" | grep -q "CGAL error"; then
+              echo "FAIL: $f (exit $code, or ERROR/CGAL error in output)"
               fail=1
             fi
           done
@@ -77,8 +77,8 @@ jobs:
             out=$(openscad -o /tmp/ci_test_decoration_$f.stl tests/test_decoration_$f.scad 2>&1)
             code=$?
             echo "$out"
-            if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
-              echo "FAIL: tests/test_decoration_$f.scad (exit $code, or ERROR in output)"
+            if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR" || echo "$out" | grep -q "CGAL error"; then
+              echo "FAIL: tests/test_decoration_$f.scad (exit $code, or ERROR/CGAL error in output)"
               fail=1
             fi
           done
@@ -100,8 +100,8 @@ jobs:
               out=$(openscad -o /tmp/ci_single_${pt}_${relief}.stl /tmp/ci_single_pattern.scad 2>&1)
               code=$?
               echo "$out"
-              if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
-                echo "FAIL: single-pattern texture build for pattern_type=$pt relief_mode=$relief (exit $code, or ERROR in output)"
+              if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR" || echo "$out" | grep -q "CGAL error"; then
+                echo "FAIL: single-pattern texture build for pattern_type=$pt relief_mode=$relief (exit $code, or ERROR/CGAL error in output)"
                 fail=1
               fi
             done
@@ -116,8 +116,8 @@ jobs:
           out=$(openscad -D 'outer_mode="custom"' -o /tmp/ci_variant_custom_outer_mode.stl tests/test_planter_integration.scad 2>&1)
           code=$?
           echo "$out"
-          if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
-            echo "FAIL: full-assembly variant custom_outer_mode (exit $code, or ERROR in output)"
+          if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR" || echo "$out" | grep -q "CGAL error"; then
+            echo "FAIL: full-assembly variant custom_outer_mode (exit $code, or ERROR/CGAL error in output)"
             fail=1
           fi
 
@@ -125,8 +125,8 @@ jobs:
           out=$(openscad -D 'drainage_holes_enabled=true' -o /tmp/ci_variant_drainage_enabled.stl tests/test_planter_integration.scad 2>&1)
           code=$?
           echo "$out"
-          if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
-            echo "FAIL: full-assembly variant drainage_enabled (exit $code, or ERROR in output)"
+          if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR" || echo "$out" | grep -q "CGAL error"; then
+            echo "FAIL: full-assembly variant drainage_enabled (exit $code, or ERROR/CGAL error in output)"
             fail=1
           fi
 
@@ -138,8 +138,8 @@ jobs:
             out=$(openscad -D "insert_preset=\"$preset\"" -o /tmp/ci_variant_preset_${preset}.stl tests/test_planter_integration.scad 2>&1)
             code=$?
             echo "$out"
-            if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
-              echo "FAIL: full-assembly variant insert_preset=$preset (exit $code, or ERROR in output)"
+            if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR" || echo "$out" | grep -q "CGAL error"; then
+              echo "FAIL: full-assembly variant insert_preset=$preset (exit $code, or ERROR/CGAL error in output)"
               fail=1
             fi
           done
@@ -156,8 +156,8 @@ jobs:
             out=$(openscad -D "insert_preset=\"$preset\"" -o /tmp/ci_resolved_${preset}.csg tests/test_insert_preset_resolved.scad 2>&1)
             code=$?
             echo "$out"
-            if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
-              echo "FAIL: insert_preset resolution check for insert_preset=$preset (exit $code, or ERROR in output)"
+            if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR" || echo "$out" | grep -q "CGAL error"; then
+              echo "FAIL: insert_preset resolution check for insert_preset=$preset (exit $code, or ERROR/CGAL error in output)"
               fail=1
             fi
           done
@@ -174,8 +174,8 @@ jobs:
           out=$(openscad -D 'insert_preset="custom"' -D 'insert_top_d=140' -D 'insert_bottom_d=90' -D 'insert_height=111' -o /tmp/ci_resolved_custom.csg tests/test_insert_preset_resolved.scad 2>&1)
           code=$?
           echo "$out"
-          if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
-            echo "FAIL: insert_preset resolution check for insert_preset=custom (exit $code, or ERROR in output)"
+          if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR" || echo "$out" | grep -q "CGAL error"; then
+            echo "FAIL: insert_preset resolution check for insert_preset=custom (exit $code, or ERROR/CGAL error in output)"
             fail=1
           fi
 
@@ -188,8 +188,8 @@ jobs:
           out=$(openscad -D 'insert_preset="medium:Medium (130x120 / 100mm bottom)"' -o /tmp/ci_resolved_medium_labeled.csg tests/test_insert_preset_resolved.scad 2>&1)
           code=$?
           echo "$out"
-          if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
-            echo "FAIL: insert_preset resolution check for insert_preset with Customizer label suffix (exit $code, or ERROR in output)"
+          if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR" || echo "$out" | grep -q "CGAL error"; then
+            echo "FAIL: insert_preset resolution check for insert_preset with Customizer label suffix (exit $code, or ERROR/CGAL error in output)"
             fail=1
           fi
 
@@ -286,8 +286,8 @@ jobs:
             out=$(openscad -D "pattern_type=\"$pt\"" -D "relief_mode=\"$relief\"" -D "pattern_repeat=$reps" -D "smoothness=$smooth" -o /tmp/ci_variant_${pt}_${relief}_${reps}_${smooth}.stl tests/test_planter_integration.scad 2>&1)
             code=$?
             echo "$out"
-            if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
-              echo "FAIL: full-assembly STL evaluation for pattern_type=$pt relief_mode=$relief pattern_repeat=$reps smoothness=$smooth (exit $code, or ERROR in output)"
+            if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR" || echo "$out" | grep -q "CGAL error"; then
+              echo "FAIL: full-assembly STL evaluation for pattern_type=$pt relief_mode=$relief pattern_repeat=$reps smoothness=$smooth (exit $code, or ERROR/CGAL error in output)"
               fail=1
             fi
           }
@@ -354,8 +354,8 @@ jobs:
             out=$(openscad -o /tmp/ci_union_${pt}.stl /tmp/ci_union_${pt}.scad 2>&1)
             code=$?
             echo "$out"
-            if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR"; then
-              echo "FAIL: textured-solid union check for pattern_type=$pt (exit $code, or ERROR in output)"
+            if [ $code -ne 0 ] || echo "$out" | grep -q "ERROR" || echo "$out" | grep -q "CGAL error"; then
+              echo "FAIL: textured-solid union check for pattern_type=$pt (exit $code, or ERROR/CGAL error in output)"
               fail=1
             fi
           done
