@@ -11,7 +11,7 @@
 # user gets.
 #
 # WHY THE `CGAL error` GREP BELOW IS NOT OPTIONAL: "tumbling_cubes",
-# "intertwine", "islamic_star" and "rhombille" abort CGAL at some
+# "intertwine", "islamic_star", "rhombille" and "cairo_pentagonal" abort CGAL at some
 # pattern_repeat/smoothness combinations (README.md, "Note on the interlocking
 # patterns and CGAL"), and when that happens OpenSCAD still exits 0 and still
 # writes a plausible-looking PNG. The console string is the only signal, so a
@@ -20,7 +20,7 @@
 # pattern.
 #
 # Do NOT widen that grep to "WARNING": decorated_solid() echoes a WARNING line
-# on every single render of those four patterns (plus a milder variant for
+# on every single render of those five patterns (plus a milder variant for
 # the "kis" family -- tetrakis_square/kisrhombille/triakis_triangular -- which
 # share the same defensive warning but have measured CGAL-clean everywhere
 # tested) as a proactive notice. Either warning is normal and means nothing
@@ -145,10 +145,10 @@ CU_FN=60             # planter.scad's shipped smoothness default
 # Orthographic, so there is no perspective taper across the frame, and off-axis
 # by ~25 degrees in both azimuth and elevation. Dead-on, OpenSCAD's
 # camera-mounted light hits every flat plateau at the same angle and patterns
-# built from flat islands (islamic_star, tumbling_cubes, intertwine, rhombille) wash out to
-# near-invisible outlines. 25/25 rakes the light across the relief while
-# compressing both axes by about the same cos(25)=0.91, so tile aspect is
-# essentially preserved.
+# built from flat islands (islamic_star, tumbling_cubes, intertwine, rhombille,
+# cairo_pentagonal) wash out to near-invisible outlines. 25/25 rakes the light
+# across the relief while compressing both axes by about the same
+# cos(25)=0.91, so tile aspect is essentially preserved.
 CU_CAMERA="53.6,-115.0,341.9,0,0,282.7"
 CU_IMG="800,800"
 
@@ -312,7 +312,7 @@ done
 # --- full-assembly shots -----------------------------------------------------
 #
 # Shipped defaults for pattern_repeat (16) and smoothness (60): the combination
-# README documents as clean for all four fragile patterns, and the one a
+# README documents as clean for all five fragile patterns, and the one a
 # Customizer user actually gets.
 POT_CAMERA="0,0,75,62,0,25,620"
 POT_IMG="800,800"

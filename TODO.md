@@ -10,7 +10,7 @@
     - [x] Kisrhombille tiling ("V4.6.12") -- batch 1, reuses tumbling_cubes' existing hexagon/rhombus math
     - [x] Triakis triangular tiling ("V3.12^2") -- batch 1
     - [x] Rhombille tiling ("V3.6.3.6", diamond/rhombus motif) -- batch 2, reuses tumbling_cubes' hexagon math directly
-    - [ ] Cairo pentagonal tiling ("V3^2.4.3.4", distinctive interlocking pentagons -- probably the most visually striking one) -- batch 2
+    - [x] Cairo pentagonal tiling ("V3^2.4.3.4", distinctive interlocking pentagons -- probably the most visually striking one) -- batch 2
     - [ ] Prismatic pentagonal tiling ("V3^3.4^2") -- batch 3
     - [ ] Floret pentagonal tiling ("V3^4.6", pinwheel-like pentagon clusters) -- batch 3
     - [ ] Deltoidal trihexagonal tiling ("V3.4.6.4", kite-shaped motif) -- batch 3

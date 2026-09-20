@@ -5,12 +5,13 @@ include <../lib/BOSL2/std.scad>
 // table for _decoration_texture(). Most entries are literal BOSL2 texture
 // names (see the texture() catalog in lib/BOSL2/skin.scad) and map to
 // themselves; the exceptions are "none" (no texture at all), "ridges" (an
-// alias for BOSL2's "ribs"), and the eight custom VNF tiles built below --
-// the five interlocking patterns ("teardrop", "tumbling_cubes",
-// "intertwine", "islamic_star", "rhombille" -- rhombille is the plain
-// rhombille tiling tumbling_cubes' own isometric illusion is built from,
-// and genuinely crosses the tile boundary like the other four) and the
-// three "kis" family patterns ("tetrakis_square", "kisrhombille",
+// alias for BOSL2's "ribs"), and the nine custom VNF tiles built below --
+// the six interlocking patterns ("teardrop", "tumbling_cubes",
+// "intertwine", "islamic_star", "rhombille", "cairo_pentagonal" --
+// rhombille is the plain rhombille tiling tumbling_cubes' own isometric
+// illusion is built from, and cairo_pentagonal is the Cairo pentagonal
+// tiling; both genuinely cross the tile boundary like the other four) and
+// the three "kis" family patterns ("tetrakis_square", "kisrhombille",
 // "triakis_triangular") -- which are not BOSL2 textures at all. So
 // _decoration_texture() returns
 // either a string or a VNF, and callers must not assume a string. The mapping
@@ -19,7 +20,7 @@ PATTERN_TYPES = ["none", "ridges", "diamonds", "hex_grid", "pyramids",
                  "bricks", "checkers", "dots", "cubes", "tri_grid",
                  "teardrop", "tumbling_cubes", "intertwine", "islamic_star",
                  "tetrakis_square", "kisrhombille", "triakis_triangular",
-                 "rhombille"];
+                 "rhombille", "cairo_pentagonal"];
 
 // Excluded from the square-tile correction: "none" has no texture at all;
 // "ridges" is a directional stripe pattern with no discrete shape to square;
@@ -44,10 +45,11 @@ _ASPECT_SQRT3_PATTERNS = ["cubes", "hex_grid", "tri_grid"];
 // taper effect this leaves).
 //
 // The custom VNF tiles (teardrop, tumbling_cubes, intertwine, islamic_star,
-// tetrakis_square, kisrhombille, triakis_triangular, rhombille) are built on
-// _UNIT_TILE, confirmed elsewhere in this file to be exactly the unit
-// square with no intrinsic distortion, so they use the plain formula like
-// every BOSL2 catalog texture without a documented sqrt(3) requirement.
+// tetrakis_square, kisrhombille, triakis_triangular, rhombille,
+// cairo_pentagonal) are built on _UNIT_TILE, confirmed elsewhere in this
+// file to be exactly the unit square with no intrinsic distortion, so they
+// use the plain formula like every BOSL2 catalog texture without a
+// documented sqrt(3) requirement.
 function _square_tile_vertical_reps(pattern_type, pattern_orientation, pattern_repeat, r1, r2, height) =
     in_list(pattern_type, _ASPECT_EXCLUDED_PATTERNS) ? pattern_repeat :
     let(
@@ -170,7 +172,7 @@ function _teardrop_tile() =
 
 // --- Shared plateau-tile builder --------------------------------------------
 //
-// The interlocking patterns below (tumbling_cubes, rhombille, intertwine,
+// The patterns below (tumbling_cubes, rhombille, cairo_pentagonal, intertwine,
 // islamic_star, and the "kis" family: tetrakis_square, kisrhombille,
 // triakis_triangular) all have the same shape: flat-topped "islands" of
 // various heights standing on a flat z=0 ground, separated by a narrow
@@ -178,9 +180,15 @@ function _teardrop_tile() =
 // does, they are described as 2D regions plus a height and assembled here.
 //
 // Every island is defined over the *infinite* tiling and then clipped to the
-// unit square, so an island that straddles a tile edge stays straddling and its
-// two halves meet up across the seam. That is what makes the patterns
-// interlock rather than sit in visible boxes.
+// unit square, so an island that straddles a tile edge stays straddling and
+// its two halves meet up across the seam. That is what makes tumbling_cubes/
+// rhombille/cairo_pentagonal/intertwine/islamic_star's motifs interlock
+// rather than sit in visible boxes -- see README.md for the definition this
+// project uses for "interlocking". The "kis" family does NOT rely on this:
+// _kis_shrunk_fan() shrinks every fan triangle away from all its own edges,
+// including ones that land on the tile boundary, so its islands never
+// straddle the seam at all; its own continuity across tiles comes from the
+// fan pattern repeating identically, not from a literal split island.
 _UNIT_TILE = [[0,0],[1,0],[1,1],[0,1]];
 
 // Region booleans and offset() compute intersections in floating point, so the
@@ -326,6 +334,59 @@ function _rhombille_tile() =
         for (c = _TC_CENTERS) for (k = [0:2])
             let (r = offset(_tc_rhombus(c, k), delta = -_RH_GAP / 2, closed = true))
             if (len(r) >= 3) [[r], _RH_Z]]);
+
+// --- Cairo pentagonal (dual of the snub square tiling) ----------------------
+//
+// Wikipedia "V3^2.4.3.4": a tessellation by congruent, irregular,
+// bilaterally-symmetric convex pentagons -- four long edges and one short
+// edge, two non-adjacent right angles. Every pentagon sits at the same
+// height here (like rhombille), since -- unlike the "kis" family -- a single
+// Cairo pentagon has no natural sub-fan to vary height across; see this
+// pattern's plan document (docs/superpowers/plans/2026-09-19-cairo-pentagonal-pattern.md)
+// for the full derivation and the computational area/closure verification
+// this construction is based on (Python/shapely area-and-overlap checks on a
+// 13x13-cell patch, plus a live OpenSCAD/BOSL2 smoke test of this exact code
+// path) -- do not re-derive the lattice by hand; it was verified, not guessed.
+//
+// Starting pentagon (Wikipedia's own "type 4" worked example), rotated 90
+// degrees about its own right-angle vertex (3,3) three times to close a
+// 4-pentagon pinwheel (the tiling's translational fundamental domain), then
+// mapped into unit-tile space by u=(x+y)/12, v=(x-y)/12 -- a pure rotation
+// plus uniform scale (verified to send this pinwheel's translation lattice
+// vectors (6,6) and (6,-6) exactly onto (1,0) and (0,1)). The 4 resulting
+// pentagons below are already in that normalized (u,v) space; each has area
+// exactly 1/4 and is wound CW (the normalizing transform reverses the
+// original CCW winding -- verified harmless to BOSL2's offset()).
+_CP_P0 = [[-1/6,-1/6], [1/6,1/6], [1/2,0], [1/3,-1/3], [0,-1/2]];
+_CP_P1 = [[1/3,2/3],   [2/3,1/3], [1/2,0], [1/6,1/6],   [0,1/2]];
+_CP_P2 = [[7/6,1/6],   [5/6,-1/6],[1/2,0], [2/3,1/3],   [1,1/2]];
+_CP_P3 = [[2/3,-2/3],  [1/3,-1/3],[1/2,0], [5/6,-1/6],  [1,-1/2]];
+_CP_PENTS = [_CP_P0, _CP_P1, _CP_P2, _CP_P3];
+
+// Which (lattice-step, pentagon-orientation) copies have any overlap with the
+// unit square -- exhaustively searched over lattice steps -2..2 in each
+// direction; exactly these 8 do (their clipped areas sum to exactly 1.0, and
+// their union was verified to equal the unit square exactly, with zero
+// overlap among them). Each entry is [m, n, k]: pentagon _CP_PENTS[k]
+// translated by (m, n) in unit-tile lattice steps.
+_CP_PLACEMENTS = [[-1,0,2], [0,0,0], [0,0,1], [0,0,2],
+                  [0,1,0], [0,1,2], [0,1,3], [1,1,0]];
+
+function _cp_pentagon(m, n, k) = [for (p = _CP_PENTS[k]) [p[0] + m, p[1] + n]];
+
+_CP_GAP = 0.05; // engraved groove width, in tile fractions -- own constant,
+                // same scale as _KIS_GAP/_RH_GAP but never shared with them
+_CP_Z   = 1.0;  // every pentagon reaches the tile's full height (uniform,
+                // like rhombille -- see this pattern's plan document's
+                // "Relief Mode Decision" for why no relief_mode split is used)
+
+function _cairo_pentagonal_tile() =
+    _tile_from_islands([
+        for (pl = _CP_PLACEMENTS)
+            let (poly = _cp_pentagon(pl[0], pl[1], pl[2]),
+                 r = offset(poly, delta = -_CP_GAP / 2, closed = true))
+            if (len(r) >= 3) [[r], _CP_Z]
+    ]);
 
 // --- Kisrhombille (kis of the rhombille tiling) ------------------------------
 //
@@ -509,6 +570,7 @@ function _decoration_texture(pattern_type, relief_mode) =
     pattern_type == "kisrhombille"    ? _kisrhombille_tile(relief_mode) :
     pattern_type == "triakis_triangular" ? _triakis_triangular_tile(relief_mode) :
     pattern_type == "rhombille"          ? _rhombille_tile() :
+    pattern_type == "cairo_pentagonal"   ? _cairo_pentagonal_tile() :
     pattern_type;
 
 // Heightfield textures have their grid samples triangulated according to a
@@ -558,12 +620,18 @@ module decorated_solid(pattern_type, pattern_orientation, relief_mode, pattern_d
         // directly (same large flat plateaus, just one height instead of
         // three) and measured the same class of CGAL fragility -- see
         // README.md for the specific failing/clean values.
+        // "cairo_pentagonal" tiles 8 flat pentagon plateaus per unit tile and
+        // measured the same fragility in a real sweep (it aborts at
+        // pattern_repeat 3, 5, 10 and 11 at smoothness=24, and at
+        // smoothness=100 in "etched" at the shipped pattern_repeat=16), so it
+        // belongs in this bucket rather than the precautionary one below.
         // The three "kis" family patterns share the same small-triangular-facet
         // tile construction and get the same defensive warning as a precaution,
         // but every tested pattern_repeat/smoothness/relief_mode combination for
         // them has measured CGAL-clean, so their message doesn't claim a known
         // failure -- see README.md's CGAL section.
-        if (in_list(pattern_type, ["tumbling_cubes", "intertwine", "islamic_star", "rhombille"]))
+        if (in_list(pattern_type, ["tumbling_cubes", "intertwine", "islamic_star", "rhombille",
+                                   "cairo_pentagonal"]))
             echo(str("WARNING: pattern_type \"", pattern_type, "\" is known to abort CGAL ",
                      "for some pattern_repeat/smoothness combinations, and OpenSCAD still ",
                      "exits 0 and writes a truncated STL when it does. Scan this console for ",
