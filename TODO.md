@@ -15,4 +15,19 @@
     - [x] Floret pentagonal tiling ("V3^4.6", pinwheel-like pentagon clusters) -- batch 3
     - [ ] Deltoidal trihexagonal tiling ("V3.4.6.4", kite-shaped motif) -- batch 3
   - (Excluded on purpose: the apeirogonal hosohedron/order-2 apeirogonal tiling and their prism/antiprism/dual variants from the same Wikipedia list -- these involve infinite-sided polygons and aren't practical decorative motifs for a finite tile.)
+* [ ] "etched" doesn't do what was originally wanted for most patterns -- the goal was
+  the outline of each shape engraved into the planter (flat surface, thin incised line
+  tracing the motif), like it was etched into stone or glass. That's only actually true
+  for "ridges"/"pyramids"/"diamonds" (and "hex_grid"/"tri_grid", which shift the same
+  panel/groove relief inward) -- those keep a flat panel and cut a thin V-groove along
+  the outline. Every other pattern's "etched" instead sinks the WHOLE shape as a
+  recessed copy of the raised relief (a dimple/recess, or for "rhombille"/
+  "cairo_pentagonal"/"tumbling_cubes"/"islamic_star" a true inverted copy of the entire
+  raised motif, not just its outline; the "kis" family and "floret_pentagonal" are a
+  third case -- a separate flat panel with only a thin groove BETWEEN facets, which is
+  closer to the outline idea but traces facet boundaries within the motif, not the
+  motif's own outer silhouette). Needs a real design pass on what "etched" should mean
+  for each pattern family, not just the current mode-independent-vs-mode-dependent
+  split -- possibly a genuine third relief style (flat wall + thin V-groove along each
+  motif's outer boundary only) distinct from both "raised" and the current "etched".
 * [ ] "bricks" pattern_type looks like a basket weave (too square/wide per brick), especially at lower pattern_repeat -- confirmed the root cause: BOSL2's "bricks" heightfield hardcodes exactly one brick per tile width (only 2 brick-rows per tile height, offset for the running-bond look), so brick width is set entirely by pattern_repeat. Doubling pattern_repeat was tried and bricks are still about twice as wide as wanted. Needs either (a) a "bricks"-specific horizontal-density multiplier decoupled from pattern_repeat (similar to how the "kis" family patterns get their own independent constants), or (b) a custom hand-rolled brick tile with more than one brick per unit-tile-width, rather than relying on BOSL2's built-in "bricks"/"bricks_vnf" textures.
