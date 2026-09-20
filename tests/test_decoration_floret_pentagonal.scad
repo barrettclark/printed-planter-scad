@@ -85,11 +85,12 @@ for (tex = [_tex_raised, _tex_etched]) {
         lo = _tile_edge_profile(tex, axis, 0);
         hi = _tile_edge_profile(tex, axis, 1);
         name = (axis == 0) ? "x" : "y";
-        // This construction's own derivation (see the plan's Geometry
-        // Derivation, Step 6) found exactly 5 points on the x=0/x=1 edges
-        // and 3 points on the y=0/y=1 edges -- both well beyond the 2 tile
-        // corners alone, so more than 2 is what proves a pentagon genuinely
-        // spans the seam, not just touches at a corner.
+        // The shipped VNF (post-groove-shrink, not the plan's pre-groove
+        // pentagon corner counts from Geometry Derivation Step 6, which are
+        // 5 and 3) has 18 points on the x=0/x=1 edges and 10 points on the
+        // y=0/y=1 edges -- both well beyond the 2 tile corners alone, so
+        // more than 2 is what proves a pentagon genuinely spans the seam,
+        // not just touches at a corner.
         assert(len(lo) > 2,
             str("floret_pentagonal tile has only ", len(lo), " vertices on its ", name,
                 "=0 edge -- no pentagon spans the seam"));

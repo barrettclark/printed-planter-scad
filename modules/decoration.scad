@@ -722,8 +722,11 @@ module decorated_solid(pattern_type, pattern_orientation, relief_mode, pattern_d
         // belongs in this bucket rather than the precautionary one below.
         // "floret_pentagonal" has the largest per-tile island count of the
         // group (18 flat pentagon plateaus per unit tile, vs. Cairo's 8) and
-        // measured the worst fragility of any pattern here in a real sweep --
-        // including at the shipped defaults in "raised" mode. See README.md.
+        // measured the widest spread of aborting pattern_repeat values of any
+        // pattern here in a real sweep. The shipped defaults themselves (16,
+        // smoothness=60) measure clean in both relief modes, but with a
+        // thinner margin below them than any other pattern, so CI pins them.
+        // See README.md.
         // The three "kis" family patterns share the same small-triangular-facet
         // tile construction and get the same defensive warning as a precaution,
         // but every tested pattern_repeat/smoothness/relief_mode combination for
