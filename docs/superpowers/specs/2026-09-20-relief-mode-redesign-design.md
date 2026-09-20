@@ -86,75 +86,141 @@ stays the architecture: only what a pattern's tile function returns, and what
 9 of this project's 10 custom VNF tiles (`tumbling_cubes`, `intertwine`,
 `islamic_star`, `tetrakis_square`, `kisrhombille`, `triakis_triangular`,
 `rhombille`, `cairo_pentagonal`, `floret_pentagonal`) are already built as a
-list of `[region, height]` islands, fed to `_tile_from_islands()`. That
-islands list is the natural shared input for both new modes for these 9 — no
-per-pattern outline-tracing or alternation logic needs writing 9 times.
-**`teardrop` is the exception**: `_teardrop_tile()` is a hand-rolled VNF
-(built directly from `_td_border()`/`_td_wall()`, predating
-`_tile_from_islands()`) with no islands list to feed either new builder — see
-"Per-pattern classification" below for how it's scoped.
+list of `[region, height]` islands, fed to `_tile_from_islands()`. But that
+*already-built* islands list is **not** directly reusable as input to either
+new builder — see the two corrections below, both confirmed against the real
+code and both real enough to change the shape of this section:
 
-**`_tile_outline_from_islands(islands, outer_gap, inner_gap)`** (etched):
-unions every island's *region* (ignoring height — outline mode doesn't care
-which parts were tall) into one footprint, then returns a flat tile at
-`z = 1` almost everywhere, with two groove tiers cut into it:
+**Correction 1 — the outline builder needs pre-shrink geometry, not the
+already-gapped islands list.** Every existing island-building loop shrinks
+its own region away from its neighbours *before* handing it to
+`_tile_from_islands()` (`offset(delta = -gap/2, ...)` — e.g.
+`_TC_GAP`/`_KIS_GAP` at `modules/decoration.scad:310-320`/`265-270`). That
+shrink is what creates today's raised-mode groove between adjacent facets.
+It also means the shrunk islands never actually touch each other — three
+originally-adjacent rhombi in one `tumbling_cubes` hexagon become three
+separate, disconnected shapes with a real gap between all of them.
+`union([for (il = islands) il[0]])` over these already-disconnected pieces
+does **not** merge them back into one motif silhouette; it just returns the
+same scattered pieces, and every edge of every piece looks equally "outer" —
+there is no way to recover which edges were the motif's true outer boundary
+versus internal facet seams from the shrunk data alone. The outline builder
+therefore needs the **original, unshrunk** region data grouped by motif —
+concretely, each pattern's islands-building loop needs to also produce (or
+the outline path needs to be built from) a list of *motif groups*, each
+group being the original (pre-`offset()`) sub-regions that make up one
+motif instance (e.g. one hexagon's 3 original rhombi, one kis-fan's N
+original triangles; a pattern with one flat shape per motif is simply a
+group of size 1). Within one group, unioning the *original* (still-touching)
+sub-regions gives the true outer silhouette; the internal boundaries between
+a group's own sub-regions (recoverable because they still share exact edges
+before any shrink) give the secondary groove. This is a real, non-trivial
+change to how several patterns build their islands, not just a new consumer
+of existing data — call it out as its own step in Task 1, per-pattern, not a
+one-line addition.
 
-1. A primary groove (width `outer_gap`) along the union's *outer* boundary
-   only — critically, **not** along any portion of that boundary that
-   coincides with the tile's own edge (`x` or `y` equal to `0` or `1`).
-   `_tile_walls()` already has to solve exactly this problem for vertical
-   walls (an island that straddles a tile edge continues into the
-   neighbouring tile there, so there is no wall — see `_tile_on_edge()`),
-   and the outline groove needs the identical exception: a naive
-   whole-boundary `region - offset(region, delta = -outer_gap)` would carve
-   a groove along every tile-repeat seam for any interlocking motif, which
-   is wrong — it would look like a visible grid instead of one continuous
-   silhouette. The real construction has to build the thin band *per
-   boundary segment* (the way `_tile_walls()` iterates `path[i]`/`path[i+1]`
-   pairs), omitting the groove on any segment `_tile_on_edge()` already
-   recognizes as shared with a neighbour, and only offsetting/grooving the
-   segments that are genuinely interior to this one tile.
-2. A secondary groove (width `inner_gap`, and/or a shallower depth than the
+**`_tile_outline_from_islands(motif_groups, outer_gap, inner_gap)`** (etched),
+with the corrected input above: for each group, union its own original
+sub-regions into the group's outer silhouette; union all groups' silhouettes
+together for the tile-wide "raised region" (used only to compute the
+ground/panel split, at `z = 1` everywhere inside it, `z = 1` minus a primary
+groove along the *outer* boundary of that combined silhouette); trace each
+group's own internal sub-region boundaries as the secondary groove. Two
+groove tiers, both edge-aware the same way:
+
+1. Primary groove (width `outer_gap`) along the combined outer silhouette —
+   **not** along any portion of that boundary that coincides with the
+   tile's own edge (`x` or `y` equal to `0` or `1`). `_tile_walls()` already
+   solves exactly this problem for vertical walls (an island that straddles
+   a tile edge continues into the neighbouring tile there, so there is no
+   wall — see `_tile_on_edge()`), and the outline groove needs the identical
+   exception: a naive whole-boundary offset would carve a groove along
+   every tile-repeat seam for any interlocking motif, which is wrong — one
+   continuous silhouette would look like a visible grid instead. Build the
+   thin band *per boundary segment* (the way `_tile_walls()` iterates
+   `path[i]`/`path[i+1]` pairs), omitting the groove on any segment
+   `_tile_on_edge()` already recognizes as shared with a neighbour.
+2. Secondary groove (width `inner_gap`, and/or a shallower depth than the
    primary groove — an implementation-time call on which reads better,
-   width, depth, or both) along the *internal* boundaries between adjacent
-   islands that both survive into the outer union — i.e. the boundary
-   segments that are NOT part of the outer union's own silhouette (they're
-   interior to it) and NOT on the tile edge either. This is what keeps, for
-   example, the "kis" family's individual fan-triangle edges or
-   `tumbling_cubes`'/`rhombille`'s per-rhombus edges visible as a lighter
-   secondary line, rather than discarding them into one undifferentiated
-   hexagon/rosette outline. Patterns whose islands never touch each other
-   (nothing to trace internally) simply produce an empty secondary-groove
-   set — this degrades gracefully, not as a special case to code around.
+   width, depth, or both) along each group's own internal sub-region
+   boundaries — the edges that existed in the group's *original*,
+   pre-shrink geometry and are shared between two of that group's own
+   sub-regions. This is what keeps, for example, the "kis" family's
+   individual fan-triangle edges or `tumbling_cubes`'/`rhombille`'s
+   per-rhombus edges visible as a lighter secondary line, rather than
+   discarding them into one undifferentiated hexagon/rosette outline.
+   Groups with only one sub-region (nothing internal to trace) simply
+   produce an empty secondary-groove contribution — this degrades
+   gracefully, not as a special case to code around.
 
-Work out the exact per-segment construction for both tiers during
-implementation (Task 1's own job, not this spec's) — this section is scoped
-to state the requirement correctly, not to hand over working code for it.
+Work out the exact per-segment construction for both tiers, and the exact
+shape each pattern's islands-building loop needs to also expose its
+pre-shrink motif groups, during implementation (Task 1's own job, not this
+spec's) — this section is scoped to state the requirement correctly, not to
+hand over working code for it.
 
-**`_tile_alternating_from_islands(islands, gap, high_group)`**
-(alternating): like `_tile_from_islands()`, but every island's height is
-forced to either `1` or `0` (not the island's own original height), and the
-caller uses `tex_inset = 0.5` rather than `tex_inset = false`/`true` so
-`decorated_solid()` renders the `0`-height islands as sunk and the
-`1`-height islands as raised, in one pass. **`high_group` is a per-island
-group id, not a flat list index into `islands`** — every pattern here packs
-more than one raw region per copy/center/placement before flattening (e.g.
-`tumbling_cubes` emits 3 rhombus islands per hexagon center, so a flat index
-like `[0, 3]` does not mean "centers 0 and 3"; `cairo_pentagonal`/
-`floret_pentagonal`'s placement index `k` likewise does not line up with the
-flattened list position after clipping drops empty islands). The actual
-mechanism: each caller's islands-building loop must tag every island it
-emits with the copy/center/placement identity it came from (e.g. `c` for
-`tumbling_cubes`, `pl[2]` for `cairo_pentagonal`/`floret_pentagonal`) *before*
-flattening, and `_tile_alternating_from_islands()` takes a `high_group`
-predicate/set tested against that tag, not the island's position in the
-flattened list. Concretely, `islands` for this builder is
-`[[region, height, group_id], ...]` (one extra field versus
-`_tile_from_islands()`'s plain `[region, height]`), and `high_group` is the
-set of `group_id` values that render high. This needs a small signature
-change to how each pattern's islands-building loop is written, not just a
-new consumer — call this out explicitly in Task 1 rather than discovering it
-mid-implementation.
+**Correction 2 — the alternating builder needs its own nominal-wall ground
+plane, not `_tile_from_islands()`'s hardcoded one.**
+`_tile_from_islands()`'s `ground` (the `_UNIT_TILE` area outside every
+island) is always built at `z = 0` with no `transform` applied
+(`modules/decoration.scad:233-236`) — it has no relationship to `tex_inset`
+at all; it is simply the tile's floor. With `tex_inset = 0.5`, the real
+formula `(z - inset) * scale` sends that entire `z = 0` ground to
+`(0 - 0.5) * depth`, i.e. it sinks the whole background by half depth along
+with every low island, instead of sitting at the neutral wall surface the
+alternating design actually needs there. Reusing `_tile_from_islands()`
+verbatim with 0/1 island heights therefore does **not** produce a
+nominal-wall-plus-mixed-bumps-and-dimples result — it produces a
+uniformly-sunk background with islands poking up out of it, which is closer
+to ordinary raised-mode with an offset than genuine bas-relief.
+`_tile_alternating_from_islands()` needs its own ground construction at
+`z = 0.5` (either a small, explicit fork of `_tile_from_islands()`'s
+assembly logic with `transform = up(0.5)` on the ground `vnf_from_region()`
+call, or a generalization of `_tile_from_islands()` itself to take an
+optional `ground_z` parameter defaulting to `0` so every existing caller is
+unaffected — the implementer's call which is cleaner once the actual code is
+in front of them).
+
+**`_tile_alternating_from_islands(islands, high_group)`** (alternating),
+corrected: like `_tile_from_islands()` but with (a) every island's height
+forced to `1` (high) or `0` (low, but still above the `z = 0.5` ground —
+i.e. rendered as a real, if shallow, sunk facet, not flattened into the
+ground plane) according to group membership, and (b) the ground built at
+`z = 0.5` per Correction 2 above, with the caller using `tex_inset = 0.5`.
+**`high_group` is a per-island group id, not a flat list index into
+`islands`** — every pattern here packs more than one raw region per
+copy/center/placement before flattening (e.g. `tumbling_cubes` emits 3
+rhombus islands per hexagon center, so a flat index like `[0, 3]` does not
+mean "centers 0 and 3"; `cairo_pentagonal`/`floret_pentagonal`'s placement
+index `k` likewise does not line up with the flattened list position after
+clipping drops empty islands). The actual mechanism: each caller's
+islands-building loop must tag every island it emits with the copy/center/
+placement identity it came from (e.g. `c` for `tumbling_cubes`, `pl[2]` for
+`cairo_pentagonal`/`floret_pentagonal`) *before* flattening, and
+`_tile_alternating_from_islands()` takes a `high_group` predicate/set tested
+against that tag, not the island's position in the flattened list.
+Concretely, `islands` for this builder is `[[region, height, group_id], ...]`
+(one extra field versus `_tile_from_islands()`'s plain `[region, height]`),
+and `high_group` is the set of `group_id` values that render high. This
+needs a small signature change to how each pattern's islands-building loop
+is written, not just a new consumer — call this out explicitly in Task 1
+rather than discovering it mid-implementation.
+
+**`intertwine` cannot support `"alternating"` in Phase 1.**
+`_intertwine_tile()` deliberately unions every ring strand into a *single*
+island before it ever reaches `_tile_from_islands()`
+(`modules/decoration.scad:587-588`) — there is no per-ring identity left to
+tag for `high_group`, and splitting the strands back apart to tag them would
+reintroduce the exact problem that union was written to avoid (overlapping
+strands producing an unclosed/invalid VNF at their crossings — see that
+function's own comment). `intertwine` therefore joins `teardrop` as a
+Phase-1 exception for `"alternating"` specifically (its outline/etched
+support is unaffected by this — the outer-silhouette construction can still
+union the original per-ring strand pieces the same way `_intertwine_tile()`
+already does, since outline mode only needs the combined outer boundary, not
+a live per-ring tag; whether its overlapping strands also need special care
+for the *secondary* internal groove is a real open question, flagged for
+Task 1 rather than resolved here).
 
 Both builders live in `modules/decoration.scad` next to `_tile_from_islands()`
 and reuse its existing `_tile_quantize()`/clipping/winding machinery — they
@@ -167,14 +233,16 @@ are new *assemblers* over the same islands data, not a new geometry pipeline.
 | `none` | — | — | not applicable (no texture) |
 | `ridges`, `pyramids`, `diamonds`, `hex_grid`, `tri_grid` | BOSL2 heightfield | **unchanged** — already a true outline/panel engrave | not supported yet (see Phase 2) |
 | `dots`, `cubes`, `checkers`, `bricks` | BOSL2 heightfield, unchanged | Phase 2 (see below) | Phase 2 |
-| `tumbling_cubes`, `intertwine`, `islamic_star`, `tetrakis_square`, `kisrhombille`, `triakis_triangular`, `rhombille`, `cairo_pentagonal`, `floret_pentagonal` | unchanged | `_tile_outline_from_islands()` on the pattern's existing islands list (edge-aware, see above) | `_tile_alternating_from_islands()` on the same islands, once each island carries its group id (see above) |
+| `tumbling_cubes`, `islamic_star`, `tetrakis_square`, `kisrhombille`, `triakis_triangular`, `rhombille`, `cairo_pentagonal`, `floret_pentagonal` | unchanged | `_tile_outline_from_islands()` on the pattern's motif groups (edge-aware, see above) | `_tile_alternating_from_islands()` on the same islands, once each island carries its group id (see above) |
+| `intertwine` | unchanged | `_tile_outline_from_islands()`, same as the row above (its motif "group" is the whole unioned ring set — see above) | **not in Phase 1** — `_intertwine_tile()` unions every ring into one island before there's anything left to tag; see above |
 | `teardrop` | unchanged | not in Phase 1 — no islands list exists to feed the shared builder; needs its own hand-rolled outline construction (or explicit exclusion) as a separate, smaller task | not in Phase 1, same reason |
 
-**Phase 1** (this plan) covers the 9 already-islands-based custom VNF tiles
-(everything except `teardrop`, which has no islands list — see its own row
+**Phase 1** (this plan) covers `"etched"` for 9 patterns (everything except
+`teardrop`, which has no islands list) and `"alternating"` for 8 of those 9
+(everything except `intertwine`, which cannot expose per-ring groups — see
 above) — plus wiring `"alternating"` into `PATTERN_TYPES` as a `relief_mode`
 value (not a `pattern_type`) with a clear assertion for patterns that don't
-support it yet, `teardrop` included.
+support it.
 
 **Phase 2** (separate, future plan, not detailed here): convert `"dots"`,
 `"cubes"`, `"checkers"`, `"bricks"` from BOSL2-native heightfields into
@@ -192,11 +260,12 @@ if wanted later.
 
 `decorated_solid()`'s existing `assert(in_list(pattern_type, PATTERN_TYPES), ...)`
 gets a sibling: `relief_mode` must be one of `["raised", "etched", "alternating"]`,
-and if `relief_mode == "alternating"`, `pattern_type` must be one of the 9
-islands-based custom VNF tiles (Phase 1's list, `teardrop` excluded) or
-`"none"` is rejected too (no texture to alternate) — assert with a clear
-message naming which pattern_types currently support `"alternating"`, rather
-than silently falling back to `"raised"`.
+and if `relief_mode == "alternating"`, `pattern_type` must be one of the 8
+patterns that support it (`teardrop` and `intertwine` both excluded, for
+different reasons — see "Per-pattern classification" above) or `"none"` is
+rejected too (no texture to alternate) — assert with a clear message naming
+which pattern_types currently support `"alternating"`, rather than silently
+falling back to `"raised"`.
 
 ### Per-pattern `high_group` choice for `"alternating"`
 
@@ -220,9 +289,11 @@ high/low assignment over those tags:
 - The "kis" family: group by fan-triangle index within each centroid fan (already
   alternates 2 or 3 heights in raised mode for the pinwheel look — reuse that
   same index, collapsed to high/low).
-- `intertwine`: by ring-center index (`_IW_CENTERS`).
 - `islamic_star`: star high, all 4 crosses low (or some other split — visual
   judgment call during implementation).
+
+(`intertwine` is not in this list — see "Per-pattern classification" above
+for why it can't support `"alternating"` in Phase 1.)
 
 None of this requires deriving new geometry: every island in every list above
 already exists for raised mode. `"alternating"` mode only changes which
