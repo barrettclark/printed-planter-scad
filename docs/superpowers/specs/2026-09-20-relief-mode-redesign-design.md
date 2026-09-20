@@ -389,25 +389,37 @@ high/low assignment over those tags:
   exactly two groups: all of indices 0-3 (the corner hexagon, wherever it's
   clipped) in one group, index 4 (the center hexagon) in the other —
   alternate corner-hexagon-high/center-hexagon-low or the reverse, not an
-  arbitrary index subset. `cairo_pentagonal`/`floret_pentagonal`'s
-  placement-`k` tags need the same periodic-equivalence check before Task 1
-  commits to a parity rule there too: `_CP_PLACEMENTS`
-  (`modules/decoration.scad:379`) has multiple entries sharing the same `k`
-  at different `(m,n)` offsets (e.g. `k=2` appears at `(-1,0)`, `(0,0)`, and
-  `(0,1)`), and it is not yet established whether those are independent
-  physical placements or periodic images of one motif the way
-  `tumbling_cubes`' corners are — Task 1 must verify this the same way
-  before grouping by `k` alone, not assume it by analogy. Confirm any
-  chosen grouping visually during implementation once the actual mesh is in
-  front of the implementer — this remains a design judgment call among the
-  *valid* groupings, not a derived fact, but it must start from a grouping
-  that doesn't break seam continuity.
-- `cairo_pentagonal`/`floret_pentagonal`: group by placement/orientation
-  (`_CP_PLACEMENTS`'/`_FP_PLACEMENTS`' own `k`, tagged per island before
-  flattening — `floret_pentagonal` already has a working "even k high, odd k
-  low" rule for its *raised* mode's existing alternation; reuse that same
-  parity, just mapped to `1`/`0` instead of `1`/`_FP_Z_LO`, with
-  `tex_inset = 0.5`).
+  arbitrary index subset. `cairo_pentagonal`/`floret_pentagonal` have the
+  same class of problem, now resolved directly (see the next bullet) rather
+  than left for Task 1 to re-derive: `k` in both `_CP_PLACEMENTS`
+  (`modules/decoration.scad:383`) and `_FP_PLACEMENTS`
+  (`modules/decoration.scad:455-462`) is a sub-motif's orientation *within*
+  one hub cluster, not the hub's own identity — both placement lists have
+  multiple entries sharing the same `k` at different `(m,n)` hubs, and
+  multiple entries sharing the same `(m,n)` hub at different `k`, so `k`
+  alone both collides distinct hubs together and splits one hub's own
+  cluster apart. The high/low split within the corrected hub-based grouping
+  is still a design judgment call to confirm visually once the actual mesh
+  is in front of the implementer, but the grouping itself is now a derived
+  fact, not an assumption.
+- `cairo_pentagonal`/`floret_pentagonal`: **`group_id` must be the hub's
+  `(m, n)` position, not the placement's `k`** — `k` is a sub-motif's
+  orientation *within* one hub's cluster (`_FP_PLACEMENTS` has six entries
+  sharing the same hub, one per pentagon in that hub's rosette;
+  `_CP_PLACEMENTS` has the same shape, multiple `k` values at a shared
+  `(m,n)`), so a `k`-only `group_id` would treat different hubs' pentagons
+  as one motif and one hub's own rosette as several — exactly backwards,
+  the same collision the "kis" family bullet below describes for
+  fan-triangle index. `alt_key`, by contrast, is `k` itself: tag every
+  island with both its hub `(m,n)` (for `group_id`) and its `k` (for
+  `alt_key`) before flattening. `floret_pentagonal` already has a working
+  "even k high, odd k low" rule for its *raised* mode's existing
+  alternation; reuse that same `k`-based parity for `alt_key`'s high/low
+  split, just mapped to `1`/`0` instead of `1`/`_FP_Z_LO`, with
+  `tex_inset = 0.5`. `cairo_pentagonal` has no existing raised-mode parity
+  to reuse (it's uniform-height in raised mode), so Task 1 picks any `k`
+  parity that reads well once rendered — a visual judgment call among valid
+  `alt_key` splits, same as the other patterns here, not a derived fact.
 - The "kis" family: **the fan-triangle index alone is not a valid `group_id`**
   for `kisrhombille`/`triakis_triangular` — only `tetrakis_square` has a
   single fan per tile (`modules/decoration.scad:287-289`), so local index is
