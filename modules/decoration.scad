@@ -829,7 +829,8 @@ module decorated_solid(pattern_type, pattern_orientation, relief_mode, pattern_d
                      "exits 0 and writes a truncated STL when it does. Scan this console for ",
                      "a CGAL assertion before trusting the export; if you see one, nudge ",
                      "pattern_repeat or smoothness. See README.md."));
-        else if (in_list(pattern_type, ["tetrakis_square", "kisrhombille", "triakis_triangular"]))
+        else if (in_list(pattern_type, ["tetrakis_square", "kisrhombille", "triakis_triangular",
+                                        "deltoidal_trihexagonal"]))
             echo(str("WARNING: pattern_type \"", pattern_type, "\" carries the same precautionary ",
                      "CGAL warning as the other custom VNF tile patterns (small triangular facets, ",
                      "same general class of tile construction), but has measured CGAL-clean at ",
