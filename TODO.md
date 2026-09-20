@@ -12,7 +12,7 @@
     - [x] Rhombille tiling ("V3.6.3.6", diamond/rhombus motif) -- batch 2, reuses tumbling_cubes' hexagon math directly
     - [x] Cairo pentagonal tiling ("V3^2.4.3.4", distinctive interlocking pentagons -- probably the most visually striking one) -- batch 2
     - [ ] Prismatic pentagonal tiling ("V3^3.4^2") -- batch 3
-    - [ ] Floret pentagonal tiling ("V3^4.6", pinwheel-like pentagon clusters) -- batch 3
+    - [x] Floret pentagonal tiling ("V3^4.6", pinwheel-like pentagon clusters) -- batch 3
     - [ ] Deltoidal trihexagonal tiling ("V3.4.6.4", kite-shaped motif) -- batch 3
   - (Excluded on purpose: the apeirogonal hosohedron/order-2 apeirogonal tiling and their prism/antiprism/dual variants from the same Wikipedia list -- these involve infinite-sided polygons and aren't practical decorative motifs for a finite tile.)
 * [ ] "bricks" pattern_type looks like a basket weave (too square/wide per brick), especially at lower pattern_repeat -- confirmed the root cause: BOSL2's "bricks" heightfield hardcodes exactly one brick per tile width (only 2 brick-rows per tile height, offset for the running-bond look), so brick width is set entirely by pattern_repeat. Doubling pattern_repeat was tried and bricks are still about twice as wide as wanted. Needs either (a) a "bricks"-specific horizontal-density multiplier decoupled from pattern_repeat (similar to how the "kis" family patterns get their own independent constants), or (b) a custom hand-rolled brick tile with more than one brick per unit-tile-width, rather than relying on BOSL2's built-in "bricks"/"bricks_vnf" textures.

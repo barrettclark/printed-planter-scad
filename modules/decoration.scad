@@ -5,14 +5,19 @@ include <../lib/BOSL2/std.scad>
 // table for _decoration_texture(). Most entries are literal BOSL2 texture
 // names (see the texture() catalog in lib/BOSL2/skin.scad) and map to
 // themselves; the exceptions are "none" (no texture at all), "ridges" (an
-// alias for BOSL2's "ribs"), and the nine custom VNF tiles built below --
-// the six interlocking patterns ("teardrop", "tumbling_cubes",
-// "intertwine", "islamic_star", "rhombille", "cairo_pentagonal" --
-// rhombille is the plain rhombille tiling tumbling_cubes' own isometric
-// illusion is built from, and cairo_pentagonal is the Cairo pentagonal
-// tiling; both genuinely cross the tile boundary like the other four) and
-// the three "kis" family patterns ("tetrakis_square", "kisrhombille",
-// "triakis_triangular") -- which are not BOSL2 textures at all. So
+// alias for BOSL2's "ribs"), and the ten custom VNF tiles built below --
+// the seven interlocking patterns ("teardrop", "tumbling_cubes",
+// "intertwine", "islamic_star", "rhombille", "cairo_pentagonal",
+// "floret_pentagonal" -- rhombille is the plain rhombille tiling
+// tumbling_cubes' own isometric illusion is built from, cairo_pentagonal is
+// the Cairo pentagonal tiling, and floret_pentagonal is the floret
+// pentagonal tiling; all genuinely cross the tile boundary like the other
+// four) and the three "kis" family patterns ("tetrakis_square",
+// "kisrhombille", "triakis_triangular") -- which are not BOSL2 textures at
+// all. "floret_pentagonal" straddles those two groups: it interlocks across
+// the seam like the first group, but its 6-pentagon rosette is a fan with
+// real sub-structure, so like the "kis" family (and unlike every other
+// interlocking pattern here) its tile geometry depends on relief_mode. So
 // _decoration_texture() returns
 // either a string or a VNF, and callers must not assume a string. The mapping
 // is also relief-mode dependent -- see _decoration_etched_texture().
@@ -20,7 +25,7 @@ PATTERN_TYPES = ["none", "ridges", "diamonds", "hex_grid", "pyramids",
                  "bricks", "checkers", "dots", "cubes", "tri_grid",
                  "teardrop", "tumbling_cubes", "intertwine", "islamic_star",
                  "tetrakis_square", "kisrhombille", "triakis_triangular",
-                 "rhombille", "cairo_pentagonal"];
+                 "rhombille", "cairo_pentagonal", "floret_pentagonal"];
 
 // Excluded from the square-tile correction: "none" has no texture at all;
 // "ridges" is a directional stripe pattern with no discrete shape to square;
@@ -46,10 +51,10 @@ _ASPECT_SQRT3_PATTERNS = ["cubes", "hex_grid", "tri_grid"];
 //
 // The custom VNF tiles (teardrop, tumbling_cubes, intertwine, islamic_star,
 // tetrakis_square, kisrhombille, triakis_triangular, rhombille,
-// cairo_pentagonal) are built on _UNIT_TILE, confirmed elsewhere in this
-// file to be exactly the unit square with no intrinsic distortion, so they
-// use the plain formula like every BOSL2 catalog texture without a
-// documented sqrt(3) requirement.
+// cairo_pentagonal, floret_pentagonal) are built on _UNIT_TILE, confirmed
+// elsewhere in this file to be exactly the unit square with no intrinsic
+// distortion, so they use the plain formula like every BOSL2 catalog texture
+// without a documented sqrt(3) requirement.
 function _square_tile_vertical_reps(pattern_type, pattern_orientation, pattern_repeat, r1, r2, height) =
     in_list(pattern_type, _ASPECT_EXCLUDED_PATTERNS) ? pattern_repeat :
     let(
@@ -172,8 +177,9 @@ function _teardrop_tile() =
 
 // --- Shared plateau-tile builder --------------------------------------------
 //
-// The patterns below (tumbling_cubes, rhombille, cairo_pentagonal, intertwine,
-// islamic_star, and the "kis" family: tetrakis_square, kisrhombille,
+// The patterns below (tumbling_cubes, rhombille, cairo_pentagonal,
+// floret_pentagonal, intertwine, islamic_star,
+// and the "kis" family: tetrakis_square, kisrhombille,
 // triakis_triangular) all have the same shape: flat-topped "islands" of
 // various heights standing on a flat z=0 ground, separated by a narrow
 // groove. Rather than hand-rolling each outline the way _teardrop_tile()
@@ -182,7 +188,8 @@ function _teardrop_tile() =
 // Every island is defined over the *infinite* tiling and then clipped to the
 // unit square, so an island that straddles a tile edge stays straddling and
 // its two halves meet up across the seam. That is what makes tumbling_cubes/
-// rhombille/cairo_pentagonal/intertwine/islamic_star's motifs interlock
+// rhombille/cairo_pentagonal/floret_pentagonal/intertwine/islamic_star's
+// motifs interlock
 // rather than sit in visible boxes -- see README.md for the definition this
 // project uses for "interlocking". The "kis" family does NOT rely on this:
 // _kis_shrunk_fan() shrinks every fan triangle away from all its own edges,
@@ -388,6 +395,93 @@ function _cairo_pentagonal_tile() =
             if (len(r) >= 3) [[r], _CP_Z]
     ]);
 
+// --- Floret pentagonal (dual of the snub trihexagonal tiling) --------------
+//
+// Wikipedia "V3^4.6": rosettes of 6 congruent, irregular pentagons pinwheel
+// around a shared hub point where all 6 meet (four 120-degree angles and one
+// 60-degree angle per pentagon, the 60-degree angle always at the hub).
+// Unlike cairo_pentagonal/rhombille, each rosette IS a multi-facet fan around
+// a shared point -- structurally the same shape as the "kis" family's own
+// N-way fans, just with pentagons instead of triangles and a hub vertex
+// instead of a face centroid -- so this pattern DOES take a relief_mode
+// parameter and alternates 2 heights around the rosette in "raised" mode,
+// like tetrakis_square/kisrhombille's own even-fan alternation. See this
+// pattern's plan document (docs/superpowers/plans/2026-09-20-floret-pentagonal-pattern.md)
+// for the full derivation and the computational verification this
+// construction is based on (a from-scratch snub-trihexagonal-tiling
+// construction verified over a 150-vertex patch, its face-centroid dual
+// verified the same way, an exact-Fraction lattice-covering/closure proof
+// including a wider 4x4-tile-patch confirmation, plus a live OpenSCAD/BOSL2
+// smoke test of this exact code path) -- do not re-derive the lattice by
+// hand; it was verified, not guessed.
+//
+// The hexagon-center lattice underlying this tiling is a plain 60-degree
+// TRIANGULAR lattice (two generators, equal length, 60 degrees apart) --
+// the SAME shape of lattice tumbling_cubes/rhombille/kisrhombille already
+// use for their own hexagon centers (_TC_V/_TC_CENTERS), which is why this
+// pattern needs no shear and no new aspect-correction mechanism: like
+// tumbling_cubes' _TC_V, the rotation + sqrt(3)-family anisotropic scale
+// that normalizes this lattice to _UNIT_TILE space is baked directly into
+// the pentagon vertex coordinates below, not applied at render time. The 5
+// hub positions below are exactly _TC_CENTERS' own 5 positions -- verified,
+// not assumed by analogy.
+//
+// _FP_P0.._FP_P5 are the tiling's 6 pentagon orientations (the full rosette
+// around one hub), already normalized into unit-tile space, each listed
+// with its shared hub vertex (0,0) first. All 6 have area exactly 1/12, are
+// convex, and wind CCW.
+_FP_P0 = [[0,0], [2/7,-4/21], [1/2,-1/6], [4/7,-1/21], [3/7,1/21]];
+_FP_P1 = [[0,0], [3/7,1/21], [1/2,1/6], [5/14,11/42], [1/7,5/21]];
+_FP_P2 = [[-2/7,4/21], [0,0], [1/7,5/21], [0,1/3], [-3/14,13/42]];
+_FP_P3 = [[-4/7,1/21], [-3/7,-1/21], [0,0], [-2/7,4/21], [-1/2,1/6]];
+_FP_P4 = [[-1/2,-1/6], [-5/14,-11/42], [-1/7,-5/21], [0,0], [-3/7,-1/21]];
+_FP_P5 = [[-1/7,-5/21], [0,-1/3], [3/14,-13/42], [2/7,-4/21], [0,0]];
+_FP_PENTS = [_FP_P0, _FP_P1, _FP_P2, _FP_P3, _FP_P4, _FP_P5];
+
+// Which (hub, orientation) copies have any overlap with the unit square --
+// exhaustively searched over the 5 canonical hub positions (_TC_CENTERS'
+// own (0,0)/(1,0)/(0,1)/(1,1)/(0.5,0.5)) plus 2 extra copies of the
+// (0.5,0.5) hub shifted +-1 in x (needed for full coverage -- see the plan's
+// Geometry Derivation, Step 6, for why the naive 5-hub-only search came up
+// 1/84 short of full unit-square area until this was found). Each entry is
+// [hub_x, hub_y, k]: pentagon _FP_PENTS[k] translated so its hub sits at
+// (hub_x, hub_y). Exactly these 18 placements' clipped areas sum to exactly
+// 1.0, and their union was verified to equal the unit square exactly, with
+// zero overlap among them.
+_FP_PLACEMENTS = [
+    [-1/2, 1/2, 0], [0, 1, 0], [0, 1, 5],
+    [0, 0, 0], [0, 0, 1], [0, 0, 2],
+    [1/2, 1/2, 0], [1/2, 1/2, 1], [1/2, 1/2, 2],
+    [1/2, 1/2, 3], [1/2, 1/2, 4], [1/2, 1/2, 5],
+    [1, 1, 3], [1, 1, 4], [1, 1, 5],
+    [1, 0, 2], [1, 0, 3], [3/2, 1/2, 3],
+];
+
+function _fp_pentagon(m, n, k) = [for (p = _FP_PENTS[k]) [p[0] + m, p[1] + n]];
+
+_FP_GAP  = 0.05; // engraved groove width, in tile fractions -- own constant,
+                 // same scale as _KIS_GAP/_TC_GAP/_RH_GAP/_CP_GAP but never
+                 // shared with them
+_FP_Z_HI = 1.0;  // every rosette's "high" pentagons reach the tile's full height
+_FP_Z_LO = 0.45; // the rosette's alternating "low" pentagons -- own constant,
+                 // even though it numerically matches tetrakis_square's own
+                 // low height, per this file's per-pattern-constant convention
+
+// Raised mode alternates high/low by placement orientation k (even -> high,
+// odd -> low) -- consistent across every hub instance, since every hub
+// shares the identical 6-orientation set. Etched mode flattens every
+// pentagon to the tile's full height, like the "kis" family's own etched
+// mode -- see this pattern's plan document's "Relief Mode Decision".
+function _floret_pentagonal_tile(relief_mode) =
+    _tile_from_islands([
+        for (pl = _FP_PLACEMENTS)
+            let (poly = _fp_pentagon(pl[0], pl[1], pl[2]),
+                 r = offset(poly, delta = -_FP_GAP / 2, closed = true),
+                 z = (relief_mode == "etched") ? _FP_Z_HI
+                     : ((pl[2] % 2 == 0) ? _FP_Z_HI : _FP_Z_LO))
+            if (len(r) >= 3) [[r], z]
+    ]);
+
 // --- Kisrhombille (kis of the rhombille tiling) ------------------------------
 //
 // Wikipedia: kis applied to the rhombille tiling's rhombi ("each rhombus
@@ -571,6 +665,7 @@ function _decoration_texture(pattern_type, relief_mode) =
     pattern_type == "triakis_triangular" ? _triakis_triangular_tile(relief_mode) :
     pattern_type == "rhombille"          ? _rhombille_tile() :
     pattern_type == "cairo_pentagonal"   ? _cairo_pentagonal_tile() :
+    pattern_type == "floret_pentagonal"  ? _floret_pentagonal_tile(relief_mode) :
     pattern_type;
 
 // Heightfield textures have their grid samples triangulated according to a
@@ -625,13 +720,17 @@ module decorated_solid(pattern_type, pattern_orientation, relief_mode, pattern_d
         // pattern_repeat 3, 5, 10 and 11 at smoothness=24, and at
         // smoothness=100 in "etched" at the shipped pattern_repeat=16), so it
         // belongs in this bucket rather than the precautionary one below.
+        // "floret_pentagonal" has the largest per-tile island count of the
+        // group (18 flat pentagon plateaus per unit tile, vs. Cairo's 8) and
+        // measured the worst fragility of any pattern here in a real sweep --
+        // including at the shipped defaults in "raised" mode. See README.md.
         // The three "kis" family patterns share the same small-triangular-facet
         // tile construction and get the same defensive warning as a precaution,
         // but every tested pattern_repeat/smoothness/relief_mode combination for
         // them has measured CGAL-clean, so their message doesn't claim a known
         // failure -- see README.md's CGAL section.
         if (in_list(pattern_type, ["tumbling_cubes", "intertwine", "islamic_star", "rhombille",
-                                   "cairo_pentagonal"]))
+                                   "cairo_pentagonal", "floret_pentagonal"]))
             echo(str("WARNING: pattern_type \"", pattern_type, "\" is known to abort CGAL ",
                      "for some pattern_repeat/smoothness combinations, and OpenSCAD still ",
                      "exits 0 and writes a truncated STL when it does. Scan this console for ",

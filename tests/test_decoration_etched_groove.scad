@@ -57,7 +57,13 @@ VNF_PATTERN_TYPES = ["teardrop", "tumbling_cubes", "intertwine", "islamic_star",
 // in), raised alternates heights across the fan. So they get their own
 // category and their own checks below rather than joining VNF_PATTERN_TYPES,
 // whose defining assertion (etched tile == raised tile) does not hold here.
-KIS_PATTERN_TYPES = ["tetrakis_square", "kisrhombille", "triakis_triangular"];
+// "floret_pentagonal" is not a Conway kis-operation tiling, but its
+// 6-pentagon rosette is a fan around a shared hub with exactly the same kind
+// of sub-structure, so it behaves identically here (raised alternates
+// heights around the rosette, etched flattens every pentagon to one height)
+// and every assertion in this category applies to it unchanged.
+KIS_PATTERN_TYPES = ["tetrakis_square", "kisrhombille", "triakis_triangular",
+                     "floret_pentagonal"];
 
 // Every other pattern_type has no flat-top counterpart and must keep today's
 // inset-the-bump behavior: same texture in both modes, and therefore the same
