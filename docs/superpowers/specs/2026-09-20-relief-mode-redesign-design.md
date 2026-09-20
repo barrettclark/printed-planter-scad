@@ -359,21 +359,54 @@ alternate by — no new geometry, just tagging each island with that identity
 when it's built (see "Shared infrastructure" above) and then a different
 high/low assignment over those tags:
 
-- `tumbling_cubes`/`rhombille`: group by hexagon-center (`_TC_CENTERS` has 5
-  positions per tile, each contributing 2-3 islands that must all share one
-  group tag — alternate e.g. centers `[0,3]` high, `[1,2,4]` low, or a
-  parity rule over the hexagon lattice `(m,n)` if that reads better once
-  rendered — confirm visually during implementation, this is a design
-  judgment call, not a derived fact).
+- `tumbling_cubes`/`rhombille`: group by hexagon-center, but naively —
+  `_TC_CENTERS = [[0,0],[1,0],[0,1],[1,1],[0.5,0.5]]` (`modules/decoration.scad:311`)
+  has 5 *positions*, but only **2 distinct physical hexagons**: the four
+  corner positions (indices 0-3) are periodic images of one hexagon sitting
+  at each integer lattice corner (the same hexagon clipped differently by
+  the unit-tile boundary as it repeats), and only index 4 is a second,
+  genuinely separate hexagon at the true tile center. An index-based split
+  like "`[0,3]` high, `[1,2,4]` low" assigns different heights to two
+  clipped pieces of the *same* physical motif, breaking the tile-seam
+  height match BOSL2's stitching depends on. The correct grouping has
+  exactly two groups: all of indices 0-3 (the corner hexagon, wherever it's
+  clipped) in one group, index 4 (the center hexagon) in the other —
+  alternate corner-hexagon-high/center-hexagon-low or the reverse, not an
+  arbitrary index subset. `cairo_pentagonal`/`floret_pentagonal`'s
+  placement-`k` tags need the same periodic-equivalence check before Task 1
+  commits to a parity rule there too: `_CP_PLACEMENTS`
+  (`modules/decoration.scad:379`) has multiple entries sharing the same `k`
+  at different `(m,n)` offsets (e.g. `k=2` appears at `(-1,0)`, `(0,0)`, and
+  `(0,1)`), and it is not yet established whether those are independent
+  physical placements or periodic images of one motif the way
+  `tumbling_cubes`' corners are — Task 1 must verify this the same way
+  before grouping by `k` alone, not assume it by analogy. Confirm any
+  chosen grouping visually during implementation once the actual mesh is in
+  front of the implementer — this remains a design judgment call among the
+  *valid* groupings, not a derived fact, but it must start from a grouping
+  that doesn't break seam continuity.
 - `cairo_pentagonal`/`floret_pentagonal`: group by placement/orientation
   (`_CP_PLACEMENTS`'/`_FP_PLACEMENTS`' own `k`, tagged per island before
   flattening — `floret_pentagonal` already has a working "even k high, odd k
   low" rule for its *raised* mode's existing alternation; reuse that same
   parity, just mapped to `1`/`0` instead of `1`/`_FP_Z_LO`, with
   `tex_inset = 0.5`).
-- The "kis" family: group by fan-triangle index within each centroid fan (already
-  alternates 2 or 3 heights in raised mode for the pinwheel look — reuse that
-  same index, collapsed to high/low).
+- The "kis" family: **the fan-triangle index alone is not a valid `group_id`**
+  for `kisrhombille`/`triakis_triangular` — only `tetrakis_square` has a
+  single fan per tile (`modules/decoration.scad:287-289`), so local index is
+  safe there. `kisrhombille` builds 15 separate fans (`modules/decoration.scad:500-505`,
+  5 hexagon centers × 3 rhombi each) and `triakis_triangular` builds 2
+  (`modules/decoration.scad:524-528`, cells `_TT_A`/`_TT_B`) — using just the
+  local triangle index as `group_id` would collide triangle 0 of one fan
+  with triangle 0 of every other fan, which the outline builder would then
+  treat as one same-motif internal seam instead of the real motif-to-motif
+  boundaries between separate rhombi/cells, silently suppressing grooves
+  that should exist. `group_id` must be a composite key unique per fan
+  (e.g. `(c, k)` for `kisrhombille`, `A`/`B` for `triakis_triangular`,
+  trivially the single cell for `tetrakis_square`); the fan-triangle
+  index stays in use, but only as a *separate* key for the alternating
+  high/low choice (reusing the same 2-or-3-height pinwheel pattern raised
+  mode already uses, collapsed to high/low), not for edge classification.
 - `islamic_star`: star high, all 4 crosses low (or some other split — visual
   judgment call during implementation).
 
@@ -410,7 +443,14 @@ branch now that `"etched"`'s geometry actually differs from `"raised"`'s).
   `z = 0.5` ground plus the `0`/`1` high/low facets — not the pattern's own
   raised heights), assert it differs from both the raised and etched VNF,
   and render it through the same CGAL-forcing `difference()` every other mode
-  already gets.
+  already gets. Also assert the tile-seam invariant directly for the alternating VNF, the
+  same way every Phase-1 pattern's own test already does for its raised VNF
+  (e.g. `tests/test_decoration_tumbling_cubes.scad`'s `_tile_edge_profile`
+  check — matching opposite-edge vertex positions, including Z, not just
+  that both x=0/x=1 or y=0/y=1 vertex groups exist) — a naive `high_group`
+  choice can produce a VNF whose vertex *positions* still match at the seam
+  while the *Z values* on either side disagree, which an existence-only
+  check would miss entirely.
 - `test_decoration_pattern_types.scad`/`test_decoration_etched_groove.scad`
   gain the same kind of expected-list update this project already does for
   every new pattern/mode addition.
@@ -474,7 +514,7 @@ item is added for Phase 2 (the four BOSL2-native pattern conversions).
 
 ## Rollout
 
-Given the scope (a new shared mechanism plus per-pattern wiring across 9
+Given the scope (a new shared mechanism plus per-pattern wiring across 8
 existing tiles), this should go through the same plan → worktree →
 subagent-driven-development flow already used for each pattern addition, but
 as its own dedicated plan — not folded into the next tessellation-pattern PR.
