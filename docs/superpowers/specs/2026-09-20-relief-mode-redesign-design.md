@@ -217,10 +217,26 @@ wall from literal `z = 0` to `z = 1`, running straight through the new
 would get `_tile_walls(path, 0)` — a wall from `0` to `0`, i.e. degenerate
 (zero height), leaving no actual side wall connecting the low island's own
 top face to the surrounding `z = 0.5` ground at all. `_tile_walls()` itself
-needs the same `ground_z` parameter as the ground face — its two hardcoded
-`0`s become `ground_z`, and each wall runs from `ground_z` to the island's
-own height, in both directions (a "low" island's wall then correctly runs
-from `ground_z` *down* to its lower height, not up).
+needs the same `ground_z` parameter as the ground face, but a plain
+substitution of `ground_z` for its two hardcoded `0`s is not enough on its
+own. The function's own comment documents why the vertex order
+`[[a,ground_z],[b,ground_z],[b,z],[a,z]]` faces outward: it relies on `z`
+being strictly greater than the lower vertices' height, which is true for
+every existing caller (raised heights are always positive) but false for a
+"low" island in alternating mode, where `z = 0 < ground_z = 0.5` — the same
+ordering formula there produces a quad whose face normal has flipped (the
+vertical component of the quad's spanning vectors changes sign), so the
+wall faces inward instead of outward. `_tile_walls()` needs a real
+conditional on the sign of `z - ground_z`, not just a parameter rename: when
+`z >= ground_z` build the quad as today (`[[a,ground_z],[b,ground_z],
+[b,z],[a,z]]`); when `z < ground_z`, build it with the low/high pair
+swapped instead (`[[a,z],[b,z],[b,ground_z],[a,ground_z]]`, or equivalently
+reverse the existing quad's vertex order) so the outward-facing convention
+holds in both directions. Task 1 must implement this conditional explicitly
+and verify it with a real CGAL render of a low island's wall, not just a
+z-level assertion — a flipped normal doesn't always fail visibly at the VNF
+level, only downstream in CGAL's manifoldness check or in a visibly inverted
+face.
 
 **`_tile_alternating_from_islands(islands, high_group)`** (alternating),
 corrected: like `_tile_from_islands()` but with (a) every island's height
