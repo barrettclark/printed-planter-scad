@@ -205,6 +205,23 @@ optional `ground_z` parameter defaulting to `0` so every existing caller is
 unaffected — the implementer's call which is cleaner once the actual code is
 in front of them).
 
+**This is not the only place `0` is hardcoded — `_tile_walls(path, z)` bakes
+the same assumption into every island's side wall**, not just the ground
+face: it builds each wall as `[[a,0],[b,0],[b,z],[a,z]]` (literal `0` for
+the lower vertices, `modules/decoration.scad:227`), i.e. every wall always
+runs from the tile floor up to its island's own height. Moving only the
+ground *face* to `z = 0.5` and leaving `_tile_walls()` untouched breaks
+every island's own wall: a "high" island (height `1`) would still get a
+wall from literal `z = 0` to `z = 1`, running straight through the new
+`z = 0.5` ground instead of starting there; a "low" island (height `0`)
+would get `_tile_walls(path, 0)` — a wall from `0` to `0`, i.e. degenerate
+(zero height), leaving no actual side wall connecting the low island's own
+top face to the surrounding `z = 0.5` ground at all. `_tile_walls()` itself
+needs the same `ground_z` parameter as the ground face — its two hardcoded
+`0`s become `ground_z`, and each wall runs from `ground_z` to the island's
+own height, in both directions (a "low" island's wall then correctly runs
+from `ground_z` *down* to its lower height, not up).
+
 **`_tile_alternating_from_islands(islands, high_group)`** (alternating),
 corrected: like `_tile_from_islands()` but with (a) every island's height
 forced to `1` (high) or `0` (low, genuinely below the `z = 0.5` ground —
