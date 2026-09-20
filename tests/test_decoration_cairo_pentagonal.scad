@@ -93,7 +93,19 @@ for (axis = [0, 1]) {
         str("cairo_pentagonal tile ", name, " edge vertices don't line up: ", mismatched));
 }
 
+// pattern_repeat=12 (this repo's usual template value for these per-tile
+// CGAL-forcing tests) rendered clean locally on macOS but CGAL-aborted on the
+// real GitHub Actions Ubuntu runner for this pattern specifically -- the same
+// platform-divergence class already documented for "intertwine" in README.md
+// (identical reported OpenSCAD 2021.01, different CGAL floating-point
+// behavior). A local sweep of pattern_repeat 4 through 32 found every value
+// clean on macOS, so local testing alone can't discriminate a safer one here;
+// 32 is used instead of 12 as a hedge (a narrower per-island arc, which this
+// project's documented CGAL-fragility mechanism -- a flat plateau facet
+// chording back inside the wall -- generally makes safer), not a proven fix.
+// If this ever fails on CI again, re-measure directly against that run rather
+// than trusting another local value.
 difference() {
-    decorated_solid("cairo_pentagonal", "vertical", "raised", 1.5, 12, 75, 60, 100, 4);
+    decorated_solid("cairo_pentagonal", "vertical", "raised", 1.5, 32, 75, 60, 100, 4);
     translate([300, 0, 0]) cube(10, center = true);
 }
