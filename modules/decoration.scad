@@ -457,6 +457,73 @@ function _outline_region_edge_keys(region) =
     : [for (part = region_parts(region)) for (p = part)
         for (i = [0:len(p)-1]) _outline_edge_key(p[i], p[(i + 1) % len(p)])];
 
+// Guards the assumption _tile_two_tier_from_regions() rests on: that the
+// panel and the pocket subdivide their shared boundary into the SAME
+// segments, so the edge-key lookup recognises every shared edge. If they
+// ever disagree -- new motif geometry, a different gap ratio -- the lookup
+// silently misses and a wall goes missing or gets doubled. Three patterns
+// still to come through this builder will put that assumption on new
+// geometry, so it is checked rather than trusted.
+//
+// Deliberately a build-time assert. The bug this builder exists to fix cost
+// two rounds to find precisely because nothing complained until a real
+// assembly's cavity subtraction aborted inside CGAL: the tile passed every
+// shape assertion it had, and a lone decorated solid still exported
+// happily. Two checks, because neither alone is enough -- see each one's
+// own note below.
+function _tile_assert_two_tier_closed(vnf) =
+    let (
+        verts = vnf[0],
+        // The tile is a surface patch, so every edge must be shared by
+        // exactly two faces except along the tile border, where the
+        // neighbouring repeat continues it. Compares vertex INDICES:
+        // vnf_merge_points() has already collapsed identical points, so this
+        // is both exact and cheap.
+        pairs = sort([for (f = vnf[1]) for (i = [0:len(f)-1])
+            let (a = f[i], b = f[(i + 1) % len(f)]) a < b ? [a, b] : [b, a]]),
+        n = len(pairs),
+        // One entry per distinct edge, with its use count capped at 3 -- past
+        // 2 it is already an error, so there is nothing more to count.
+        counts = [for (i = [0:n-1]) if (i == 0 || pairs[i] != pairs[i-1])
+            [pairs[i],
+             (i + 1 < n && pairs[i+1] == pairs[i])
+                 ? ((i + 2 < n && pairs[i+2] == pairs[i]) ? 3 : 2) : 1]],
+        dangling = [for (c = counts)
+            if (c[1] == 1 && !_tile_on_edge(verts[c[0][0]], verts[c[0][1]])) c[0]],
+        doubled = [for (c = counts) if (c[1] > 2) c[0]],
+        // Every edge being used exactly twice is necessary but NOT
+        // sufficient, and the bug this builder exists to fix proves it: the
+        // old panel-1->0 / pocket-0.5->0 double wall had every edge count at
+        // exactly 2, because the pocket's own rim sat in the INTERIOR of the
+        // panel wall's vertical edge rather than meeting its end. That is a
+        // T-junction, and only this second check sees it. Restricted to
+        // vertical edges because every wall here is vertical and every
+        // vertex shares its column's (x, y) exactly -- _tile_quantize() and
+        // vnf_merge_points() have already made that comparison exact.
+        verticals = [for (c = counts)
+            let (a = verts[c[0][0]], b = verts[c[0][1]])
+            if (a[0] == b[0] && a[1] == b[1])
+                [a[0], a[1], min(a[2], b[2]), max(a[2], b[2])]],
+        tjunctions = [for (e = verticals) for (v = verts)
+            if (v[0] == e[0] && v[1] == e[1] && v[2] > e[2] && v[2] < e[3]) [e, v]]
+    )
+    assert(len(dangling) == 0,
+        str("_tile_two_tier_from_regions(): ", len(dangling), " open edge(s) away from the ",
+            "tile border -- a wall is missing, so the panel and pocket regions must be ",
+            "splitting their shared boundary differently. First: ",
+            verts[dangling[0][0]], " -> ", verts[dangling[0][1]]))
+    assert(len(doubled) == 0,
+        str("_tile_two_tier_from_regions(): ", len(doubled), " edge(s) used by more than two ",
+            "faces -- a wall is doubled, so a shared panel/pocket edge was not recognised ",
+            "as shared. First: ", verts[doubled[0][0]], " -> ", verts[doubled[0][1]]))
+    assert(len(tjunctions) == 0,
+        str("_tile_two_tier_from_regions(): ", len(tjunctions), " T-junction(s) -- a vertex ",
+            "sits partway up a wall instead of at its end, so two tiers are walled on one ",
+            "edge instead of stepping between. First: vertex ", tjunctions[0][1],
+            " inside the wall at x,y ", [tjunctions[0][0][0], tjunctions[0][0][1]],
+            " spanning z ", [tjunctions[0][0][2], tjunctions[0][0][3]]))
+    vnf;
+
 // The two-tier tile is a HEIGHT FIELD, and _tile_from_islands() cannot build
 // a correct one for it. That builder's model is islands separated by ground:
 // it walls every island from its own top straight down to the single global
@@ -493,7 +560,7 @@ function _tile_two_tier_from_regions(panel, secondary, inner_z) =
         p_keys = len(s) == 0 ? [] : _outline_region_edge_keys(p),
         s_keys = len(s) == 0 ? [] : _outline_region_edge_keys(s)
     )
-    vnf_merge_points(_tile_quantize(vnf_join(concat(
+    _tile_assert_two_tier_closed(vnf_merge_points(_tile_quantize(vnf_join(concat(
         [vnf_from_region(ground, transform = up(0), reverse = true)],
         [vnf_from_region(p, transform = up(1), reverse = true)],
         len(s) == 0 ? [] : [vnf_from_region(s, transform = up(inner_z), reverse = true)],
@@ -522,7 +589,7 @@ function _tile_two_tier_from_regions(panel, secondary, inner_z) =
         [for (part = region_parts(s)) for (path = part) let (q = reverse(path))
             for (i = [0:len(q)-1]) let (a = q[i], b = q[(i + 1) % len(q)])
                 if (!_tile_on_edge(a, b) && !in_list(_outline_edge_key(a, b), p_keys))
-                    _tile_wall_quad(a, b, inner_z, 0)]))));
+                    _tile_wall_quad(a, b, inner_z, 0)])))));
 
 function _tile_outline_from_islands(motif_groups, outer_gap, inner_gap, union_batch_size = 8) =
     let (
