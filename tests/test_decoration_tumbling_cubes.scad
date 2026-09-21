@@ -75,3 +75,64 @@ difference() {
     decorated_solid("tumbling_cubes", "vertical", "raised", 1.5, 12, 75, 60, 100, 4);
     translate([300, 0, 0]) cube(10, center = true);
 }
+
+// _TC_CENTERS has 5 positions but only 2 distinct physical hexagons (0-3 are
+// periodic images of the corner one). Grouping by position index instead
+// would give two clipped pieces of the same motif different heights and
+// break the tile seam, so pin the count.
+_TC_OUTER_GAP_EXPECTED_GROUP_COUNT = 2;
+assert(len(_tc_motif_groups()) == _TC_OUTER_GAP_EXPECTED_GROUP_COUNT,
+    str("_tc_motif_groups() must return exactly ", _TC_OUTER_GAP_EXPECTED_GROUP_COUNT,
+        " groups (corner-hexagon cluster, centre hexagon), got ", len(_tc_motif_groups())));
+
+_tex_etched = _decoration_texture("tumbling_cubes", "etched");
+assert(is_vnf(_tex_etched), "_decoration_texture(\"tumbling_cubes\", \"etched\") must be a valid VNF");
+assert(_tex_etched != _tex, "tumbling_cubes etched tile must differ from raised (whole-shape inversion is gone)");
+_etched_zs = unique([for (p = _tex_etched[0]) p[2]]);
+assert(_etched_zs == [0, 0.5, 1],
+    str("tumbling_cubes etched VNF must use exactly Z levels {0, 0.5, 1} (two-tier groove: primary ",
+        "between the two physical hexagons, secondary within one hexagon's own 3 rhombi), got ", _etched_zs));
+
+_tex_alt = _decoration_texture("tumbling_cubes", "alternating");
+assert(is_vnf(_tex_alt), "_decoration_texture(\"tumbling_cubes\", \"alternating\") must be a valid VNF");
+_alt_zs = unique([for (p = _tex_alt[0]) p[2]]);
+assert(_alt_zs == [0, 0.5, 1],
+    str("tumbling_cubes alternating VNF must use exactly Z levels {0, 0.5, 1}, got ", _alt_zs));
+assert(_tex_alt != _tex && _tex_alt != _tex_etched,
+    "tumbling_cubes alternating tile must differ from both raised and etched");
+
+for (tex = [_tex_etched, _tex_alt]) {
+    for (axis = [0, 1]) {
+        lo = _tile_edge_profile(tex, axis, 0);
+        hi = _tile_edge_profile(tex, axis, 1);
+        name = (axis == 0) ? "x" : "y";
+        assert(len(lo) == len(hi),
+            str("tumbling_cubes tile has ", len(lo), " vertices on ", name, "=0 but ",
+                len(hi), " on ", name, "=1 -- tiles cannot stitch"));
+        mismatched = [for (i = [0:len(lo)-1]) if (!approx(lo[i], hi[i]))
+                         str(name, "=0 ", lo[i], " vs ", name, "=1 ", hi[i])];
+        assert(len(mismatched) == 0,
+            str("tumbling_cubes tile ", name, " edge vertices don't line up (including Z): ", mismatched));
+    }
+}
+
+// Deliberately NO second/third top-level solid for "etched"/"alternating":
+// OpenSCAD unions every top-level object through CGAL on .stl export, and
+// this pattern family cannot survive that union once its plateaus share a
+// height. Measured on OpenSCAD 2021.01 at r1=75/r2=60/h=100, $fn=4,
+// pattern_repeat=12: "raised" + "alternating" aborts CGAL
+// (SNC_external_structure.h:1153), and so does "alternating" x2, while each
+// one ALONE is a clean 2-volume manifold. This is not new and not this
+// tile's etched/alternating code: the shipped "raised" tile with its three
+// _TC_Z heights merely permuted -- [0.62, 1.0, 0.30] instead of
+// [0.30, 1.0, 0.62] -- aborts the same way, and "rhombille" (the same
+// hexagon/rhombus geometry at one uniform height) already aborts a union of
+// two "raised" copies on unmodified main. Spatial separation does not help;
+// the union itself is what fails. README.md's CGAL section already states
+// the rule this restores: keep such a pattern the only textured solid per
+// render. The etched/alternating tiles stay pinned by the VNF assertions
+// above; "etched" additionally gets a real manifold check from
+// .github/workflows/test.yml's loops, which render one solid at a time.
+// "alternating" is not in CI's relief-mode loops yet (they run raised and
+// etched only) -- it was verified by hand here, rendering alone at this
+// file's own geometry: Simple yes, 2 volumes, no CGAL error.

@@ -49,13 +49,12 @@ assert(_zs == [0, 1],
     str("rhombille's VNF must use exactly two Z levels -- ground (0) and every ",
         "rhombus at the tile's full height (1) -- got ", _zs));
 
-// raised and etched must resolve to the exact same VNF -- rhombille's
-// geometry doesn't depend on relief_mode (decorated_solid()'s tex_inset
-// handles the raised/etched distinction), unlike the three kis-family
-// patterns which genuinely build a different tile per mode.
+// raised and etched must resolve to genuinely DIFFERENT VNFs now: etched is
+// a flat z=1 panel cut by a two-tier groove (shared with tumbling_cubes),
+// not a view of the raised tile.
 _tex_etched = _decoration_texture("rhombille", "etched");
-assert(_tex == _tex_etched,
-    "rhombille's tile geometry must be identical for \"raised\" and \"etched\" -- only decorated_solid()'s tex_inset should differ");
+assert(is_vnf(_tex_etched), "_decoration_texture(\"rhombille\", \"etched\") must be a valid VNF");
+assert(_tex_etched != _tex, "rhombille etched tile must differ from raised (whole-shape inversion is gone)");
 
 // The invariant the whole tile design rests on: every vertex the tile leaves
 // on one edge needs a twin at the same position on the opposite edge, or
@@ -93,3 +92,55 @@ difference() {
     decorated_solid("rhombille", "vertical", "raised", 1.5, 12, 75, 60, 100, 4);
     translate([300, 0, 0]) cube(10, center = true);
 }
+
+// Same 2-physical-hexagon invariant tumbling_cubes' own test pins: the
+// shared _tc_motif_groups() must not grow a group per _TC_CENTERS position.
+_RH_OUTER_GAP_EXPECTED_GROUP_COUNT = 2;
+assert(len(_tc_motif_groups()) == _RH_OUTER_GAP_EXPECTED_GROUP_COUNT,
+    str("_tc_motif_groups() must return exactly ", _RH_OUTER_GAP_EXPECTED_GROUP_COUNT,
+        " groups (corner-hexagon cluster, centre hexagon), got ", len(_tc_motif_groups())));
+
+_etched_zs = unique([for (p = _tex_etched[0]) p[2]]);
+assert(_etched_zs == [0, 0.5, 1],
+    str("rhombille etched VNF must use exactly Z levels {0, 0.5, 1} (two-tier groove: primary ",
+        "between the two physical hexagons, secondary within one hexagon's own 3 rhombi), got ", _etched_zs));
+
+_tex_alt = _decoration_texture("rhombille", "alternating");
+assert(is_vnf(_tex_alt), "_decoration_texture(\"rhombille\", \"alternating\") must be a valid VNF");
+_alt_zs = unique([for (p = _tex_alt[0]) p[2]]);
+assert(_alt_zs == [0, 0.5, 1],
+    str("rhombille alternating VNF must use exactly Z levels {0, 0.5, 1}, got ", _alt_zs));
+assert(_tex_alt != _tex && _tex_alt != _tex_etched,
+    "rhombille alternating tile must differ from both raised and etched");
+
+for (tex = [_tex_etched, _tex_alt]) {
+    for (axis = [0, 1]) {
+        lo = _tile_edge_profile(tex, axis, 0);
+        hi = _tile_edge_profile(tex, axis, 1);
+        name = (axis == 0) ? "x" : "y";
+        assert(len(lo) == len(hi),
+            str("rhombille tile has ", len(lo), " vertices on ", name, "=0 but ",
+                len(hi), " on ", name, "=1 -- tiles cannot stitch"));
+        mismatched = [for (i = [0:len(lo)-1]) if (!approx(lo[i], hi[i]))
+                         str(name, "=0 ", lo[i], " vs ", name, "=1 ", hi[i])];
+        assert(len(mismatched) == 0,
+            str("rhombille tile ", name, " edge vertices don't line up (including Z): ", mismatched));
+    }
+}
+
+// Deliberately NO second/third top-level solid for "etched"/"alternating":
+// OpenSCAD unions every top-level object through CGAL on .stl export, and
+// README.md already records that "rhombille" cannot be union()ed with
+// another textured solid ("keep it the only textured solid per render").
+// Re-measured here on OpenSCAD 2021.01 at r1=75/r2=60/h=100, $fn=4: two
+// copies of this file's own "raised" solid, 1000 units apart, abort CGAL
+// (SNC_external_structure.h:1153) at pattern_repeat 8 and 12 and at $fn 4
+// and 8 -- on unmodified main, with no etched/alternating code involved.
+// Each solid alone is a clean 2-volume manifold; the union is what fails,
+// and moving the copies apart does not help. The etched/alternating tiles
+// stay pinned by the VNF assertions above; "etched" additionally gets a
+// real manifold check from .github/workflows/test.yml's loops, which render
+// one solid at a time. "alternating" is not in CI's relief-mode loops yet
+// (they run raised and etched only) -- it was verified by hand here,
+// rendering alone at this file's own geometry: Simple yes, 2 volumes, no
+// CGAL error.

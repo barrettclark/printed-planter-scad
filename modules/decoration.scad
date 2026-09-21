@@ -58,7 +58,7 @@ RELIEF_MODES = ["raised", "etched", "alternating"];
 // four BOSL2-native heightfield patterns (dots/cubes/checkers/bricks) and the
 // five flat-top/V-groove patterns (ridges/pyramids/diamonds/hex_grid/tri_grid)
 // are Phase 2 or out of scope.
-ALTERNATING_PATTERNS = ["islamic_star", "kisrhombille"];
+ALTERNATING_PATTERNS = ["islamic_star", "kisrhombille", "tumbling_cubes", "rhombille"];
 
 // Excluded from the square-tile correction: "none" has no texture at all;
 // "ridges" is a directional stripe pattern with no discrete shape to square;
@@ -596,8 +596,70 @@ function _tc_rhombus(c, k) =
     let (i = 2 * k)
     [c, c + _TC_V[i], c + _TC_V[(i + 1) % 6], c + _TC_V[(i + 2) % 6]];
 
-function _tumbling_cubes_tile() =
-    _tile_from_islands([
+// Shared by tumbling_cubes and rhombille: both reuse this exact hexagon/
+// rhombus placement geometry (_TC_CENTERS/_tc_rhombus()), so their
+// etched/alternating tiles are IDENTICAL -- only "raised" differs between
+// the two patterns (3 distinct heights for the isometric-cube illusion vs.
+// 1 uniform height). group_id/alt_key coincide here (0 = the corner
+// hexagon cluster wherever clipped, 1 = the center hexagon) -- the spec's
+// own resolved correction: _TC_CENTERS has 5 POSITIONS but only 2
+// DISTINCT PHYSICAL hexagons (indices 0-3 are periodic images of one
+// hexagon at each integer lattice corner; index 4 is a second, separate
+// hexagon at the true tile center). Grouping by _TC_CENTERS index instead
+// would assign different heights/groove classification to two clipped
+// pieces of the SAME physical motif, breaking the tile-seam match.
+function _tc_motif_groups() =
+    let (
+        corner_centers = _outline_supertile_points([_TC_CENTERS[0], _TC_CENTERS[1],
+                                                      _TC_CENTERS[2], _TC_CENTERS[3]]),
+        center_centers = _outline_supertile_points([_TC_CENTERS[4]])
+    )
+    // EXACTLY 2 groups, not one per physical hexagon instance: the outer
+    // list here has 2 elements (the corner-cluster group, the center group),
+    // each built by a list comprehension with NO extra [] around
+    // _tc_rhombus(c, k) -- wrapping it in an extra [...] would instead
+    // produce one group per rhombus (far too fine-grained: the spec's own
+    // correction collapses ALL corner-cluster rhombi, across every deduped
+    // physical hexagon at every integer lattice corner, into ONE group,
+    // since they're periodic images of the same motif -- see this task's
+    // own opening paragraph). Double-check the bracket depth here against
+    // this exact code before shipping; it is the single easiest place in
+    // this whole plan to introduce an off-by-one-list-nesting bug.
+    [
+        [for (c = corner_centers) for (k = [0:2]) _tc_rhombus(c, k)],
+        [for (c = center_centers) for (k = [0:2]) _tc_rhombus(c, k)]
+    ];
+
+// alt_key/group_id: 0 = corner cluster (wherever clipped), 1 = center
+// hexagon. gap/height are supplied by each pattern's own wrapper (see
+// _tumbling_cubes_tile()/_rhombille_tile() below) since only the SHRINK
+// amount differs between the two patterns (own gap constants), not the
+// underlying placement geometry.
+function _tc_alternating_islands(gap) =
+    concat(
+        [for (ci = [0:3]) for (k = [0:2])
+            let (r = offset(_tc_rhombus(_TC_CENTERS[ci], k), delta = -gap / 2, closed = true))
+            if (len(r) >= 3) [[r], 1, 0, 0]],
+        [for (k = [0:2])
+            let (r = offset(_tc_rhombus(_TC_CENTERS[4], k), delta = -gap / 2, closed = true))
+            if (len(r) >= 3) [[r], 1, 1, 1]]);
+
+_TC_OUTER_GAP = 0.055; // etched primary groove (between the 2 physical
+                       // hexagons), own constant, same scale as _TC_GAP
+_TC_INNER_GAP = 0.03;  // etched secondary groove (within one hexagon's own
+                       // 3 rhombi), thinner than the primary tier
+_TC_HIGH_GROUP = [0];  // corner-hexagon-cluster high, center hexagon low --
+                       // per the spec's "alternate corner-hexagon-high/
+                       // center-hexagon-low or the reverse" -- a visual-
+                       // judgment call, confirm this reads well once
+                       // rendered
+
+function _tumbling_cubes_tile(relief_mode) =
+    relief_mode == "etched"
+        ? _tile_outline_from_islands(_tc_motif_groups(), _TC_OUTER_GAP, _TC_INNER_GAP)
+    : relief_mode == "alternating"
+        ? _tile_alternating_from_islands(_tc_alternating_islands(_TC_GAP), _TC_HIGH_GROUP)
+    : _tile_from_islands([
         for (c = _TC_CENTERS) for (k = [0:2])
             let (r = offset(_tc_rhombus(c, k), delta = -_TC_GAP / 2, closed = true))
             if (len(r) >= 3) [[r], _TC_Z[k]]]);
@@ -618,8 +680,16 @@ _RH_GAP = 0.055; // engraved line between rhombi, in tile fractions -- own
                  // constant rather than reusing _TC_GAP, matching how the
                  // kis family owns _KIS_GAP distinct from _TC_GAP
 
-function _rhombille_tile() =
-    _tile_from_islands([
+_RH_OUTER_GAP = 0.055;
+_RH_INNER_GAP = 0.03;
+_RH_HIGH_GROUP = [0]; // same corner/center split and reasoning as tumbling_cubes
+
+function _rhombille_tile(relief_mode) =
+    relief_mode == "etched"
+        ? _tile_outline_from_islands(_tc_motif_groups(), _RH_OUTER_GAP, _RH_INNER_GAP)
+    : relief_mode == "alternating"
+        ? _tile_alternating_from_islands(_tc_alternating_islands(_RH_GAP), _RH_HIGH_GROUP)
+    : _tile_from_islands([
         for (c = _TC_CENTERS) for (k = [0:2])
             let (r = offset(_tc_rhombus(c, k), delta = -_RH_GAP / 2, closed = true))
             if (len(r) >= 3) [[r], _RH_Z]]);
@@ -1091,13 +1161,13 @@ function _decoration_texture(pattern_type, relief_mode) =
     is_def(etched_tex)         ? etched_tex :
     pattern_type == "ridges"         ? "ribs" :
     pattern_type == "teardrop"       ? _teardrop_tile() :
-    pattern_type == "tumbling_cubes" ? _tumbling_cubes_tile() :
+    pattern_type == "tumbling_cubes" ? _tumbling_cubes_tile(relief_mode) :
     pattern_type == "intertwine"     ? _intertwine_tile() :
     pattern_type == "islamic_star"   ? _islamic_star_tile(relief_mode) :
     pattern_type == "tetrakis_square" ? _tetrakis_square_tile(relief_mode) :
     pattern_type == "kisrhombille"    ? _kisrhombille_tile(relief_mode) :
     pattern_type == "triakis_triangular" ? _triakis_triangular_tile(relief_mode) :
-    pattern_type == "rhombille"          ? _rhombille_tile() :
+    pattern_type == "rhombille"          ? _rhombille_tile(relief_mode) :
     pattern_type == "cairo_pentagonal"   ? _cairo_pentagonal_tile() :
     pattern_type == "floret_pentagonal"  ? _floret_pentagonal_tile(relief_mode) :
     pattern_type == "deltoidal_trihexagonal" ? _deltoidal_trihexagonal_tile() :
