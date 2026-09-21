@@ -59,7 +59,7 @@ assert(_decoration_style("floret_pentagonal", "etched") == undef,
 // pattern's own low-height constant, distinct from tetrakis_square's/
 // kisrhombille's even though it happens to share the same numeric value --
 // see modules/decoration.scad's convention note on _FP_GAP/_FP_Z_LO).
-// Etched mode flattens every pentagon to the tile's full height.
+// Etched mode is a two-tier outline groove (see the comment below).
 assert(_FP_Z_HI == 1, str("floret_pentagonal's high rosette height must be 1, got ", _FP_Z_HI));
 _zs_raised = unique([for (p = _tex_raised[0]) p[2]]);
 _zs_etched = unique([for (p = _tex_etched[0]) p[2]]);

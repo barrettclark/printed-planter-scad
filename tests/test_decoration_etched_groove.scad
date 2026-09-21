@@ -56,27 +56,13 @@ VNF_PATTERN_TYPES = ["teardrop", "intertwine",
 // relief-mode redesign move the remaining patterns here one at a time.
 OUTLINE_PATTERN_TYPES = ["islamic_star", "kisrhombille", "tumbling_cubes", "rhombille", "tetrakis_square", "triakis_triangular", "cairo_pentagonal", "floret_pentagonal"];
 
-// The remaining "kis"-family patterns are also hand-rolled VNF tiles with no
-// flat-top counterpart, but unlike VNF_PATTERN_TYPES above, their etched and
-// raised tiles are genuinely DIFFERENT VNFs -- etched flattens every kis-fan
-// triangle to one height (a flat panel with only the engraved fan lines cut
-// in), raised alternates heights across the fan. So they get their own
-// category and their own checks below rather than joining VNF_PATTERN_TYPES,
-// whose defining assertion (etched tile == raised tile) does not hold here.
-// "tetrakis_square", "triakis_triangular" and "floret_pentagonal" moved OUT
-// of this category and into OUTLINE_PATTERN_TYPES above: their etched modes
-// were rewired to the two-tier outline engrave (a real z=0.5 groove tier, not
-// a single flattened height), so they now belong with kisrhombille/
-// tumbling_cubes/rhombille/islamic_star instead.
-KIS_PATTERN_TYPES = [];
-
 // Every other pattern_type has no flat-top counterpart and must keep today's
 // inset-the-bump behavior: same texture in both modes, and therefore the same
 // style in both modes. _decoration_style() resolves the texture itself, so
 // etched is a genuinely separate code path for style too -- pin the parity.
 _trunc_patterns = [for (row = EXPECTED_ETCHED) row[0]];
 for (pt = PATTERN_TYPES) {
-    if (pt != "none" && !in_list(pt, VNF_PATTERN_TYPES) && !in_list(pt, KIS_PATTERN_TYPES)
+    if (pt != "none" && !in_list(pt, VNF_PATTERN_TYPES)
             && !in_list(pt, OUTLINE_PATTERN_TYPES) && !in_list(pt, _trunc_patterns)) {
         assert(_decoration_etched_texture(pt) == undef,
             str("_decoration_etched_texture(\"", pt, "\") should be undef, got ",
@@ -110,26 +96,6 @@ for (pt = VNF_PATTERN_TYPES) {
         str("_decoration_style(\"", pt, "\", \"etched\") should be undef (VNF tile), got ",
             _decoration_style(pt, "etched")));
 }
-// The "kis"-family patterns: still VNF tiles with no counterpart, but etched
-// and raised must resolve to genuinely DIFFERENT VNFs -- the opposite pin
-// from VNF_PATTERN_TYPES above.
-for (pt = KIS_PATTERN_TYPES) {
-    assert(in_list(pt, PATTERN_TYPES), str("\"", pt, "\" is not a pattern_type"));
-    assert(_decoration_etched_texture(pt) == undef,
-        str("_decoration_etched_texture(\"", pt, "\") should be undef, got ",
-            _decoration_etched_texture(pt)));
-    assert(is_vnf(_decoration_texture(pt, "etched")),
-        str("_decoration_texture(\"", pt, "\", \"etched\") should be a VNF tile"));
-    assert(is_vnf(_decoration_texture(pt, "raised")),
-        str("_decoration_texture(\"", pt, "\", \"raised\") should be a VNF tile"));
-    assert(_decoration_texture(pt, "etched") != _decoration_texture(pt, "raised"),
-        str("\"", pt, "\" etched and raised tiles should differ -- etched flattens the fan to ",
-            "one height, raised alternates heights"));
-    assert(_decoration_style(pt, "etched") == undef,
-        str("_decoration_style(\"", pt, "\", \"etched\") should be undef (VNF tile), got ",
-            _decoration_style(pt, "etched")));
-}
-
 // The outline-engrave patterns: still VNF tiles with no BOSL2 counterpart,
 // but etched is now a flat z=1 panel cut by a two-tier groove rather than
 // any view of the raised tile. Pin that it is a distinct VNF and that the
@@ -159,7 +125,7 @@ for (pt = OUTLINE_PATTERN_TYPES) {
 
 // Raised mode is untouched: the pre-existing mapping, unchanged.
 for (pt = PATTERN_TYPES) {
-    if (pt != "none" && !in_list(pt, VNF_PATTERN_TYPES) && !in_list(pt, KIS_PATTERN_TYPES)
+    if (pt != "none" && !in_list(pt, VNF_PATTERN_TYPES)
             && !in_list(pt, OUTLINE_PATTERN_TYPES)) {
         expected = (pt == "ridges") ? "ribs" : pt;
         assert(_decoration_texture(pt, "raised") == expected,

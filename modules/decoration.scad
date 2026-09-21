@@ -50,12 +50,10 @@ RELIEF_MODES = ["raised", "etched", "alternating"];
 // half-sunk into the wall rather than either bas-relief or a clean raised
 // fallback -- exactly the silent wrong-geometry failure the Global
 // Constraints forbid. Omitting a wired pattern only costs a loud, accurate
-// assertion. Phase 1 wires these two; the six remaining Phase-1 candidates
-// (tumbling_cubes, tetrakis_square, triakis_triangular, rhombille,
-// cairo_pentagonal, floret_pentagonal) join as each is rewired. teardrop and
-// intertwine are excluded outright (different reasons -- see the Global
-// Constraints); deltoidal_trihexagonal has no relief_mode split at all; the
-// four BOSL2-native heightfield patterns (dots/cubes/checkers/bricks) and the
+// assertion. All 8 Phase-1 patterns are wired now. teardrop and intertwine
+// are excluded outright (different reasons -- see the Global Constraints);
+// deltoidal_trihexagonal has no relief_mode split at all; the four
+// BOSL2-native heightfield patterns (dots/cubes/checkers/bricks) and the
 // five flat-top/V-groove patterns (ridges/pyramids/diamonds/hex_grid/tri_grid)
 // are Phase 2 or out of scope.
 ALTERNATING_PATTERNS = ["islamic_star", "kisrhombille", "tumbling_cubes", "rhombille", "tetrakis_square", "triakis_triangular", "cairo_pentagonal", "floret_pentagonal"];
@@ -916,7 +914,9 @@ _CP_HIGH_GROUP = [0, 2]; // even k high, odd k low -- no existing raised-mode
                          // parity to reuse (cairo_pentagonal is uniform-
                          // height in raised mode), so this is a visual-
                          // judgment default matching floret_pentagonal's own
-                         // convention; confirm once rendered
+                         // convention. Confirmed by direct measurement: this
+                         // split gives an exact 50/50 area split between the
+                         // two groups (0.406613 / 0.406613).
 
 // group_id = the hub's (m,n) position (quantized), NOT the placement's k --
 // k is a sub-motif's orientation WITHIN one hub's cluster; _CP_PLACEMENTS has
@@ -1229,7 +1229,8 @@ _TRIT_INNER_GAP = 0.025; // etched secondary groove (each cell's own fan seams)
 // parity), so unlike tumbling_cubes/kisrhombille/tetrakis_square this
 // high/low split has no existing raised-mode alternation to reuse -- index 0
 // (the tallest raised height, 1.0) renders high, indices 1 and 2 low. Visual-
-// judgment call, confirm once rendered.
+// judgment call; rendered and confirmed clean (real-assembly CGAL check,
+// both the CI-pinned reduced pattern_repeat and the shipped defaults).
 _TRIT_HIGH_GROUP = [0];
 
 // Verified directly (see this task's own diagnostic): a single tile's own
@@ -1503,18 +1504,23 @@ module decorated_solid(pattern_type, pattern_orientation, relief_mode, pattern_d
         // smoothness=60) measure clean in both relief modes, but with a
         // thinner margin below them than any other pattern, so CI pins them.
         // See README.md.
-        // "kisrhombille" and "triakis_triangular" share the same small-
-        // triangular-facet tile construction and get the same defensive
-        // warning as a precaution, but every tested pattern_repeat/smoothness/
-        // relief_mode combination for them has measured CGAL-clean, so their
-        // message doesn't claim a known failure -- see README.md's CGAL
-        // section. "tetrakis_square" moved OUT of this bucket and into the
-        // "known to abort" one above: its "etched" relief mode was rewired to
-        // a real two-tier outline-groove VNF, which reintroduced the
-        // wide-arc-chord fragility the plateau patterns have (at
-        // smoothness=24, "etched" aborts at pattern_repeat 3, 4, 5, 7, 8, 9,
-        // 11, 12, 14 and 17; "raised"/"alternating" are unaffected, clean at
-        // every value tested) -- see README.md's CGAL section.
+        // "triakis_triangular" shares the same small-triangular-facet tile
+        // construction and gets the same defensive warning as a precaution,
+        // but every tested pattern_repeat/smoothness/relief_mode combination
+        // for it has measured CGAL-clean, so its message doesn't claim a
+        // known failure -- see README.md's CGAL section. "tetrakis_square"
+        // moved OUT of this bucket and into the "known to abort" one above:
+        // its "etched" relief mode was rewired to a real two-tier
+        // outline-groove VNF, which reintroduced the wide-arc-chord fragility
+        // the plateau patterns have (at smoothness=24, "etched" aborts at
+        // pattern_repeat 3, 4, 5, 7, 8, 9, 11, 12, 14 and 17;
+        // "raised"/"alternating" are unaffected, clean at every value
+        // tested) -- see README.md's CGAL section. "kisrhombille" also moved
+        // OUT of this bucket and into the "known to abort" one above: its new
+        // "alternating" mode aborts the real assembly at pattern_repeat 4 and
+        // 7 (smoothness=24) -- "raised"/"etched" remain clean at every value
+        // tested, so this is a mode-specific fragility, not a regression in
+        // its etched geometry -- see README.md's CGAL section.
         // "deltoidal_trihexagonal"
         // shares this same mild bucket despite being built from the same class
         // of large flat plateau construction as the "known to abort" patterns
@@ -1525,13 +1531,14 @@ module decorated_solid(pattern_type, pattern_orientation, relief_mode, pattern_d
         // pattern in this file. See README.md's CGAL section for the full
         // sweep table.
         if (in_list(pattern_type, ["tumbling_cubes", "intertwine", "islamic_star", "rhombille",
-                                   "cairo_pentagonal", "floret_pentagonal", "tetrakis_square"]))
+                                   "cairo_pentagonal", "floret_pentagonal", "tetrakis_square",
+                                   "kisrhombille"]))
             echo(str("WARNING: pattern_type \"", pattern_type, "\" is known to abort CGAL ",
                      "for some pattern_repeat/smoothness combinations, and OpenSCAD still ",
                      "exits 0 and writes a truncated STL when it does. Scan this console for ",
                      "a CGAL assertion before trusting the export; if you see one, nudge ",
                      "pattern_repeat or smoothness. See README.md."));
-        else if (in_list(pattern_type, ["kisrhombille", "triakis_triangular",
+        else if (in_list(pattern_type, ["triakis_triangular",
                                         "deltoidal_trihexagonal"]))
             echo(str("WARNING: pattern_type \"", pattern_type, "\" carries the same precautionary ",
                      "CGAL warning as the other custom VNF tile patterns (small triangular fans or ",

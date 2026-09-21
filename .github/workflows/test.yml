@@ -95,7 +95,13 @@ jobs:
           # builds, not that it is manifold; the full-assembly loop further
           # down (a real difference()) is what validates the mesh.
           for pt in none ridges diamonds hex_grid pyramids bricks checkers dots cubes tri_grid teardrop tumbling_cubes intertwine islamic_star tetrakis_square kisrhombille triakis_triangular rhombille cairo_pentagonal floret_pentagonal deltoidal_trihexagonal; do
-            for relief in raised etched; do
+            for relief in raised etched alternating; do
+              if [ "$relief" = "alternating" ]; then
+                case "$pt" in
+                  tumbling_cubes|islamic_star|tetrakis_square|kisrhombille|triakis_triangular|rhombille|cairo_pentagonal|floret_pentagonal) ;;
+                  *) continue ;;
+                esac
+              fi
               echo "=== decorated_solid pattern_type=$pt relief_mode=$relief (expect texture build to succeed) ==="
               printf 'include <%s/modules/decoration.scad>\ndecorated_solid("%s", "vertical", "%s", 1.5, 12, 75, 60, 100, 4);\n' "$(pwd)" "$pt" "$relief" > /tmp/ci_single_pattern.scad
               out=$(openscad -o /tmp/ci_single_${pt}_${relief}.stl /tmp/ci_single_pattern.scad 2>&1)
@@ -367,6 +373,39 @@ jobs:
             done
           done
 
+          # "alternating" real-assembly coverage: had ZERO CI coverage for any
+          # of the 8 ALTERNATING_PATTERNS before this check existed -- CI's
+          # loops above only ever iterated raised/etched, and no single test
+          # file's own CGAL-forcing render exercised alternating either (each
+          # keeps exactly one solid, chosen per-pattern, to dodge the
+          # multi-solid union crash documented elsewhere in this file). A real
+          # sweep of the full assembly (pattern_repeat 3-16, smoothness=24)
+          # found: "islamic_star", "triakis_triangular", "tetrakis_square" and
+          # "floret_pentagonal" clean at every value tested; "tumbling_cubes"
+          # and "rhombille" abort at pattern_repeat 3, 4 and 5 (clean 6-16);
+          # "cairo_pentagonal" aborts at 3, 5 and 11 (clean at 4, 6-10, 12-16);
+          # "kisrhombille" aborts at 4 and 7 (clean at 3, 5, 6, 8-16) -- a
+          # NEW, alternating-mode-specific fragility: its raised/etched tiles
+          # measured CGAL-clean everywhere, including at the reduced value 4
+          # used above, so "kisrhombille" needs a DIFFERENT reduced
+          # pattern_repeat here than the "kisrhombille 4" combo above uses for
+          # raised/etched. Every reduced value below sits with a tested-clean
+          # margin on at least one side of any abort found for that pattern,
+          # not an isolated clean value between two aborts (the
+          # "intertwine"/"rhombille" precedent above). Measured locally
+          # (macOS OpenSCAD 2021.01) only, not yet re-verified against this
+          # workflow's real Ubuntu run -- see the intertwine note above for
+          # why that distinction matters; if any of these checks ever fails
+          # on CI, re-measure directly against the CI run rather than
+          # trusting the local sweep further. See README.md's CGAL section
+          # for the full sweep table.
+          for combo in "islamic_star 8" "tumbling_cubes 9" "kisrhombille 10" \
+                       "triakis_triangular 4" "tetrakis_square 20" "rhombille 13" \
+                       "cairo_pentagonal 8" "floret_pentagonal 15"; do
+            set -- $combo
+            run_assembly_combo "$1" "alternating" "$2"
+          done
+
           # The loop above dodges the CGAL fragility with measured-safe reduced
           # values, which means it never covers what a Customizer user actually
           # gets. The fragility depends on pattern_repeat and smoothness
@@ -440,6 +479,14 @@ jobs:
           # local measurement into a CI-enforced claim, same as the reduced
           # pattern_repeat=20 check above turns the low-value sweep into one.
           # Not yet re-verified against this workflow's real Ubuntu run.
+          #
+          # "kisrhombille" joins this loop too, newly: its "alternating" mode
+          # is now known to abort CGAL at some pattern_repeat values (see the
+          # alternating loop above), so it moved out of the "measured clean
+          # everywhere" bucket this pin list otherwise reserves for
+          # "triakis_triangular"/"deltoidal_trihexagonal" -- raised/etched at
+          # the shipped defaults were already directly measured clean during
+          # this pattern's own implementation task.
           for relief in raised etched; do
             run_assembly_combo "islamic_star" "$relief" 16 60
             run_assembly_combo "tumbling_cubes" "$relief" 16 60
@@ -448,6 +495,24 @@ jobs:
             run_assembly_combo "floret_pentagonal" "$relief" 16 60
             run_assembly_combo "deltoidal_trihexagonal" "$relief" 16 60
             run_assembly_combo "tetrakis_square" "$relief" 16 60
+            run_assembly_combo "kisrhombille" "$relief" 16 60
+          done
+
+          # "alternating" at the shipped defaults (pattern_repeat=16,
+          # smoothness=60), for all 8 ALTERNATING_PATTERNS -- same
+          # "reduced-value pin says nothing about the defaults" reasoning as
+          # the raised/etched defaults loop above. A full smoothness sweep at
+          # pattern_repeat=16 (24/40/60/80/100) found every one of the 8
+          # patterns clean in "alternating" at every smoothness value tested,
+          # including "tumbling_cubes" -- a genuinely different result from
+          # its own raised/etched fragility at smoothness 80/100, which is
+          # what pushed the shipped smoothness default down to 60 in the
+          # first place. Measured locally (macOS OpenSCAD 2021.01) only, not
+          # yet re-verified against this workflow's real Ubuntu run -- see
+          # README.md's CGAL section for the full table.
+          for pt in islamic_star tumbling_cubes kisrhombille triakis_triangular \
+                    tetrakis_square rhombille cairo_pentagonal floret_pentagonal; do
+            run_assembly_combo "$pt" "alternating" 16 60
           done
 
           # README documents that "tumbling_cubes", "islamic_star" and
@@ -572,6 +637,38 @@ jobs:
               fail=1
             fi
           done
+
+          # Invalid relief_mode / invalid alternating-pattern combo: same
+          # "check the message, not just that an assertion fired" discipline
+          # as the invalid pattern_type check above. Exit code is NOT checked
+          # here -- confirmed directly that OpenSCAD 2021.01 exits 0 on a
+          # .csg export even when an assertion fails partway through (the
+          # same quirk this workflow already works around for the invalid
+          # pattern_type/insert_preset checks below), so the only reliable
+          # signal is the "ERROR: Assertion" string plus the specific message.
+          echo "=== tests/test_decoration_invalid_relief_mode.scad (expect specific message) ==="
+          out=$(openscad -o /tmp/ci_test_decoration_invalid_relief_mode.csg tests/test_decoration_invalid_relief_mode.scad 2>&1)
+          echo "$out"
+          if ! echo "$out" | grep -q "ERROR: Assertion"; then
+            echo "FAIL: invalid relief_mode did not actually fail an assertion"
+            fail=1
+          fi
+          if ! echo "$out" | grep -q "relief_mode must be one of"; then
+            echo "FAIL: invalid relief_mode assertion is missing the expected message prefix"
+            fail=1
+          fi
+
+          echo "=== tests/test_decoration_invalid_alternating_pattern.scad (expect specific message) ==="
+          out=$(openscad -o /tmp/ci_test_decoration_invalid_alternating_pattern.csg tests/test_decoration_invalid_alternating_pattern.scad 2>&1)
+          echo "$out"
+          if ! echo "$out" | grep -q "ERROR: Assertion"; then
+            echo "FAIL: invalid alternating-pattern combo did not actually fail an assertion"
+            fail=1
+          fi
+          if ! echo "$out" | grep -q 'relief_mode "alternating" is only supported for pattern_type in'; then
+            echo "FAIL: invalid alternating-pattern assertion is missing the expected message prefix"
+            fail=1
+          fi
 
           # tests/test_insert_presets.scad asserts the 3 named presets'
           # dimensions match README.md's insert_preset table, then

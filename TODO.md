@@ -14,7 +14,7 @@
     - [x] Floret pentagonal tiling ("V3^4.6", pinwheel-like pentagon clusters) -- batch 3
     - [x] Deltoidal trihexagonal tiling ("V3.4.6.4", kite-shaped motif) -- batch 3
   - (Excluded on purpose: the apeirogonal hosohedron/order-2 apeirogonal tiling and their prism/antiprism/dual variants from the same Wikipedia list -- these involve infinite-sided polygons and aren't practical decorative motifs for a finite tile. Also excluded: Prismatic pentagonal tiling ("V3^3.4^2") -- fully researched and computationally verified (see docs/superpowers/plans/2026-09-19-prismatic-pentagonal-pattern.md), but its natural translation lattice is oblique, requiring a shear to normalize to this project's unit-square tile convention. Since this codebase's only aspect-correction mechanism can adjust a repeat count but never a repeat angle, shipping it would bake a permanent, uncorrectable diagonal slant into the motif -- declined for that reason, not a math or implementation failure.)
-* [ ] "etched" doesn't do what was originally wanted for most patterns -- the goal was
+* [x] "etched" doesn't do what was originally wanted for most patterns -- the goal was
   the outline of each shape engraved into the planter (flat surface, thin incised line
   tracing the motif), like it was etched into stone or glass. That's only actually true
   for "ridges"/"pyramids"/"diamonds" (and "hex_grid"/"tri_grid", which shift the same
@@ -29,4 +29,14 @@
   for each pattern family, not just the current mode-independent-vs-mode-dependent
   split -- possibly a genuine third relief style (flat wall + thin V-groove along each
   motif's outer boundary only) distinct from both "raised" and the current "etched".
+* [ ] Phase 2 of the etched/alternating relief-mode redesign: convert "dots",
+  "cubes", "checkers", "bricks" from BOSL2-native heightfields into custom
+  islands-based VNF tiles of our own (each is a small, well-understood shape
+  -- a circle, an isometric rhombus pair, a 2x2 checker split, a brick
+  rectangle), so they can plug into _tile_outline_from_islands()/
+  _tile_alternating_from_islands() the same way the other 8 patterns now do.
+  "raised" mode for these four is unaffected either way -- only "etched"/
+  "alternating" depend on the conversion. See
+  docs/superpowers/specs/2026-09-20-relief-mode-redesign-design.md's own
+  "Phase 2" section.
 * [ ] "bricks" pattern_type looks like a basket weave (too square/wide per brick), especially at lower pattern_repeat -- confirmed the root cause: BOSL2's "bricks" heightfield hardcodes exactly one brick per tile width (only 2 brick-rows per tile height, offset for the running-bond look), so brick width is set entirely by pattern_repeat. Doubling pattern_repeat was tried and bricks are still about twice as wide as wanted. Needs either (a) a "bricks"-specific horizontal-density multiplier decoupled from pattern_repeat (similar to how the "kis" family patterns get their own independent constants), or (b) a custom hand-rolled brick tile with more than one brick per unit-tile-width, rather than relying on BOSL2's built-in "bricks"/"bricks_vnf" textures.

@@ -299,10 +299,22 @@ rel = "raised";
 decorated_solid(pt, "vertical", rel, $CU_DEPTH, $CU_REPS, $CU_R, $CU_R, $CU_H, $CU_WALL, $CU_FN);
 EOF
 
+# "alternating" is only wired for these 8 patterns (modules/decoration.scad's
+# ALTERNATING_PATTERNS) -- every other pattern_type fails loudly if asked for
+# it, so this list is hardcoded here rather than read back from the .scad
+# file the way PATTERN_TYPES is above (there is no analogous single ECHO'd
+# list to read; ALTERNATING_PATTERNS is not itself part of the Customizer-
+# facing PATTERN_TYPES list this script already extracts).
+ALTERNATING_PATTERNS=(tumbling_cubes islamic_star tetrakis_square kisrhombille \
+                       triakis_triangular rhombille cairo_pentagonal floret_pentagonal)
+
 for pt in "${PATTERN_TYPES[@]}"; do
     reliefs=(raised etched)
     # "none" has no texture at all, so relief_mode cannot change anything.
     [ "$pt" = "none" ] && reliefs=(raised)
+    for alt in "${ALTERNATING_PATTERNS[@]}"; do
+        [ "$pt" = "$alt" ] && reliefs=(raised etched alternating)
+    done
     for rel in "${reliefs[@]}"; do
         render "pattern-$pt-$rel" \
             --projection=o --imgsize="$CU_IMG" --camera="$CU_CAMERA" \
