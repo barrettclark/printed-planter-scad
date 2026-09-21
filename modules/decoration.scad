@@ -260,15 +260,17 @@ function _tile_on_edge(a, b) =
 // traverses the segment backwards (b then a) as well, putting the normal on
 // the left, i.e. into the pit. Measured: without the swap BOSL2 rejects the
 // tile with "VNF has 5 open paths on an edge".
+function _tile_wall_quad(a, b, z, ground_z) =
+    (z >= ground_z)
+        ? [[[a[0], a[1], ground_z], [b[0], b[1], ground_z], [b[0], b[1], z], [a[0], a[1], z]],
+           [[0, 1, 2, 3]]]
+        : [[[b[0], b[1], z], [a[0], a[1], z], [a[0], a[1], ground_z], [b[0], b[1], ground_z]],
+           [[0, 1, 2, 3]]];
+
 function _tile_walls(path, z, ground_z = 0) =
     let (n = len(path))
     [for (i = [0:n-1]) let (a = path[i], b = path[(i+1) % n])
-        if (!_tile_on_edge(a, b))
-            (z >= ground_z)
-                ? [[[a[0], a[1], ground_z], [b[0], b[1], ground_z], [b[0], b[1], z], [a[0], a[1], z]],
-                   [[0, 1, 2, 3]]]
-                : [[[b[0], b[1], z], [a[0], a[1], z], [a[0], a[1], ground_z], [b[0], b[1], ground_z]],
-                   [[0, 1, 2, 3]]]];
+        if (!_tile_on_edge(a, b)) _tile_wall_quad(a, b, z, ground_z)];
 
 // islands: list of [region, height]. reverse=true is "normals up" here for the
 // same measured reason _teardrop_tile() documents. ground_z (default 0) is
@@ -448,6 +450,80 @@ function _outline_batched_union(regions, batch_size = 8) =
     )
     _outline_batched_union(batches, batch_size);
 
+// Every boundary segment of a region, as canonical _outline_edge_key()s, so
+// the same physical edge hashes identically from either region's own winding.
+function _outline_region_edge_keys(region) =
+    len(region) == 0 ? []
+    : [for (part = region_parts(region)) for (p = part)
+        for (i = [0:len(p)-1]) _outline_edge_key(p[i], p[(i + 1) % len(p)])];
+
+// The two-tier tile is a HEIGHT FIELD, and _tile_from_islands() cannot build
+// a correct one for it. That builder's model is islands separated by ground:
+// it walls every island from its own top straight down to the single global
+// ground_z, along the island's whole boundary. The secondary groove is not
+// separated from the panel -- it is a pocket cut INTO it, so the two regions
+// share a boundary, and the generic model puts two walls on that one edge:
+// the panel's 1->0 and the pocket's 0.5->0, stacked on the same (x,y) line,
+// with the pocket's own floor then attached halfway up the panel's wall.
+// That is not a surface. vnf_validate() names it exactly -- T_JUNCTION,
+// "vertex is mid-edge on another face" -- and CGAL aborts the real
+// assembly's cavity subtraction on it at every pattern_repeat and smoothness
+// tried. (Measured: 23 T_JUNCTIONs on tumbling_cubes, 96 on kisrhombille,
+// and 0 on islamic_star, whose groups each hold a single sub-region so it
+// has no secondary tier at all -- which is why it was the one pattern that
+// always rendered clean, and why Task 1's review never saw this.)
+//
+// The fix is one wall per physical edge, at the height the edge actually
+// steps between: along the shared panel/pocket boundary a single step from
+// z=1 down to inner_z, and nothing from the pocket side. Everywhere else --
+// either tier facing the primary groove -- the ordinary drop to z=0 is
+// already right and is unchanged. A segment is on the shared boundary iff
+// its canonical key appears in BOTH regions' boundaries, which is just the
+// edge matching this builder already does one level up.
+//
+// With no secondary tier this reduces, part for part and in the same order,
+// to _tile_from_islands([[panel, 1]]): same ground, same top face, same
+// walls all dropping to 0. islamic_star's tile is unchanged.
+function _tile_two_tier_from_regions(panel, secondary, inner_z) =
+    let (
+        p = intersection(force_region(panel), [_UNIT_TILE]),
+        s = len(secondary) == 0 ? []
+                                : intersection(force_region(secondary), [_UNIT_TILE]),
+        ground = difference([_UNIT_TILE], len(s) == 0 ? p : union([p, s])),
+        p_keys = len(s) == 0 ? [] : _outline_region_edge_keys(p),
+        s_keys = len(s) == 0 ? [] : _outline_region_edge_keys(s)
+    )
+    vnf_merge_points(_tile_quantize(vnf_join(concat(
+        [vnf_from_region(ground, transform = up(0), reverse = true)],
+        [vnf_from_region(p, transform = up(1), reverse = true)],
+        len(s) == 0 ? [] : [vnf_from_region(s, transform = up(inner_z), reverse = true)],
+        // reverse(): region_parts() normalises to clockwise outers and
+        // counter-clockwise holes; flipping that is what makes the quad's
+        // normal face out of the region -- see _tile_from_islands().
+        // A panel wall that drops the full way to the groove floor is split
+        // at inner_z whenever this tile has a secondary tier: where such a
+        // wall reaches a pocket corner, the pocket's own rim vertex sits at
+        // inner_z on that same vertical line, and an unsplit 0->1 quad would
+        // leave it mid-edge. (That accounted for the last 12 T_JUNCTIONs
+        // once the step wall had fixed the other 11.) The split edge is
+        // collinear and shares both endpoints, so it adds vertices without
+        // changing any geometry.
+        [for (part = region_parts(p)) for (path = part) let (q = reverse(path))
+            for (i = [0:len(q)-1]) let (a = q[i], b = q[(i + 1) % len(q)])
+                if (!_tile_on_edge(a, b))
+                    each len(s) == 0 ? [_tile_wall_quad(a, b, 1, 0)]
+                       : in_list(_outline_edge_key(a, b), s_keys)
+                           ? [_tile_wall_quad(a, b, 1, inner_z)]
+                           : [_tile_wall_quad(a, b, inner_z, 0),
+                              _tile_wall_quad(a, b, 1, inner_z)]],
+        // The pocket walls the primary groove only; along its shared
+        // boundary with the panel the step wall above is the single wall.
+        len(s) == 0 ? [] :
+        [for (part = region_parts(s)) for (path = part) let (q = reverse(path))
+            for (i = [0:len(q)-1]) let (a = q[i], b = q[(i + 1) % len(q)])
+                if (!_tile_on_edge(a, b) && !in_list(_outline_edge_key(a, b), p_keys))
+                    _tile_wall_quad(a, b, inner_z, 0)]))));
+
 function _tile_outline_from_islands(motif_groups, outer_gap, inner_gap, union_batch_size = 8) =
     let (
         edges = _outline_all_edges(motif_groups),
@@ -495,9 +571,7 @@ function _tile_outline_from_islands(motif_groups, outer_gap, inner_gap, union_ba
         panel_region = len(groove_all) == 0 ? [_UNIT_TILE]
                                              : difference([_UNIT_TILE], union(groove_all))
     )
-    _tile_from_islands(concat(
-        [[panel_region, 1]],
-        len(secondary_region) == 0 ? [] : [[secondary_region, _OUTLINE_INNER_Z]]));
+    _tile_two_tier_from_regions(panel_region, secondary_region, _OUTLINE_INNER_Z);
 
 // --- Shared alternating tile builder (bas-relief: real z=0.5 nominal wall) ---
 //
