@@ -37,16 +37,28 @@ PATTERN_TYPES = ["none", "ridges", "diamonds", "hex_grid", "pyramids",
 // selection and fall through to an unresolved texture.
 RELIEF_MODES = ["raised", "etched", "alternating"];
 
-// The 8 Phase-1 patterns whose islands-building loop tags group_id/alt_key
-// and can feed _tile_alternating_from_islands(). teardrop and intertwine are
-// both excluded (different reasons -- see this plan's Global Constraints);
-// deltoidal_trihexagonal has no relief_mode split at all; the four BOSL2-
-// native heightfield patterns (dots/cubes/checkers/bricks) and the five
-// flat-top/V-groove patterns (ridges/pyramids/diamonds/hex_grid/tri_grid)
+// The patterns whose tile function actually branches on "alternating" and
+// whose islands-building loop tags group_id/alt_key for
+// _tile_alternating_from_islands().
+//
+// GROWTH INVARIANT: this list must only ever contain patterns that are
+// already wired. Each phase appends its own newly-wired pattern name(s) as
+// part of the same diff that adds the branch -- never ahead of it. Listing a
+// pattern early is worse than omitting it: the assertion in decorated_solid()
+// would pass, _decoration_texture() would fall through to that pattern's
+// raised tile, and tex_inset would still be 0.5, rendering a raised tile
+// half-sunk into the wall rather than either bas-relief or a clean raised
+// fallback -- exactly the silent wrong-geometry failure the Global
+// Constraints forbid. Omitting a wired pattern only costs a loud, accurate
+// assertion. Phase 1 wires these two; the six remaining Phase-1 candidates
+// (tumbling_cubes, tetrakis_square, triakis_triangular, rhombille,
+// cairo_pentagonal, floret_pentagonal) join as each is rewired. teardrop and
+// intertwine are excluded outright (different reasons -- see the Global
+// Constraints); deltoidal_trihexagonal has no relief_mode split at all; the
+// four BOSL2-native heightfield patterns (dots/cubes/checkers/bricks) and the
+// five flat-top/V-groove patterns (ridges/pyramids/diamonds/hex_grid/tri_grid)
 // are Phase 2 or out of scope.
-ALTERNATING_PATTERNS = ["tumbling_cubes", "islamic_star", "tetrakis_square",
-                        "kisrhombille", "triakis_triangular", "rhombille",
-                        "cairo_pentagonal", "floret_pentagonal"];
+ALTERNATING_PATTERNS = ["islamic_star", "kisrhombille"];
 
 // Excluded from the square-tile correction: "none" has no texture at all;
 // "ridges" is a directional stripe pattern with no discrete shape to square;
