@@ -58,7 +58,7 @@ RELIEF_MODES = ["raised", "etched", "alternating"];
 // four BOSL2-native heightfield patterns (dots/cubes/checkers/bricks) and the
 // five flat-top/V-groove patterns (ridges/pyramids/diamonds/hex_grid/tri_grid)
 // are Phase 2 or out of scope.
-ALTERNATING_PATTERNS = ["islamic_star", "kisrhombille", "tumbling_cubes", "rhombille", "tetrakis_square", "triakis_triangular", "cairo_pentagonal"];
+ALTERNATING_PATTERNS = ["islamic_star", "kisrhombille", "tumbling_cubes", "rhombille", "tetrakis_square", "triakis_triangular", "cairo_pentagonal", "floret_pentagonal"];
 
 // Excluded from the square-tile correction: "none" has no texture at all;
 // "ridges" is a directional stripe pattern with no discrete shape to square;
@@ -1020,18 +1020,46 @@ _FP_Z_LO = 0.45; // the rosette's alternating "low" pentagons -- own constant,
                  // even though it numerically matches tetrakis_square's own
                  // low height, per this file's per-pattern-constant convention
 
+_FP_OUTER_GAP = 0.05;
+_FP_INNER_GAP = 0.025;
+_FP_HIGH_GROUP = [0, 2, 4]; // reuses the SAME even-k-high parity raised mode
+                            // already uses -- mapped to 1/0 instead of 1/_FP_Z_LO
+
+// group_id = the hub's (hub_x, hub_y) position, NOT k -- same reasoning as
+// cairo_pentagonal: _FP_PLACEMENTS has six entries sharing the same hub, one
+// per pentagon in that hub's rosette, so a k-only group_id would treat
+// different hubs' pentagons as one motif and one hub's own rosette as
+// several.
+function _floret_pentagonal_motif_groups() =
+    let (
+        hubs_raw = unique([for (pl = _FP_PLACEMENTS) [pl[0], pl[1]]]),
+        hubs = _outline_supertile_points(hubs_raw)
+    )
+    [for (h = hubs) [for (k = [0:5]) _fp_pentagon(h[0], h[1], k)]];
+
+function _floret_pentagonal_alternating_islands() =
+    [for (pl = _FP_PLACEMENTS)
+        let (poly = _fp_pentagon(pl[0], pl[1], pl[2]),
+             r = offset(poly, delta = -_FP_GAP / 2, closed = true))
+        if (len(r) >= 3) [[r], 1, [pl[0], pl[1]], pl[2]]];
+
 // Raised mode alternates high/low by placement orientation k (even -> high,
 // odd -> low) -- consistent across every hub instance, since every hub
-// shares the identical 6-orientation set. Etched mode flattens every
-// pentagon to the tile's full height, like the "kis" family's own etched
-// mode -- see this pattern's plan document's "Relief Mode Decision".
+// shares the identical 6-orientation set. Etched mode is now a true outline
+// engrave (two-tier groove) rather than a flattened-fan flat panel, and
+// alternating mode reuses raised mode's own even-k-high parity, mapped to
+// 1/0 instead of 1/_FP_Z_LO -- see this pattern's plan document's "Relief
+// Mode Decision".
 function _floret_pentagonal_tile(relief_mode) =
-    _tile_from_islands([
+    relief_mode == "etched"
+        ? _tile_outline_from_islands(_floret_pentagonal_motif_groups(), _FP_OUTER_GAP, _FP_INNER_GAP)
+    : relief_mode == "alternating"
+        ? _tile_alternating_from_islands(_floret_pentagonal_alternating_islands(), _FP_HIGH_GROUP)
+    : _tile_from_islands([
         for (pl = _FP_PLACEMENTS)
             let (poly = _fp_pentagon(pl[0], pl[1], pl[2]),
                  r = offset(poly, delta = -_FP_GAP / 2, closed = true),
-                 z = (relief_mode == "etched") ? _FP_Z_HI
-                     : ((pl[2] % 2 == 0) ? _FP_Z_HI : _FP_Z_LO))
+                 z = (pl[2] % 2 == 0) ? _FP_Z_HI : _FP_Z_LO)
             if (len(r) >= 3) [[r], z]
     ]);
 

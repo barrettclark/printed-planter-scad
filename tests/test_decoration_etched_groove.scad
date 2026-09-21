@@ -54,7 +54,7 @@ VNF_PATTERN_TYPES = ["teardrop", "intertwine",
 // etched is a flat panel cut by grooves, an entirely different VNF from the
 // raised tile, so these can be in neither list above. Later phases of the
 // relief-mode redesign move the remaining patterns here one at a time.
-OUTLINE_PATTERN_TYPES = ["islamic_star", "kisrhombille", "tumbling_cubes", "rhombille", "tetrakis_square", "triakis_triangular", "cairo_pentagonal"];
+OUTLINE_PATTERN_TYPES = ["islamic_star", "kisrhombille", "tumbling_cubes", "rhombille", "tetrakis_square", "triakis_triangular", "cairo_pentagonal", "floret_pentagonal"];
 
 // The remaining "kis"-family patterns are also hand-rolled VNF tiles with no
 // flat-top counterpart, but unlike VNF_PATTERN_TYPES above, their etched and
@@ -63,17 +63,12 @@ OUTLINE_PATTERN_TYPES = ["islamic_star", "kisrhombille", "tumbling_cubes", "rhom
 // in), raised alternates heights across the fan. So they get their own
 // category and their own checks below rather than joining VNF_PATTERN_TYPES,
 // whose defining assertion (etched tile == raised tile) does not hold here.
-// "floret_pentagonal" is not a Conway kis-operation tiling, but its
-// 6-pentagon rosette is a fan around a shared hub with exactly the same kind
-// of sub-structure, so it behaves identically here (raised alternates
-// heights around the rosette, etched flattens every pentagon to one height)
-// and every assertion in this category applies to it unchanged.
-// "tetrakis_square" and "triakis_triangular" moved OUT of this category and
-// into OUTLINE_PATTERN_TYPES above: their etched modes were rewired to the
-// two-tier outline engrave (a real z=0.5 groove tier, not a single flattened
-// height), so they now belong with kisrhombille/tumbling_cubes/rhombille/
-// islamic_star instead.
-KIS_PATTERN_TYPES = ["floret_pentagonal"];
+// "tetrakis_square", "triakis_triangular" and "floret_pentagonal" moved OUT
+// of this category and into OUTLINE_PATTERN_TYPES above: their etched modes
+// were rewired to the two-tier outline engrave (a real z=0.5 groove tier, not
+// a single flattened height), so they now belong with kisrhombille/
+// tumbling_cubes/rhombille/islamic_star instead.
+KIS_PATTERN_TYPES = [];
 
 // Every other pattern_type has no flat-top counterpart and must keep today's
 // inset-the-bump behavior: same texture in both modes, and therefore the same
