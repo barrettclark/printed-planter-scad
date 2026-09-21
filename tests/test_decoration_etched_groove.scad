@@ -47,8 +47,14 @@ assert(_ETCH_BORDER > 0 && _ETCH_BORDER <= 0.1,
 // The hand-rolled VNF tiles have no flat-top counterpart either, but unlike the
 // patterns below they do not map to their own name -- they map to the tile --
 // so they are excluded here and checked on their own further down.
-VNF_PATTERN_TYPES = ["teardrop", "tumbling_cubes", "intertwine", "islamic_star",
+VNF_PATTERN_TYPES = ["teardrop", "tumbling_cubes", "intertwine",
                      "rhombille", "cairo_pentagonal", "deltoidal_trihexagonal"];
+
+// Patterns rewired to the two-tier outline engrave (_tile_outline_from_islands()):
+// etched is a flat panel cut by grooves, an entirely different VNF from the
+// raised tile, so these can be in neither list above. Later phases of the
+// relief-mode redesign move the remaining patterns here one at a time.
+OUTLINE_PATTERN_TYPES = ["islamic_star", "kisrhombille"];
 
 // The "kis"-family patterns are also hand-rolled VNF tiles with no flat-top
 // counterpart, but unlike VNF_PATTERN_TYPES above, their etched and raised
@@ -62,7 +68,7 @@ VNF_PATTERN_TYPES = ["teardrop", "tumbling_cubes", "intertwine", "islamic_star",
 // of sub-structure, so it behaves identically here (raised alternates
 // heights around the rosette, etched flattens every pentagon to one height)
 // and every assertion in this category applies to it unchanged.
-KIS_PATTERN_TYPES = ["tetrakis_square", "kisrhombille", "triakis_triangular",
+KIS_PATTERN_TYPES = ["tetrakis_square", "triakis_triangular",
                      "floret_pentagonal"];
 
 // Every other pattern_type has no flat-top counterpart and must keep today's
@@ -72,7 +78,7 @@ KIS_PATTERN_TYPES = ["tetrakis_square", "kisrhombille", "triakis_triangular",
 _trunc_patterns = [for (row = EXPECTED_ETCHED) row[0]];
 for (pt = PATTERN_TYPES) {
     if (pt != "none" && !in_list(pt, VNF_PATTERN_TYPES) && !in_list(pt, KIS_PATTERN_TYPES)
-            && !in_list(pt, _trunc_patterns)) {
+            && !in_list(pt, OUTLINE_PATTERN_TYPES) && !in_list(pt, _trunc_patterns)) {
         assert(_decoration_etched_texture(pt) == undef,
             str("_decoration_etched_texture(\"", pt, "\") should be undef, got ",
                 _decoration_etched_texture(pt)));
@@ -125,9 +131,37 @@ for (pt = KIS_PATTERN_TYPES) {
             _decoration_style(pt, "etched")));
 }
 
+// The outline-engrave patterns: still VNF tiles with no BOSL2 counterpart,
+// but etched is now a flat z=1 panel cut by a two-tier groove rather than
+// any view of the raised tile. Pin that it is a distinct VNF and that the
+// panel really is the tile's top level. Each tile is rebuilt on every call
+// and kisrhombille's takes ~12s, so resolve each one once.
+for (pt = OUTLINE_PATTERN_TYPES) {
+    assert(in_list(pt, PATTERN_TYPES), str("\"", pt, "\" is not a pattern_type"));
+    assert(_decoration_etched_texture(pt) == undef,
+        str("_decoration_etched_texture(\"", pt, "\") should be undef, got ",
+            _decoration_etched_texture(pt)));
+    _e = _decoration_texture(pt, "etched");
+    _r = _decoration_texture(pt, "raised");
+    assert(is_vnf(_e), str("_decoration_texture(\"", pt, "\", \"etched\") should be a VNF tile"));
+    assert(is_vnf(_r), str("_decoration_texture(\"", pt, "\", \"raised\") should be a VNF tile"));
+    assert(_e != _r,
+        str("\"", pt, "\" etched and raised tiles should differ -- etched is an outline ",
+            "engrave (flat panel + groove), raised is the motif in relief"));
+    // The panel is the land the grooves are cut into, so z=1 must be the top
+    // level and the groove floors must sit strictly below it.
+    _zs = unique([for (p = _e[0]) p[2]]);
+    assert(last(_zs) == 1 && len(_zs) >= 2,
+        str("\"", pt, "\" etched must be a z=1 panel cut by at least one lower groove tier, got ", _zs));
+    assert(_decoration_style(pt, "etched") == undef,
+        str("_decoration_style(\"", pt, "\", \"etched\") should be undef (VNF tile), got ",
+            _decoration_style(pt, "etched")));
+}
+
 // Raised mode is untouched: the pre-existing mapping, unchanged.
 for (pt = PATTERN_TYPES) {
-    if (pt != "none" && !in_list(pt, VNF_PATTERN_TYPES) && !in_list(pt, KIS_PATTERN_TYPES)) {
+    if (pt != "none" && !in_list(pt, VNF_PATTERN_TYPES) && !in_list(pt, KIS_PATTERN_TYPES)
+            && !in_list(pt, OUTLINE_PATTERN_TYPES)) {
         expected = (pt == "ridges") ? "ribs" : pt;
         assert(_decoration_texture(pt, "raised") == expected,
             str("_decoration_texture(\"", pt, "\", \"raised\") should be \"", expected,
