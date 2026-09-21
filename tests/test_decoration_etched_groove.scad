@@ -48,13 +48,13 @@ assert(_ETCH_BORDER > 0 && _ETCH_BORDER <= 0.1,
 // patterns below they do not map to their own name -- they map to the tile --
 // so they are excluded here and checked on their own further down.
 VNF_PATTERN_TYPES = ["teardrop", "intertwine",
-                     "cairo_pentagonal", "deltoidal_trihexagonal"];
+                     "deltoidal_trihexagonal"];
 
 // Patterns rewired to the two-tier outline engrave (_tile_outline_from_islands()):
 // etched is a flat panel cut by grooves, an entirely different VNF from the
 // raised tile, so these can be in neither list above. Later phases of the
 // relief-mode redesign move the remaining patterns here one at a time.
-OUTLINE_PATTERN_TYPES = ["islamic_star", "kisrhombille", "tumbling_cubes", "rhombille", "tetrakis_square", "triakis_triangular"];
+OUTLINE_PATTERN_TYPES = ["islamic_star", "kisrhombille", "tumbling_cubes", "rhombille", "tetrakis_square", "triakis_triangular", "cairo_pentagonal"];
 
 // The remaining "kis"-family patterns are also hand-rolled VNF tiles with no
 // flat-top counterpart, but unlike VNF_PATTERN_TYPES above, their etched and

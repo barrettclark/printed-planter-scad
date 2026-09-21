@@ -58,7 +58,7 @@ RELIEF_MODES = ["raised", "etched", "alternating"];
 // four BOSL2-native heightfield patterns (dots/cubes/checkers/bricks) and the
 // five flat-top/V-groove patterns (ridges/pyramids/diamonds/hex_grid/tri_grid)
 // are Phase 2 or out of scope.
-ALTERNATING_PATTERNS = ["islamic_star", "kisrhombille", "tumbling_cubes", "rhombille", "tetrakis_square", "triakis_triangular"];
+ALTERNATING_PATTERNS = ["islamic_star", "kisrhombille", "tumbling_cubes", "rhombille", "tetrakis_square", "triakis_triangular", "cairo_pentagonal"];
 
 // Excluded from the square-tile correction: "none" has no texture at all;
 // "ridges" is a directional stripe pattern with no discrete shape to square;
@@ -910,8 +910,38 @@ _CP_Z   = 1.0;  // every pentagon reaches the tile's full height (uniform,
                 // like rhombille -- see this pattern's plan document's
                 // "Relief Mode Decision" for why no relief_mode split is used)
 
-function _cairo_pentagonal_tile() =
-    _tile_from_islands([
+_CP_OUTER_GAP = 0.05;
+_CP_INNER_GAP = 0.025;
+_CP_HIGH_GROUP = [0, 2]; // even k high, odd k low -- no existing raised-mode
+                         // parity to reuse (cairo_pentagonal is uniform-
+                         // height in raised mode), so this is a visual-
+                         // judgment default matching floret_pentagonal's own
+                         // convention; confirm once rendered
+
+// group_id = the hub's (m,n) position (quantized), NOT the placement's k --
+// k is a sub-motif's orientation WITHIN one hub's cluster; _CP_PLACEMENTS has
+// multiple entries sharing the same (m,n) at different k, and multiple
+// entries sharing the same k at different (m,n), so a k-only group_id would
+// both collide distinct hubs together and split one hub's own cluster apart.
+function _cairo_pentagonal_motif_groups() =
+    let (
+        hubs_raw = unique([for (pl = _CP_PLACEMENTS) [pl[0], pl[1]]]),
+        hubs = _outline_supertile_points(hubs_raw)
+    )
+    [for (h = hubs) [for (k = [0:3]) _cp_pentagon(h[0], h[1], k)]];
+
+function _cairo_pentagonal_alternating_islands() =
+    [for (pl = _CP_PLACEMENTS)
+        let (poly = _cp_pentagon(pl[0], pl[1], pl[2]),
+             r = offset(poly, delta = -_CP_GAP / 2, closed = true))
+        if (len(r) >= 3) [[r], 1, [pl[0], pl[1]], pl[2]]];
+
+function _cairo_pentagonal_tile(relief_mode) =
+    relief_mode == "etched"
+        ? _tile_outline_from_islands(_cairo_pentagonal_motif_groups(), _CP_OUTER_GAP, _CP_INNER_GAP)
+    : relief_mode == "alternating"
+        ? _tile_alternating_from_islands(_cairo_pentagonal_alternating_islands(), _CP_HIGH_GROUP)
+    : _tile_from_islands([
         for (pl = _CP_PLACEMENTS)
             let (poly = _cp_pentagon(pl[0], pl[1], pl[2]),
                  r = offset(poly, delta = -_CP_GAP / 2, closed = true))
@@ -1376,7 +1406,7 @@ function _decoration_texture(pattern_type, relief_mode) =
     pattern_type == "kisrhombille"    ? _kisrhombille_tile(relief_mode) :
     pattern_type == "triakis_triangular" ? _triakis_triangular_tile(relief_mode) :
     pattern_type == "rhombille"          ? _rhombille_tile(relief_mode) :
-    pattern_type == "cairo_pentagonal"   ? _cairo_pentagonal_tile() :
+    pattern_type == "cairo_pentagonal"   ? _cairo_pentagonal_tile(relief_mode) :
     pattern_type == "floret_pentagonal"  ? _floret_pentagonal_tile(relief_mode) :
     pattern_type == "deltoidal_trihexagonal" ? _deltoidal_trihexagonal_tile() :
     pattern_type;
