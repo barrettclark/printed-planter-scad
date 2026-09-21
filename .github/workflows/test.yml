@@ -251,17 +251,37 @@ jobs:
           # directly against a CI run, not just a local build -- local-clean
           # is necessary but not sufficient here.
           #
-          # "tetrakis_square", "kisrhombille" and "triakis_triangular" (the
-          # "kis"-family patterns) DO get the shared reps=4 value: unlike the
-          # three plateau patterns above, they're built from many small
-          # triangular fan facets (via _kis_shrunk_fan()), not a few large
-          # flat islands, so there's no wide-arc chord to cut back inside the
-          # wall. Measured clean in both relief modes at pattern_repeat=4 AND
-          # at the shipped defaults (pattern_repeat=16, smoothness=60) during
+          # "kisrhombille" and "triakis_triangular" (two of the "kis"-family
+          # patterns) DO get the shared reps=4 value: unlike the three
+          # plateau patterns above, they're built from many small triangular
+          # fan facets (via _kis_shrunk_fan()), not a few large flat islands,
+          # so there's no wide-arc chord to cut back inside the wall.
+          # Measured clean in both relief modes at pattern_repeat=4 AND at
+          # the shipped defaults (pattern_repeat=16, smoothness=60) during
           # each pattern's own implementation task, then re-verified directly
           # against this workflow's actual GitHub Actions run (not just
           # locally) -- see the intertwine note above for why that
           # distinction matters on this runner.
+          #
+          # "tetrakis_square" no longer shares that reduced value, even
+          # though it is nominally the same "kis"-family construction: its
+          # "etched" relief mode was rewired from a flat single-height fan to
+          # a real two-tier outline-groove VNF (_tile_outline_from_islands()),
+          # and that rewire reintroduced the plateau patterns' wide-arc-chord
+          # fragility above -- pattern_repeat=4 (and most other low values)
+          # now CGAL-aborts in "etched" specifically (confirmed: 3, 4, 5, 7,
+          # 8, 9, 11, 12, 14 and 17 all abort at smoothness=24; only 6, 10,
+          # 13, 15, 16 and 18-24 measured clean). "raised" and "alternating"
+          # are unaffected (both are clean at every value tested, including
+          # 4) -- only "etched"'s new outline geometry is fragile. This uses
+          # pattern_repeat=20, the middle of the widest clean run found
+          # (18-24, all clean in every relief mode), for a tested margin well
+          # past what a single isolated clean value would give. Measured
+          # locally (macOS OpenSCAD 2021.01) only, not yet re-verified
+          # against this workflow's real Ubuntu run -- see the intertwine
+          # note above for why that distinction matters; if this check ever
+          # fails on CI, re-measure directly against the CI run rather than
+          # trusting the local sweep further.
           #
           # "rhombille" does NOT get the shared reps=4 value either, and does
           # NOT share the "kis" family's reasoning above: it reuses
@@ -338,7 +358,7 @@ jobs:
           for combo in "ridges 4" "diamonds 4" "hex_grid 4" "pyramids 4" "bricks 4" \
                        "checkers 4" "dots 4" "cubes 4" "tri_grid 4" "teardrop 4" \
                        "islamic_star 8" "tumbling_cubes 9" "intertwine 12" \
-                       "tetrakis_square 4" "kisrhombille 4" "triakis_triangular 4" \
+                       "kisrhombille 4" "triakis_triangular 4" "tetrakis_square 20" \
                        "rhombille 13" "cairo_pentagonal 8" "floret_pentagonal 15" \
                        "deltoidal_trihexagonal 4"; do
             set -- $combo
@@ -411,6 +431,15 @@ jobs:
           # file. This pin turns that clean sweep into a CI-enforced claim
           # rather than resting on local measurement alone. Not yet
           # re-verified against this workflow's real Ubuntu run.
+          #
+          # "tetrakis_square" is pinned here too, for the same reason as
+          # "rhombille"/"cairo_pentagonal": it renders fast (a handful of
+          # seconds, like the rest of the "kis" family) and its shipped
+          # defaults (pattern_repeat=16, smoothness=60) were directly
+          # measured clean in both relief modes -- this is what turns that
+          # local measurement into a CI-enforced claim, same as the reduced
+          # pattern_repeat=20 check above turns the low-value sweep into one.
+          # Not yet re-verified against this workflow's real Ubuntu run.
           for relief in raised etched; do
             run_assembly_combo "islamic_star" "$relief" 16 60
             run_assembly_combo "tumbling_cubes" "$relief" 16 60
@@ -418,6 +447,7 @@ jobs:
             run_assembly_combo "cairo_pentagonal" "$relief" 16 60
             run_assembly_combo "floret_pentagonal" "$relief" 16 60
             run_assembly_combo "deltoidal_trihexagonal" "$relief" 16 60
+            run_assembly_combo "tetrakis_square" "$relief" 16 60
           done
 
           # README documents that "tumbling_cubes", "islamic_star" and

@@ -58,7 +58,7 @@ RELIEF_MODES = ["raised", "etched", "alternating"];
 // four BOSL2-native heightfield patterns (dots/cubes/checkers/bricks) and the
 // five flat-top/V-groove patterns (ridges/pyramids/diamonds/hex_grid/tri_grid)
 // are Phase 2 or out of scope.
-ALTERNATING_PATTERNS = ["islamic_star", "kisrhombille", "tumbling_cubes", "rhombille"];
+ALTERNATING_PATTERNS = ["islamic_star", "kisrhombille", "tumbling_cubes", "rhombille", "tetrakis_square"];
 
 // Excluded from the square-tile correction: "none" has no texture at all;
 // "ridges" is a directional stripe pattern with no discrete shape to square;
@@ -561,7 +561,13 @@ function _tile_two_tier_from_regions(panel, secondary, inner_z) =
         s_keys = len(s) == 0 ? [] : _outline_region_edge_keys(s)
     )
     _tile_assert_two_tier_closed(vnf_merge_points(_tile_quantize(vnf_join(concat(
-        [vnf_from_region(ground, transform = up(0), reverse = true)],
+        // ground can be entirely empty when panel+secondary already tile the
+        // whole unit square with no primary tier anywhere (tetrakis_square:
+        // one motif spans the whole tile, so there's no motif-to-motif
+        // boundary to leave any leftover z=0 floor) -- vnf_from_region()
+        // requires a real region (is_region([]) is false), so skip the call
+        // rather than feed it an empty list.
+        len(ground) == 0 ? [] : [vnf_from_region(ground, transform = up(0), reverse = true)],
         [vnf_from_region(p, transform = up(1), reverse = true)],
         len(s) == 0 ? [] : [vnf_from_region(s, transform = up(inner_z), reverse = true)],
         // reverse(): region_parts() normalises to clockwise outers and
@@ -704,12 +710,32 @@ _KIS_GAP = 0.05; // engraved groove width, in tile fractions -- same scale as _T
 //
 // Raised heights alternate around the fan for a pinwheel look (0 and 2 are
 // opposite triangles, as are 1 and 3, so this alternates rather than mirrors).
-// Etched is one flat height -- see the relief_mode note in this plan's
-// Architecture section for why these two modes are genuinely different VNFs
-// for this pattern, not one shape read two ways via tex_inset.
+// Etched and alternating both build on the shared kis-operation geometry
+// above -- see the relief_mode note in this plan's Architecture section for
+// why these modes are genuinely different VNFs for this pattern, not one
+// shape read two ways via tex_inset.
+_TSQ_OUTER_GAP = 0.05;  // unused in practice (this pattern's single fan spans
+                        // the whole tile -- no motif-to-motif boundary exists
+                        // to groove at this tier), kept as a real named
+                        // constant/parameter for interface consistency with
+                        // every other _tile_outline_from_islands() caller
+_TSQ_INNER_GAP = 0.025; // etched secondary groove (the fan's own 4 triangle
+                        // seams)
+_TSQ_HIGH_GROUP = [0, 2]; // matches the existing raised pinwheel parity
+                          // ([1.0, 0.45, 1.0, 0.45] -- indices 0 and 2 high)
+
+function _tetrakis_square_motif_groups() = [_kis_raw_fan(_UNIT_TILE)];
+
+function _tetrakis_square_alternating_islands() =
+    [for (e = _kis_shrunk_fan(_UNIT_TILE, _KIS_GAP, [0, 1, 2, 3]))
+        [e[0], 1, 0, e[1]]];
+
 function _tetrakis_square_tile(relief_mode) =
-    _tile_from_islands(_kis_shrunk_fan(_UNIT_TILE, _KIS_GAP,
-        relief_mode == "etched" ? 1.0 : [1.0, 0.45, 1.0, 0.45]));
+    relief_mode == "etched"
+        ? _tile_outline_from_islands(_tetrakis_square_motif_groups(), _TSQ_OUTER_GAP, _TSQ_INNER_GAP)
+    : relief_mode == "alternating"
+        ? _tile_alternating_from_islands(_tetrakis_square_alternating_islands(), _TSQ_HIGH_GROUP)
+    : _tile_from_islands(_kis_shrunk_fan(_UNIT_TILE, _KIS_GAP, [1.0, 0.45, 1.0, 0.45]));
 
 // --- Tumbling blocks (rhombille) --------------------------------------------
 //
@@ -1382,11 +1408,19 @@ module decorated_solid(pattern_type, pattern_orientation, relief_mode, pattern_d
         // smoothness=60) measure clean in both relief modes, but with a
         // thinner margin below them than any other pattern, so CI pins them.
         // See README.md.
-        // The three "kis" family patterns share the same small-triangular-facet
-        // tile construction and get the same defensive warning as a precaution,
-        // but every tested pattern_repeat/smoothness/relief_mode combination for
-        // them has measured CGAL-clean, so their message doesn't claim a known
-        // failure -- see README.md's CGAL section. "deltoidal_trihexagonal"
+        // "kisrhombille" and "triakis_triangular" share the same small-
+        // triangular-facet tile construction and get the same defensive
+        // warning as a precaution, but every tested pattern_repeat/smoothness/
+        // relief_mode combination for them has measured CGAL-clean, so their
+        // message doesn't claim a known failure -- see README.md's CGAL
+        // section. "tetrakis_square" moved OUT of this bucket and into the
+        // "known to abort" one above: its "etched" relief mode was rewired to
+        // a real two-tier outline-groove VNF, which reintroduced the
+        // wide-arc-chord fragility the plateau patterns have (at
+        // smoothness=24, "etched" aborts at pattern_repeat 3, 4, 5, 7, 8, 9,
+        // 11, 12, 14 and 17; "raised"/"alternating" are unaffected, clean at
+        // every value tested) -- see README.md's CGAL section.
+        // "deltoidal_trihexagonal"
         // shares this same mild bucket despite being built from the same class
         // of large flat plateau construction as the "known to abort" patterns
         // above (14 kite islands per unit tile) -- a full sweep of the real
@@ -1396,13 +1430,13 @@ module decorated_solid(pattern_type, pattern_orientation, relief_mode, pattern_d
         // pattern in this file. See README.md's CGAL section for the full
         // sweep table.
         if (in_list(pattern_type, ["tumbling_cubes", "intertwine", "islamic_star", "rhombille",
-                                   "cairo_pentagonal", "floret_pentagonal"]))
+                                   "cairo_pentagonal", "floret_pentagonal", "tetrakis_square"]))
             echo(str("WARNING: pattern_type \"", pattern_type, "\" is known to abort CGAL ",
                      "for some pattern_repeat/smoothness combinations, and OpenSCAD still ",
                      "exits 0 and writes a truncated STL when it does. Scan this console for ",
                      "a CGAL assertion before trusting the export; if you see one, nudge ",
                      "pattern_repeat or smoothness. See README.md."));
-        else if (in_list(pattern_type, ["tetrakis_square", "kisrhombille", "triakis_triangular",
+        else if (in_list(pattern_type, ["kisrhombille", "triakis_triangular",
                                         "deltoidal_trihexagonal"]))
             echo(str("WARNING: pattern_type \"", pattern_type, "\" carries the same precautionary ",
                      "CGAL warning as the other custom VNF tile patterns (small triangular fans or ",
