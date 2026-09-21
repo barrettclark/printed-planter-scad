@@ -58,7 +58,7 @@ RELIEF_MODES = ["raised", "etched", "alternating"];
 // four BOSL2-native heightfield patterns (dots/cubes/checkers/bricks) and the
 // five flat-top/V-groove patterns (ridges/pyramids/diamonds/hex_grid/tri_grid)
 // are Phase 2 or out of scope.
-ALTERNATING_PATTERNS = ["islamic_star", "kisrhombille", "tumbling_cubes", "rhombille", "tetrakis_square"];
+ALTERNATING_PATTERNS = ["islamic_star", "kisrhombille", "tumbling_cubes", "rhombille", "tetrakis_square", "triakis_triangular"];
 
 // Excluded from the square-tile correction: "none" has no texture at all;
 // "ridges" is a directional stripe pattern with no discrete shape to square;
@@ -1164,11 +1164,48 @@ function _kisrhombille_tile(relief_mode) =
 _TT_A = [[0, 0], [1, 0], [1, 1]];
 _TT_B = [[0, 0], [1, 1], [0, 1]];
 
+_TRIT_OUTER_GAP = 0.05;  // etched primary groove (the A/B diagonal boundary)
+_TRIT_INNER_GAP = 0.025; // etched secondary groove (each cell's own fan seams)
+// alt_key: local triangle index (0..2) within EACH cell's own 3-triangle fan.
+// Raised uses 3 DISTINCT heights per fan ([1.0, 0.4, 0.7], no clean 2-way
+// parity), so unlike tumbling_cubes/kisrhombille/tetrakis_square this
+// high/low split has no existing raised-mode alternation to reuse -- index 0
+// (the tallest raised height, 1.0) renders high, indices 1 and 2 low. Visual-
+// judgment call, confirm once rendered.
+_TRIT_HIGH_GROUP = [0];
+
+// Verified directly (see this task's own diagnostic): a single tile's own
+// _TT_A/_TT_B alone is NOT enough here, unlike tetrakis_square. The A/B
+// diagonal groove only touches 2 of the tile's 4 corners from THIS tile's
+// own geometry (its own (0,0)/(1,1)); the other 2 corners ((1,0) and (0,1))
+// are secondary-only locally, even though a NEIGHBOURING tile's own diagonal
+// physically passes through them too. Building from one tile only leaves the
+// x=0/x=1 (and y=0/y=1) edge profiles swapped rather than identical, so
+// repeated tiles would not stitch. Widen to the same 3x3-supertile treatment
+// every other outline pattern uses so the classifier sees every diagonal
+// that touches this tile's corners, not just its own.
+_TRIT_SUPERTILE_OFFSETS = _outline_supertile_points([[0, 0]]);
+
+function _triakis_triangular_motif_groups() =
+    concat(
+        [for (o = _TRIT_SUPERTILE_OFFSETS)
+            [for (t = _kis_raw_fan(_TT_A)) [for (v = t) v + o]]],
+        [for (o = _TRIT_SUPERTILE_OFFSETS)
+            [for (t = _kis_raw_fan(_TT_B)) [for (v = t) v + o]]]);
+
+function _triakis_triangular_alternating_islands() =
+    concat(
+        [for (e = _kis_shrunk_fan(_TT_A, _KIS_GAP, [0, 1, 2])) [e[0], 1, "A", e[1]]],
+        [for (e = _kis_shrunk_fan(_TT_B, _KIS_GAP, [0, 1, 2])) [e[0], 1, "B", e[1]]]);
+
 function _triakis_triangular_tile(relief_mode) =
-    _tile_from_islands(concat(
-        _kis_shrunk_fan(_TT_A, _KIS_GAP, relief_mode == "etched" ? 1.0 : [1.0, 0.4, 0.7]),
-        _kis_shrunk_fan(_TT_B, _KIS_GAP, relief_mode == "etched" ? 1.0 : [1.0, 0.4, 0.7])
-    ));
+    relief_mode == "etched"
+        ? _tile_outline_from_islands(_triakis_triangular_motif_groups(), _TRIT_OUTER_GAP, _TRIT_INNER_GAP)
+    : relief_mode == "alternating"
+        ? _tile_alternating_from_islands(_triakis_triangular_alternating_islands(), _TRIT_HIGH_GROUP)
+    : _tile_from_islands(concat(
+        _kis_shrunk_fan(_TT_A, _KIS_GAP, [1.0, 0.4, 0.7]),
+        _kis_shrunk_fan(_TT_B, _KIS_GAP, [1.0, 0.4, 0.7])));
 
 // --- Interlocking rings -----------------------------------------------------
 //
