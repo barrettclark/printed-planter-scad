@@ -600,38 +600,41 @@ function _tc_rhombus(c, k) =
 // rhombus placement geometry (_TC_CENTERS/_tc_rhombus()), so their
 // etched/alternating tiles are IDENTICAL -- only "raised" differs between
 // the two patterns (3 distinct heights for the isometric-cube illusion vs.
-// 1 uniform height). group_id/alt_key coincide here (0 = the corner
-// hexagon cluster wherever clipped, 1 = the center hexagon) -- the spec's
-// own resolved correction: _TC_CENTERS has 5 POSITIONS but only 2
-// DISTINCT PHYSICAL hexagons (indices 0-3 are periodic images of one
-// hexagon at each integer lattice corner; index 4 is a second, separate
-// hexagon at the true tile center). Grouping by _TC_CENTERS index instead
-// would assign different heights/groove classification to two clipped
-// pieces of the SAME physical motif, breaking the tile-seam match.
+// 1 uniform height).
+//
+// One group per PHYSICAL HEXAGON, exactly as _kisrhombille_motif_groups()
+// does over this same lattice, and for the reason its own comment gives: a
+// group_id shared by two separate motif instances makes the outline builder
+// read the real boundary between them as a same-motif internal seam, so it
+// gets the thin secondary groove instead of the primary one. Every hexagon
+// here borders six others -- four center-type, two corner-type along
+// x=+/-1/2 -- and collapsing all corner-type hexagons into one group
+// demotes those two boundaries. Besides drawing the wrong groove, the
+// demoted boundary puts a 0.03-wide secondary strip alongside the 0.055
+// primary strips meeting it at each shared hexagon vertex, and the region
+// booleans that separate the two tiers then leave sliver facets: 1.6e-6 in
+// area and 0.00125 on an edge, against 7.1e-5 / 0.0052 once the grouping is
+// right, which is in line with the other outline-etch tiles.
+//
+// _outline_supertile_points() has already deduped periodic images, so one
+// group per point IS grouping by physical identity: the hexagon at (0,0)
+// reached directly and the same one reached as a (1,0) placement shifted by
+// dx=-1 collapse to a single point, hence a single group. That is the
+// invariant the spec's "5 positions, not 5 hexagons" correction is about;
+// it does not make hexagon (0,0) and hexagon (1,0) one motif. Heights are
+// not at stake here either way -- the outline builder puts every group's
+// panel at z=1 and uses group_id only to classify edges. The corner/center
+// height split lives in _tc_alternating_islands()'s own alt_key below.
 function _tc_motif_groups() =
-    let (
-        corner_centers = _outline_supertile_points([_TC_CENTERS[0], _TC_CENTERS[1],
-                                                      _TC_CENTERS[2], _TC_CENTERS[3]]),
-        center_centers = _outline_supertile_points([_TC_CENTERS[4]])
-    )
-    // EXACTLY 2 groups, not one per physical hexagon instance: the outer
-    // list here has 2 elements (the corner-cluster group, the center group),
-    // each built by a list comprehension with NO extra [] around
-    // _tc_rhombus(c, k) -- wrapping it in an extra [...] would instead
-    // produce one group per rhombus (far too fine-grained: the spec's own
-    // correction collapses ALL corner-cluster rhombi, across every deduped
-    // physical hexagon at every integer lattice corner, into ONE group,
-    // since they're periodic images of the same motif -- see this task's
-    // own opening paragraph). Double-check the bracket depth here against
-    // this exact code before shipping; it is the single easiest place in
-    // this whole plan to introduce an off-by-one-list-nesting bug.
-    [
-        [for (c = corner_centers) for (k = [0:2]) _tc_rhombus(c, k)],
-        [for (c = center_centers) for (k = [0:2]) _tc_rhombus(c, k)]
-    ];
+    let (centers = _outline_supertile_points(_TC_CENTERS))
+    [for (c = centers) [for (k = [0:2]) _tc_rhombus(c, k)]];
 
 // alt_key/group_id: 0 = corner cluster (wherever clipped), 1 = center
-// hexagon. gap/height are supplied by each pattern's own wrapper (see
+// hexagon. Unlike _tc_motif_groups() above, alternating mode DOES need the
+// corner hexagons to share one key: alt_key picks a height, and two clipped
+// pieces of the same periodic hexagon must land at the same height or the
+// tile seam stops matching. gap/height are supplied by each pattern's own
+// wrapper (see
 // _tumbling_cubes_tile()/_rhombille_tile() below) since only the SHRINK
 // amount differs between the two patterns (own gap constants), not the
 // underlying placement geometry.
@@ -672,9 +675,10 @@ function _tumbling_cubes_tile(relief_mode) =
 // this pattern is the plain tiling underneath that illusion -- the same
 // _TC_CENTERS/_tc_rhombus() hexagon geometry, but every rhombus at the SAME
 // height, so it reads as a clean rhombus-grid relief/etch rather than a set
-// of cubes. Because the geometry doesn't change between raised and etched,
-// this tile (like tumbling_cubes/intertwine/islamic_star) takes no
-// relief_mode parameter -- decorated_solid()'s tex_inset handles that.
+// of cubes. Only "raised" differs from tumbling_cubes: the etched and
+// alternating tiles come from the shared _tc_motif_groups()/
+// _tc_alternating_islands() helpers above, so they are identical between
+// the two patterns.
 _RH_Z   = 1.0;   // every rhombus reaches the tile's full height
 _RH_GAP = 0.055; // engraved line between rhombi, in tile fractions -- own
                  // constant rather than reusing _TC_GAP, matching how the

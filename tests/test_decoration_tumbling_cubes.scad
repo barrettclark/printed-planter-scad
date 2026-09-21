@@ -76,14 +76,19 @@ difference() {
     translate([300, 0, 0]) cube(10, center = true);
 }
 
-// _TC_CENTERS has 5 positions but only 2 distinct physical hexagons (0-3 are
-// periodic images of the corner one). Grouping by position index instead
-// would give two clipped pieces of the same motif different heights and
-// break the tile seam, so pin the count.
-_TC_OUTER_GAP_EXPECTED_GROUP_COUNT = 2;
-assert(len(_tc_motif_groups()) == _TC_OUTER_GAP_EXPECTED_GROUP_COUNT,
-    str("_tc_motif_groups() must return exactly ", _TC_OUTER_GAP_EXPECTED_GROUP_COUNT,
-        " groups (corner-hexagon cluster, centre hexagon), got ", len(_tc_motif_groups())));
+// One group per PHYSICAL hexagon over the deduped 3x3 supertile, three
+// rhombi each -- the same rule _kisrhombille_motif_groups() follows on this
+// same lattice. Sharing a group_id between separate hexagons would make the
+// outline builder read the real boundary between them as a same-motif
+// internal seam and draw the thin secondary groove there instead of the
+// primary one.
+_TC_OUTER_GAP_EXPECTED_GROUP_COUNT = 25;
+assert(len(_tc_motif_groups()) == len(_outline_supertile_points(_TC_CENTERS)) &&
+       len(_tc_motif_groups()) == _TC_OUTER_GAP_EXPECTED_GROUP_COUNT,
+    str("_tc_motif_groups() must return one group per deduped hexagon centre (",
+        _TC_OUTER_GAP_EXPECTED_GROUP_COUNT, "), got ", len(_tc_motif_groups())));
+assert([for (g = _tc_motif_groups()) if (len(g) != 3) 1] == [],
+    "every _tc_motif_groups() group must hold exactly the hexagon's own 3 rhombi");
 
 _tex_etched = _decoration_texture("tumbling_cubes", "etched");
 assert(is_vnf(_tex_etched), "_decoration_texture(\"tumbling_cubes\", \"etched\") must be a valid VNF");

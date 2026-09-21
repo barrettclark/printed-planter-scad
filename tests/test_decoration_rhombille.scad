@@ -93,12 +93,13 @@ difference() {
     translate([300, 0, 0]) cube(10, center = true);
 }
 
-// Same 2-physical-hexagon invariant tumbling_cubes' own test pins: the
-// shared _tc_motif_groups() must not grow a group per _TC_CENTERS position.
-_RH_OUTER_GAP_EXPECTED_GROUP_COUNT = 2;
-assert(len(_tc_motif_groups()) == _RH_OUTER_GAP_EXPECTED_GROUP_COUNT,
-    str("_tc_motif_groups() must return exactly ", _RH_OUTER_GAP_EXPECTED_GROUP_COUNT,
-        " groups (corner-hexagon cluster, centre hexagon), got ", len(_tc_motif_groups())));
+// Same one-group-per-physical-hexagon invariant tumbling_cubes' own test
+// pins on the shared _tc_motif_groups().
+_RH_OUTER_GAP_EXPECTED_GROUP_COUNT = 25;
+assert(len(_tc_motif_groups()) == len(_outline_supertile_points(_TC_CENTERS)) &&
+       len(_tc_motif_groups()) == _RH_OUTER_GAP_EXPECTED_GROUP_COUNT,
+    str("_tc_motif_groups() must return one group per deduped hexagon centre (",
+        _RH_OUTER_GAP_EXPECTED_GROUP_COUNT, "), got ", len(_tc_motif_groups())));
 
 _etched_zs = unique([for (p = _tex_etched[0]) p[2]]);
 assert(_etched_zs == [0, 0.5, 1],
