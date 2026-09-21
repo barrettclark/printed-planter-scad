@@ -215,7 +215,10 @@ would just read as a honeycomb. `"etched"` is a flat wall cut by a two-tier
 groove: a primary groove along each hexagon's own outer boundary, plus a
 secondary groove along the seams between its three rhombi. `"alternating"` is
 real bas-relief -- some rhombi sit proud of the wall, others sunk below it, in
-one render.
+one render. `"etched"` and `"alternating"` both discard the per-rhombus height
+split that is the only thing telling this pattern apart from `rhombille` --
+the two patterns render byte-identical VNFs in these two modes, so only
+`"raised"` looks different between them.
 
 ### intertwine
 
@@ -314,7 +317,11 @@ reads as a clean rhombus-grid relief rather than a set of stacked cubes.
 `"etched"` is a flat wall cut by a two-tier groove, same mechanism as
 `tumbling_cubes`: primary along each hexagon's outer boundary, secondary along
 the seams between its three rhombi. `"alternating"` sinks some rhombi below
-the wall and leaves others proud of it, in one render.
+the wall and leaves others proud of it, in one render. `"etched"` and
+`"alternating"` both discard the one thing that tells this pattern apart from
+`tumbling_cubes` (the per-rhombus height split) — the two patterns render
+byte-identical VNFs in these two modes, so only `"raised"` looks different
+between them.
 
 ### cairo_pentagonal
 

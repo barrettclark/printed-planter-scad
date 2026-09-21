@@ -66,11 +66,15 @@ jobs:
           # string, no style override, and the twin-vertex rule that makes the
           # tile stitch to its own repeats). One file per tile, not one shared
           # file: "teardrop" cannot be union()ed with any other textured solid
-          # without aborting CGAL on OpenSCAD 2021.01. The three "kis"-family
+          # without aborting CGAL on OpenSCAD 2021.01. The "kis"-family
           # patterns (tetrakis_square/kisrhombille/triakis_triangular) share
-          # that same one-file-per-tile structure even though they measured
-          # CGAL-safe -- consistency with the other hand-rolled tiles, not a
-          # sign of fragility.
+          # that same one-file-per-tile structure for consistency with the
+          # other hand-rolled tiles -- "triakis_triangular" has measured
+          # CGAL-clean everywhere tested, but "tetrakis_square" and
+          # "kisrhombille" are now known to abort at some pattern_repeat/
+          # smoothness combinations for "etched"/"alternating" respectively
+          # (see README.md's CGAL section), so this structure is load-bearing
+          # for those two, not just consistency.
           for f in teardrop tumbling_cubes intertwine islamic_star \
                    tetrakis_square kisrhombille triakis_triangular rhombille \
                    cairo_pentagonal floret_pentagonal deltoidal_trihexagonal; do
@@ -87,9 +91,10 @@ jobs:
           # Build every texture individually (one solid at a time, no
           # union/difference), which is cheap even for "bricks", without
           # test_decoration_pattern_types.scad's impractically slow
-          # all-in-one-file cost above. Both relief modes are covered since
-          # "dots" takes a different (negative-tex_depth) code path when
-          # etched -- that path had no coverage anywhere until this loop.
+          # all-in-one-file cost above. All three relief modes are covered
+          # since "dots" takes a different (negative-tex_depth) code path
+          # when etched -- that path had no coverage anywhere until this
+          # loop.
           # Caveat: exporting a single top-level object to .stl does not push
           # it through CGAL in OpenSCAD 2021.01, so this loop proves the VNF
           # builds, not that it is manifold; the full-assembly loop further

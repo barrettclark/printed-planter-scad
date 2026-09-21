@@ -22,10 +22,14 @@
 #
 # Do NOT widen that grep to "WARNING": decorated_solid() echoes a WARNING line
 # on every single render of those six patterns (plus a milder variant for
-# the "kis" family -- tetrakis_square/kisrhombille/triakis_triangular -- which
-# share the same defensive warning but have measured CGAL-clean everywhere
-# tested) as a proactive notice. Either warning is normal and means nothing
-# went wrong on its own.
+# the "kis" family -- tetrakis_square/kisrhombille/triakis_triangular).
+# "triakis_triangular" has measured CGAL-clean everywhere tested;
+# "tetrakis_square" and "kisrhombille" now have real known-abort combos too
+# (for "etched" and "alternating" respectively -- see README.md's CGAL
+# section), so their own warning text says so rather than claiming
+# clean-everywhere. Either warning is normal on its own and means nothing
+# went wrong -- the CGAL error string above is still the only hard-failure
+# signal.
 
 set -euo pipefail
 
