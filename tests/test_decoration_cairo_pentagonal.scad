@@ -54,13 +54,36 @@ assert(_zs == [0, 1],
     str("cairo_pentagonal's VNF must use exactly two Z levels -- ground (0) and every ",
         "pentagon at the tile's full height (1) -- got ", _zs));
 
-// raised and etched must resolve to the exact same VNF -- this pattern's
-// geometry doesn't depend on relief_mode (decorated_solid()'s tex_inset
-// handles the raised/etched distinction), unlike the three kis-family
-// patterns which genuinely build a different tile per mode.
 _tex_etched = _decoration_texture("cairo_pentagonal", "etched");
-assert(_tex == _tex_etched,
-    "cairo_pentagonal's tile geometry must be identical for \"raised\" and \"etched\" -- only decorated_solid()'s tex_inset should differ");
+assert(is_vnf(_tex_etched), "_decoration_texture(\"cairo_pentagonal\", \"etched\") must be a valid VNF");
+assert(_tex_etched != _tex, "cairo_pentagonal etched tile must differ from raised (whole-shape inversion is gone)");
+_etched_zs = unique([for (p = _tex_etched[0]) p[2]]);
+assert(_etched_zs == [0, 0.5, 1],
+    str("cairo_pentagonal etched VNF must use exactly Z levels {0, 0.5, 1} (primary groove between ",
+        "different hubs' pentagons, secondary within one hub's own 4-pentagon pinwheel), got ", _etched_zs));
+
+_tex_alt = _decoration_texture("cairo_pentagonal", "alternating");
+assert(is_vnf(_tex_alt), "_decoration_texture(\"cairo_pentagonal\", \"alternating\") must be a valid VNF");
+_alt_zs = unique([for (p = _tex_alt[0]) p[2]]);
+assert(_alt_zs == [0, 0.5, 1],
+    str("cairo_pentagonal alternating VNF must use exactly Z levels {0, 0.5, 1}, got ", _alt_zs));
+assert(_tex_alt != _tex && _tex_alt != _tex_etched,
+    "cairo_pentagonal alternating tile must differ from both raised and etched");
+
+for (tex = [_tex_etched, _tex_alt]) {
+    for (axis = [0, 1]) {
+        lo = _tile_edge_profile(tex, axis, 0);
+        hi = _tile_edge_profile(tex, axis, 1);
+        name = (axis == 0) ? "x" : "y";
+        assert(len(lo) == len(hi),
+            str("cairo_pentagonal tile has ", len(lo), " vertices on ", name, "=0 but ",
+                len(hi), " on ", name, "=1 -- tiles cannot stitch"));
+        mismatched = [for (i = [0:len(lo)-1]) if (!approx(lo[i], hi[i]))
+                         str(name, "=0 ", lo[i], " vs ", name, "=1 ", hi[i])];
+        assert(len(mismatched) == 0,
+            str("cairo_pentagonal tile ", name, " edge vertices don't line up (including Z): ", mismatched));
+    }
+}
 
 // The invariant the whole tile design rests on: every vertex the tile leaves
 // on one edge needs a twin at the same position on the opposite edge, or
@@ -115,3 +138,15 @@ difference() {
     decorated_solid("cairo_pentagonal", "vertical", "raised", 1.5, 32, 75, 60, 100, 4);
     translate([300, 0, 0]) cube(10, center = true);
 }
+
+// Deliberately NO second/third top-level solid for "etched"/"alternating":
+// OpenSCAD unions every top-level object through CGAL on .stl export, and
+// cairo_pentagonal (already documented in README.md as needing to stay the
+// only textured solid per render) hits the same CGAL "precondition
+// violation" tumbling_cubes'/rhombille's/islamic_star's/kisrhombille's own
+// multi-solid test files hit for the same reason -- confirmed directly:
+// all three modes together abort, while "etched" alone (and "alternating"
+// alone) is a clean 3-volume manifold. Not a defect in this task's etched/
+// alternating code. The etched/alternating tiles stay pinned by the VNF
+// assertions above.
+

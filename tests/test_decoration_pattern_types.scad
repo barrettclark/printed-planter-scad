@@ -37,10 +37,10 @@ EXPECTED_PATTERN_TYPES = ["none", "ridges", "diamonds", "hex_grid", "pyramids",
 // pattern on mixed terms: like "rhombille"/"cairo_pentagonal" its motif
 // interlocks across the tile seam, but like the "kis" family its tile
 // geometry DOES branch on relief_mode (raised alternates heights around the
-// 6-pentagon rosette, etched flattens it) -- so its raised tile is what this
-// file pins, and the etched-vs-raised difference is checked in
-// test_decoration_etched_groove.scad's kis-style category and in
-// test_decoration_floret_pentagonal.scad. "deltoidal_trihexagonal" joins as
+// 6-pentagon rosette, etched is a two-tier outline groove) -- so its raised
+// tile is what this file pins, and the etched-vs-raised difference is
+// checked in test_decoration_etched_groove.scad's OUTLINE_PATTERN_TYPES
+// category and in test_decoration_floret_pentagonal.scad. "deltoidal_trihexagonal" joins as
 // an eleventh VNF pattern on "rhombille"/"cairo_pentagonal"'s terms, not
 // "floret_pentagonal"'s: its motif interlocks across the tile seam, but its
 // geometry does NOT branch on relief_mode (every kite is the same uniform

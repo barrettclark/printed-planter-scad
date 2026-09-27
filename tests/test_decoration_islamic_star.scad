@@ -78,7 +78,67 @@ for (axis = [0, 1]) {
         str("islamic_star tile ", name, " edge vertices don't line up: ", mismatched));
 }
 
+// "alternating" is new: star high, all four crosses low (a visual-judgment
+// call per the spec's Decisions section -- confirm this reads well once
+// rendered; change high_group below if not). group_id and alt_key coincide
+// for this pattern (star = 0, crosses = 1..4) since each group has exactly
+// one sub-region -- the natural motif identity IS the natural alternation
+// bucket, per the spec's "Per-pattern high_group choice" section.
+_tex_alt = _decoration_texture("islamic_star", "alternating");
+assert(is_vnf(_tex_alt), "_decoration_texture(\"islamic_star\", \"alternating\") must be a valid VNF");
+_alt_zs = unique([for (p = _tex_alt[0]) p[2]]);
+// All three Z levels must appear: the star (high, z=1), each cross (low,
+// z=0), and the real z=0.5 ground/groove between them -- the star and
+// crosses are shrunk by _IS_GAP away from each other for this builder (the
+// same groove _islamic_star_alternating_islands() carries over from raised
+// mode's own shrink), so the ground plane is genuinely non-empty, not
+// degenerate to zero area.
+assert(_alt_zs == [0, 0.5, 1],
+    str("islamic_star alternating VNF must use exactly Z levels {0, 0.5, 1} (nominal wall at 0.5), got ", _alt_zs));
+assert(_tex_alt != _decoration_texture("islamic_star", "raised"),
+    "islamic_star alternating tile must differ from raised");
+assert(_tex_alt != _decoration_texture("islamic_star", "etched"),
+    "islamic_star alternating tile must differ from etched");
+
+for (axis = [0, 1]) {
+    lo = _tile_edge_profile(_tex_alt, axis, 0);
+    hi = _tile_edge_profile(_tex_alt, axis, 1);
+    name = (axis == 0) ? "x" : "y";
+    assert(len(lo) == len(hi),
+        str("islamic_star alternating tile has ", len(lo), " vertices on ", name, "=0 but ",
+            len(hi), " on ", name, "=1 -- tiles cannot stitch"));
+    mismatched = [for (i = [0:len(lo)-1]) if (!approx(lo[i], hi[i]))
+                     str(name, "=0 ", lo[i], " vs ", name, "=1 ", hi[i])];
+    assert(len(mismatched) == 0,
+        str("islamic_star alternating tile ", name, " edge vertices don't line up (including Z): ", mismatched));
+}
+
+// Etched must now be a genuinely different (flat panel + groove) VNF, not
+// the same bump inverted via tex_inset -- this is the whole point of the
+// rework. Z levels: 1 (panel), 0 (primary/outer groove, full depth). No
+// secondary tier here: every group has exactly one sub-region (star alone,
+// each cross alone), so there are no same-group internal edges to groove.
+_tex_etched = _decoration_texture("islamic_star", "etched");
+assert(is_vnf(_tex_etched), "_decoration_texture(\"islamic_star\", \"etched\") must be a valid VNF");
+assert(_tex_etched != _tex, "islamic_star etched tile must differ from raised");
+_etched_zs = unique([for (p = _tex_etched[0]) p[2]]);
+assert(_etched_zs == [0, 1],
+    str("islamic_star etched VNF must use exactly 2 Z levels (ground/primary-groove, panel), got ", _etched_zs));
+
 difference() {
     decorated_solid("islamic_star", "vertical", "raised", 1.5, 12, 75, 60, 100, 4);
     translate([300, 0, 0]) cube(10, center = true);
 }
+
+// Deliberately NO second/third top-level solid for "alternating"/"etched":
+// OpenSCAD unions every top-level object through CGAL on .stl export, and
+// islamic_star (already in the "known to abort CGAL for some
+// pattern_repeat/smoothness combinations" bucket) aborts that union --
+// confirmed directly: "raised" + "alternating" + "etched" together at
+// r1=75/r2=60/h=100, $fn=4, pattern_repeat=12 hits the same CGAL
+// "precondition violation" (Multiset.h:2308) that tumbling_cubes'/
+// rhombille's own multi-solid test files hit for the same reason (see
+// those files' own comments) -- not a defect in this task's etched/
+// alternating code, each of which is a clean 2-volume manifold alone.
+// The etched/alternating tiles stay pinned by the VNF assertions above.
+

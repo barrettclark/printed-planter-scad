@@ -1,8 +1,11 @@
 # Pattern Gallery
 
 Every `pattern_type` this generator offers, plus the insert presets and outer
-shape modes. Every pattern shows both `relief_mode` values except `"none"`,
-which has no texture at all so `relief_mode` cannot change anything. All
+shape modes. Every pattern shows `"raised"` and `"etched"` except `"none"`,
+which has no texture at all so `relief_mode` cannot change anything; the eight
+patterns that support `"alternating"` (`tumbling_cubes`, `islamic_star`,
+`tetrakis_square`, `kisrhombille`, `triakis_triangular`, `rhombille`,
+`cairo_pentagonal`, `floret_pentagonal`) show it too. All
 images are real OpenSCAD renders produced by
 [`images/render.sh`](images/render.sh) — nothing here is drawn by hand or
 touched up.
@@ -202,13 +205,20 @@ across the tile seams — there are no visible tile boxes.
 
 ### tumbling_cubes
 
-| Raised | Etched |
-|---|---|
-| ![tumbling_cubes, raised](images/pattern-tumbling_cubes-raised.png) | ![tumbling_cubes, etched](images/pattern-tumbling_cubes-etched.png) |
+| Raised | Etched | Alternating |
+|---|---|---|
+| ![tumbling_cubes, raised](images/pattern-tumbling_cubes-raised.png) | ![tumbling_cubes, etched](images/pattern-tumbling_cubes-etched.png) | ![tumbling_cubes, alternating](images/pattern-tumbling_cubes-alternating.png) |
 
 Interlocking. The rhombille tiling's three rhombi per hexagon sit at three
 different heights, which is what sells the stacked-cube illusion; equal heights
-would just read as a honeycomb.
+would just read as a honeycomb. `"etched"` is a flat wall cut by a two-tier
+groove: a primary groove along each hexagon's own outer boundary, plus a
+secondary groove along the seams between its three rhombi. `"alternating"` is
+real bas-relief -- some rhombi sit proud of the wall, others sunk below it, in
+one render. `"etched"` and `"alternating"` both discard the per-rhombus height
+split that is the only thing telling this pattern apart from `rhombille` --
+the two patterns render byte-identical VNFs in these two modes, so only
+`"raised"` looks different between them.
 
 ### intertwine
 
@@ -223,19 +233,22 @@ minutes per image here, the largest single chunk of the script's runtime.
 
 ### islamic_star
 
-| Raised | Etched |
-|---|---|
-| ![islamic_star, raised](images/pattern-islamic_star-raised.png) | ![islamic_star, etched](images/pattern-islamic_star-etched.png) |
+| Raised | Etched | Alternating |
+|---|---|---|
+| ![islamic_star, raised](images/pattern-islamic_star-raised.png) | ![islamic_star, etched](images/pattern-islamic_star-etched.png) | ![islamic_star, alternating](images/pattern-islamic_star-alternating.png) |
 
 Interlocking. Eight-point stars with a four-point cross filling each gap; the
 two shapes tile the plane exactly and share whole edges, so the groove between
-them is a uniform incised line.
+them is a uniform incised line. `"etched"` is a flat wall cut by that primary
+groove; neither shape has internal sub-structure, so there is no secondary
+tier here. `"alternating"` renders one shape proud of the wall and the other
+sunk below it, in a single render.
 
 ### tetrakis_square
 
-| Raised | Etched |
-|---|---|
-| ![tetrakis_square, raised](images/pattern-tetrakis_square-raised.png) | ![tetrakis_square, etched](images/pattern-tetrakis_square-etched.png) |
+| Raised | Etched | Alternating |
+|---|---|---|
+| ![tetrakis_square, raised](images/pattern-tetrakis_square-raised.png) | ![tetrakis_square, etched](images/pattern-tetrakis_square-etched.png) | ![tetrakis_square, alternating](images/pattern-tetrakis_square-alternating.png) |
 
 Conway's "kis" operation applied to the square tiling: each unit tile is fanned
 into four isosceles right triangles from its own center point, like a
@@ -244,21 +257,20 @@ kis-cell here is the whole unit tile, so the fan never crosses a tile
 boundary; adjacent tiles simply repeat, they don't join into one continuous
 motif.
 
-Relief works differently here than for any of the fourteen patterns above:
-raised gives the four triangles alternating heights (a genuine pinwheel, not a
-flat panel), while etched is a single flat height across all four with only a
-thin engraved groove marking the fan lines — a flat panel with a scribed
-pattern, not an inverted copy of the raised relief. All three "kis"-family
-patterns below share this same raised/etched behavior, and so does
-`floret_pentagonal` at the end of this section — it is not a kis-operation
-tiling, but its 6-pentagon rosette is the same kind of fan around a shared
-point, so its two relief modes are genuinely different VNFs too.
+`"etched"` is a flat wall cut by a groove -- but since the fan spans the whole
+unit tile, there is no second motif instance inside it to have an outer
+boundary against, so only the secondary tier (the groove marking the fan
+lines themselves) is present here; there is no primary tier to speak of. All
+three "kis"-family patterns below and `floret_pentagonal` at the end of this
+section use the same two-tier mechanism. `"alternating"` gives real bas-relief
+-- alternating triangles of the fan sit proud of the wall or sunk below it, in
+one render.
 
 ### kisrhombille
 
-| Raised | Etched |
-|---|---|
-| ![kisrhombille, raised](images/pattern-kisrhombille-raised.png) | ![kisrhombille, etched](images/pattern-kisrhombille-etched.png) |
+| Raised | Etched | Alternating |
+|---|---|---|
+| ![kisrhombille, raised](images/pattern-kisrhombille-raised.png) | ![kisrhombille, etched](images/pattern-kisrhombille-etched.png) | ![kisrhombille, alternating](images/pattern-kisrhombille-alternating.png) |
 
 Kis applied to `tumbling_cubes`'s own rhombille tiling: each of its three
 rhombi per hexagon is itself fanned into four triangles from its center,
@@ -267,16 +279,16 @@ total. Reuses `tumbling_cubes`'s exact hexagon/rhombus geometry, so the two
 patterns' motifs line up cell-for-cell; this one is just fanned rather than
 raised as flat plateaus.
 
-Same relief behavior as `tetrakis_square`: raised alternates two heights
-across each rhombus's four-triangle fan; etched flattens every triangle to one
-height and leaves only the engraved fan lines, rather than inverting the
-raised bumps.
+`"etched"` is a flat wall with both tiers present: a primary groove along each
+hexagon's outer boundary, plus a secondary groove marking the fan lines within
+each rhombus. `"alternating"` gives real bas-relief across the fan triangles,
+some proud of the wall and some sunk below it.
 
 ### triakis_triangular
 
-| Raised | Etched |
-|---|---|
-| ![triakis_triangular, raised](images/pattern-triakis_triangular-raised.png) | ![triakis_triangular, etched](images/pattern-triakis_triangular-etched.png) |
+| Raised | Etched | Alternating |
+|---|---|---|
+| ![triakis_triangular, raised](images/pattern-triakis_triangular-raised.png) | ![triakis_triangular, etched](images/pattern-triakis_triangular-etched.png) | ![triakis_triangular, alternating](images/pattern-triakis_triangular-alternating.png) |
 
 Kis applied to a triangular tiling: the unit tile's diagonal splits it into
 two triangles, and each of those is fanned into three sub-triangles from its
@@ -288,54 +300,56 @@ regularity. Three distinct heights per fan (not two, unlike `tetrakis_square`'s
 alternation) — the same reasoning `tumbling_cubes` uses for its three rhombi,
 that three different heights read better than two repeated.
 
-Same relief behavior as the other two "kis"-family patterns above: raised
-gives three real heights per fan; etched flattens every triangle to one height
-with only the engraved fan lines, a flat scribed panel rather than an inverted
-raised bump.
+Same two-tier `"etched"` mechanism as `kisrhombille`: a primary groove along
+each base triangle's own outer boundary, plus a secondary groove marking the
+fan lines within it. `"alternating"` gives real bas-relief across the fan.
 
 ### rhombille
 
-| Raised | Etched |
-|---|---|
-| ![rhombille, raised](images/pattern-rhombille-raised.png) | ![rhombille, etched](images/pattern-rhombille-etched.png) |
+| Raised | Etched | Alternating |
+|---|---|---|
+| ![rhombille, raised](images/pattern-rhombille-raised.png) | ![rhombille, etched](images/pattern-rhombille-etched.png) | ![rhombille, alternating](images/pattern-rhombille-alternating.png) |
 
 Interlocking. The plain rhombille tiling `tumbling_cubes`'s isometric-cube
 illusion is built from: the exact same hexagon/rhombus geometry, but every
 rhombus raised to the same height instead of three different ones, so it
 reads as a clean rhombus-grid relief rather than a set of stacked cubes.
-Because the geometry doesn't change between raised and etched, `"etched"`
-here is a true inverted copy of the raised relief, not a separate flat-panel
-construction like the "kis" family above.
+`"etched"` is a flat wall cut by a two-tier groove, same mechanism as
+`tumbling_cubes`: primary along each hexagon's outer boundary, secondary along
+the seams between its three rhombi. `"alternating"` sinks some rhombi below
+the wall and leaves others proud of it, in one render. `"etched"` and
+`"alternating"` both discard the one thing that tells this pattern apart from
+`tumbling_cubes` (the per-rhombus height split) — the two patterns render
+byte-identical VNFs in these two modes, so only `"raised"` looks different
+between them.
 
 ### cairo_pentagonal
 
-| Raised | Etched |
-|---|---|
-| ![cairo_pentagonal, raised](images/pattern-cairo_pentagonal-raised.png) | ![cairo_pentagonal, etched](images/pattern-cairo_pentagonal-etched.png) |
+| Raised | Etched | Alternating |
+|---|---|---|
+| ![cairo_pentagonal, raised](images/pattern-cairo_pentagonal-raised.png) | ![cairo_pentagonal, etched](images/pattern-cairo_pentagonal-etched.png) | ![cairo_pentagonal, alternating](images/pattern-cairo_pentagonal-alternating.png) |
 
 Interlocking. The Cairo pentagonal tiling (Wikipedia "V3^2.4.3.4", dual of the
 snub square tiling): congruent, irregular pentagons — four long edges and one
 short edge, two non-adjacent right angles — every pentagon raised to the same
-height. Because the geometry doesn't change between raised and etched,
-`"etched"` here is a true inverted copy of the raised relief, like
-`rhombille`, not a separate flat-panel construction like the "kis" family.
+height. `"etched"` is a flat wall cut by a two-tier groove: primary along each
+hub's outer boundary, secondary along the pinwheel seams between its four
+pentagons. `"alternating"` gives real bas-relief across the pinwheel, some
+pentagons proud of the wall and some sunk below it.
 
 ### floret_pentagonal
 
-| Raised | Etched |
-|---|---|
-| ![floret_pentagonal, raised](images/pattern-floret_pentagonal-raised.png) | ![floret_pentagonal, etched](images/pattern-floret_pentagonal-etched.png) |
+| Raised | Etched | Alternating |
+|---|---|---|
+| ![floret_pentagonal, raised](images/pattern-floret_pentagonal-raised.png) | ![floret_pentagonal, etched](images/pattern-floret_pentagonal-etched.png) | ![floret_pentagonal, alternating](images/pattern-floret_pentagonal-alternating.png) |
 
 Interlocking. The floret pentagonal tiling (Wikipedia "V3^4.6", dual of the
 snub trihexagonal tiling): rosettes of 6 congruent, irregular pentagons
 pinwheel around a shared hub point (four 120-degree angles and one
-60-degree angle per pentagon). Unlike `cairo_pentagonal`/`rhombille`, each
-rosette is a multi-facet fan around a shared point, the same shape of
-structure the "kis" family's own fans have -- so, like that family,
-`"etched"` here is a genuinely different, flat-panel VNF (every pentagon at
-the tile's full height, with only a thin engraved groove between them), not
-an inverted copy of the raised relief, which instead alternates heights
-around the rosette for a pinwheel-blade look.
+60-degree angle per pentagon). `"etched"` is a flat wall cut by a two-tier
+groove: primary along each rosette's outer boundary, secondary along the
+seams between its six pentagon blades. `"alternating"` gives real bas-relief
+across the rosette, alternating blades proud of the wall and sunk below it.
 
 ### deltoidal_trihexagonal
 
@@ -450,8 +464,10 @@ indistinguishable from `"follow"` and the pair would show nothing.
 
 The script hard-fails if any render's console output contains `CGAL error`.
 That check is load-bearing: `tumbling_cubes`, `intertwine`, `islamic_star`,
-`rhombille`, `cairo_pentagonal` and `floret_pentagonal` abort CGAL at some
-`pattern_repeat`/`smoothness` combinations, and when they do OpenSCAD still
-exits 0 and still writes a plausible-looking PNG. See README.md, "Note on the
-interlocking patterns and CGAL". The `WARNING:` line those six print on every
-render is a proactive notice, not a failure.
+`rhombille`, `cairo_pentagonal`, `floret_pentagonal`, `tetrakis_square` and
+`kisrhombille` abort CGAL at some `pattern_repeat`/`smoothness` combinations
+(the last two only in specific relief modes — `tetrakis_square` in `"etched"`,
+`kisrhombille` in `"alternating"`), and when they do OpenSCAD still exits 0
+and still writes a plausible-looking PNG. See README.md, "Note on the
+interlocking patterns and CGAL". The `WARNING:` line those eight print on
+every render is a proactive notice, not a failure.

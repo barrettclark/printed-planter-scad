@@ -59,14 +59,38 @@ assert(_decoration_style("floret_pentagonal", "etched") == undef,
 // pattern's own low-height constant, distinct from tetrakis_square's/
 // kisrhombille's even though it happens to share the same numeric value --
 // see modules/decoration.scad's convention note on _FP_GAP/_FP_Z_LO).
-// Etched mode flattens every pentagon to the tile's full height.
+// Etched mode is a two-tier outline groove (see the comment below).
 assert(_FP_Z_HI == 1, str("floret_pentagonal's high rosette height must be 1, got ", _FP_Z_HI));
 _zs_raised = unique([for (p = _tex_raised[0]) p[2]]);
 _zs_etched = unique([for (p = _tex_etched[0]) p[2]]);
 assert(_zs_raised == [0, _FP_Z_LO, 1],
     str("floret_pentagonal raised VNF must use exactly 3 Z levels (ground, low, high), got ", _zs_raised));
-assert(_zs_etched == [0, 1],
-    str("floret_pentagonal etched VNF must use exactly 2 Z levels (ground, uniform full height), got ", _zs_etched));
+// Etched is now a true outline engrave, not a flattened-fan flat panel:
+// primary groove between different hubs' rosettes, secondary within one
+// hub's own 6-pentagon rosette.
+assert(_zs_etched == [0, 0.5, 1],
+    str("floret_pentagonal etched VNF must use exactly Z levels {0, 0.5, 1} (two-tier groove), got ", _zs_etched));
+
+_tex_alt = _decoration_texture("floret_pentagonal", "alternating");
+assert(is_vnf(_tex_alt), "_decoration_texture(\"floret_pentagonal\", \"alternating\") must be a valid VNF");
+_zs_alt = unique([for (p = _tex_alt[0]) p[2]]);
+assert(_zs_alt == [0, 0.5, 1],
+    str("floret_pentagonal alternating VNF must use exactly Z levels {0, 0.5, 1}, got ", _zs_alt));
+assert(_tex_alt != _tex_raised && _tex_alt != _tex_etched,
+    "floret_pentagonal alternating tile must differ from both raised and etched");
+
+for (axis = [0, 1]) {
+    lo = _tile_edge_profile(_tex_alt, axis, 0);
+    hi = _tile_edge_profile(_tex_alt, axis, 1);
+    name = (axis == 0) ? "x" : "y";
+    assert(len(lo) == len(hi),
+        str("floret_pentagonal alternating tile has ", len(lo), " vertices on ", name, "=0 but ",
+            len(hi), " on ", name, "=1 -- tiles cannot stitch"));
+    mismatched = [for (i = [0:len(lo)-1]) if (!approx(lo[i], hi[i]))
+                     str(name, "=0 ", lo[i], " vs ", name, "=1 ", hi[i])];
+    assert(len(mismatched) == 0,
+        str("floret_pentagonal alternating tile ", name, " edge vertices don't line up (including Z): ", mismatched));
+}
 
 // The invariant the whole tile design rests on: every vertex the tile leaves
 // on one edge needs a twin at the same position on the opposite edge, or
