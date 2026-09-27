@@ -136,8 +136,7 @@ for (tex = [_tex_etched, _tex_alt]) {
 // the union itself is what fails. README.md's CGAL section already states
 // the rule this restores: keep such a pattern the only textured solid per
 // render. The etched/alternating tiles stay pinned by the VNF assertions
-// above; "etched" additionally gets a real manifold check from
-// .github/workflows/test.yml's loops, which render one solid at a time.
-// "alternating" is not in CI's relief-mode loops yet (they run raised and
-// etched only) -- it was verified by hand here, rendering alone at this
-// file's own geometry: Simple yes, 2 volumes, no CGAL error.
+// above; both additionally get a real manifold check from
+// .github/workflows/test.yml's loops, which render one solid at a time --
+// "alternating" joined those loops (a reduced value and the shipped
+// defaults, both real-assembly checks) once CI coverage for it existed.

@@ -139,9 +139,8 @@ for (tex = [_tex_etched, _tex_alt]) {
 // and 8 -- on unmodified main, with no etched/alternating code involved.
 // Each solid alone is a clean 2-volume manifold; the union is what fails,
 // and moving the copies apart does not help. The etched/alternating tiles
-// stay pinned by the VNF assertions above; "etched" additionally gets a
-// real manifold check from .github/workflows/test.yml's loops, which render
-// one solid at a time. "alternating" is not in CI's relief-mode loops yet
-// (they run raised and etched only) -- it was verified by hand here,
-// rendering alone at this file's own geometry: Simple yes, 2 volumes, no
-// CGAL error.
+// stay pinned by the VNF assertions above; both additionally get a real
+// manifold check from .github/workflows/test.yml's loops, which render one
+// solid at a time -- "alternating" joined those loops (a reduced value and
+// the shipped defaults, both real-assembly checks) once CI coverage for it
+// existed.
