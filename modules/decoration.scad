@@ -1367,7 +1367,13 @@ _IS_INNER_GAP = 0.03; // etched secondary groove width -- unused in practice
 
 // star=0 (high), the four crosses=1..4 (low) -- group_id and alt_key
 // coincide here (each group has one sub-region, so the natural motif
-// identity IS the natural alternation bucket).
+// identity IS the natural alternation bucket). NOTE: keys 1-4 are periodic
+// images of the SAME physical corner cross (_IS_CROSS_CENTERS' four corners
+// clip to one cross repeating at each tile corner, same invariant
+// _tc_alternating_islands() documents) -- they must all stay on the same
+// side of high_group together, or the tile seam stops matching. Benign as
+// shipped (all four are low here), but keep them together if this ever
+// changes.
 _IS_HIGH_GROUP = [0];
 
 function _islamic_star_motif_groups() =
@@ -1501,7 +1507,7 @@ module decorated_solid(pattern_type, pattern_orientation, relief_mode, pattern_d
         // group (18 flat pentagon plateaus per unit tile, vs. Cairo's 8) and
         // measured the widest spread of aborting pattern_repeat values of any
         // pattern here in a real sweep. The shipped defaults themselves (16,
-        // smoothness=60) measure clean in both relief modes, but with a
+        // smoothness=60) measure clean in all three relief modes, but with a
         // thinner margin below them than any other pattern, so CI pins them.
         // See README.md.
         // "triakis_triangular" shares the same small-triangular-facet tile
