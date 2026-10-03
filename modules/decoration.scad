@@ -59,9 +59,17 @@ RELIEF_MODES = ["raised", "etched", "alternating"];
 ALTERNATING_PATTERNS = ["islamic_star", "kisrhombille", "tumbling_cubes", "rhombille", "tetrakis_square", "triakis_triangular", "cairo_pentagonal", "floret_pentagonal"];
 
 // Excluded from the square-tile correction: "none" has no texture at all;
-// "ridges" is a directional stripe pattern with no discrete shape to square;
-// "bricks" is intentionally rectangular, like real bricks.
-_ASPECT_EXCLUDED_PATTERNS = ["none", "ridges", "bricks"];
+// "ridges" is a directional stripe pattern with no discrete shape to square.
+// "bricks" used to be excluded too, on the theory that it should stay
+// rectangular rather than square -- but that was backwards: BOSL2's
+// "bricks" heightfield already bakes a 2:1 brick shape into its own tile
+// (one full-width brick plus two half-width bricks, each exactly half the
+// tile's height), so a SQUARE cell is what reproduces that 2:1 brick. Opting
+// out instead pinned the cell's own aspect to the wall's fixed
+// circumference:height ratio (~3.2:1 at defaults), which compounded with
+// the tile's built-in 2:1 into ~6.4:1 bricks that no pattern_repeat value
+// could fix, since that ratio never depended on pattern_repeat.
+_ASPECT_EXCLUDED_PATTERNS = ["none", "ridges"];
 
 // BOSL2's own documentation (lib/BOSL2/skin.scad texture catalog comments)
 // says these three need an additional sqrt(3) Y-scale for correct aspect:
