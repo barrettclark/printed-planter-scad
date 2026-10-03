@@ -52,12 +52,16 @@ assert(v_cubes_horizontal > v_dots,
     "horizontal-orientation cubes vertical_reps must be larger than the plain square-tile count (inverted sqrt(3) correction)");
 
 // Excluded patterns keep vertical_reps == pattern_repeat regardless of the
-// real geometry -- "ridges" is directional, "bricks" is intentionally
-// rectangular.
+// real geometry -- "ridges" is directional, with no discrete shape to square.
 v_ridges = _square_tile_vertical_reps("ridges", "vertical", pattern_repeat, r1, r2, height);
-v_bricks = _square_tile_vertical_reps("bricks", "vertical", pattern_repeat, r1, r2, height);
 assert(v_ridges == pattern_repeat, str("expected ridges vertical_reps ", pattern_repeat, ", got ", v_ridges));
-assert(v_bricks == pattern_repeat, str("expected bricks vertical_reps ", pattern_repeat, ", got ", v_bricks));
+
+// "bricks" uses the plain square-tile formula like "dots" -- BOSL2's bricks
+// heightfield already bakes a 2:1 brick into its own tile (one full-width
+// brick, two half-width bricks, each exactly half the tile's height), so a
+// square cell is what reproduces that 2:1 brick on the surface.
+v_bricks = _square_tile_vertical_reps("bricks", "vertical", pattern_repeat, r1, r2, height);
+assert(v_bricks == expected_dots, str("expected bricks vertical_reps ", expected_dots, ", got ", v_bricks));
 
 // The custom VNF tiles (built on _UNIT_TILE, confirmed unit-square, no
 // intrinsic correction) use the plain formula, same as "dots".
